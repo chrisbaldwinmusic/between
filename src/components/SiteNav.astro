@@ -1,0 +1,213 @@
+---
+const navLinks = [
+  { href: '#idea',          label: 'The idea'       },
+  { href: '#the-year',      label: 'The year'       },
+  { href: '#how-it-works',  label: 'How it works'   },
+  { href: '#membership',    label: 'Membership'     },
+  { href: '#the-ambition',  label: 'The ambition'   },
+  { href: '#get-involved',  label: 'Get involved'   },
+  { href: '#access',        label: 'Access'         },
+];
+---
+
+<header class="site-nav" role="banner">
+  <div class="site-nav__inner container">
+
+    <a href="/" class="site-nav__brand" aria-label="The Space Between — home">
+      <span class="site-nav__brand-name">The Space Between</span>
+      <span class="site-nav__brand-by" aria-hidden="true">Sonic Boom</span>
+    </a>
+
+    <button
+      class="site-nav__toggle"
+      aria-controls="primary-nav"
+      aria-expanded="false"
+      aria-label="Open navigation menu"
+    >
+      <span class="site-nav__hamburger" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+    </button>
+
+    <nav id="primary-nav" class="site-nav__links" aria-label="Primary navigation" hidden>
+      <ul role="list">
+        {navLinks.map(({ href, label }) => (
+          <li><a href={href} class="site-nav__link">{label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <a href="#signup" class="btn btn-primary site-nav__cta">
+      Join the community
+    </a>
+
+  </div>
+</header>
+
+<style>
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--ink);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .site-nav__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    height: var(--nav-h);
+  }
+
+  /* ── Brand ─────────────────────────────────────────── */
+  .site-nav__brand {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .site-nav__brand-name {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--paper);
+    letter-spacing: -0.01em;
+  }
+  .site-nav__brand-by {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--body);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .site-nav__brand:hover .site-nav__brand-name { color: var(--ember); }
+
+  /* ── Hamburger ──────────────────────────────────────── */
+  .site-nav__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-left: auto;
+    border-radius: var(--radius);
+    color: var(--body);
+  }
+  .site-nav__toggle:hover { color: var(--paper); }
+
+  .site-nav__hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 20px;
+  }
+  .site-nav__hamburger span {
+    display: block;
+    height: 2px;
+    background: currentColor;
+    border-radius: 1px;
+    transition: transform var(--duration) var(--ease), opacity var(--duration) var(--ease);
+  }
+
+  /* Open state — cross */
+  .site-nav__toggle[aria-expanded="true"] .site-nav__hamburger span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .site-nav__toggle[aria-expanded="true"] .site-nav__hamburger span:nth-child(2) {
+    opacity: 0;
+  }
+  .site-nav__toggle[aria-expanded="true"] .site-nav__hamburger span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* ── Mobile nav links ───────────────────────────────── */
+  .site-nav__links {
+    position: absolute;
+    top: var(--nav-h);
+    left: 0;
+    right: 0;
+    background: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+    padding: var(--space-4) 0;
+  }
+  .site-nav__links ul {
+    display: flex;
+    flex-direction: column;
+  }
+  .site-nav__link {
+    display: block;
+    padding: var(--space-3) clamp(var(--space-4), 5vw, var(--space-10));
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--body);
+    text-decoration: none;
+    transition: color var(--duration) var(--ease), background var(--duration) var(--ease);
+  }
+  .site-nav__link:hover {
+    color: var(--paper);
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* Keep CTA always visible in row with hamburger */
+  .site-nav__cta {
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+    padding: 0.5rem 0.875rem;
+  }
+
+  /* ── Desktop ────────────────────────────────────────── */
+  @media (min-width: 900px) {
+    .site-nav__toggle { display: none; }
+
+    .site-nav__links {
+      position: static;
+      background: transparent;
+      border: none;
+      padding: 0;
+      flex: 1;
+      display: block !important; /* override hidden attr */
+    }
+    .site-nav__links ul {
+      flex-direction: row;
+      gap: var(--space-1);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .site-nav__link {
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--text-xs);
+      border-radius: var(--radius-sm);
+    }
+
+    .site-nav__cta {
+      font-size: var(--text-sm);
+      padding: 0.625rem 1.25rem;
+    }
+  }
+</style>
+
+<script>
+  const toggle = document.querySelector('.site-nav__toggle') as HTMLButtonElement | null;
+  const nav    = document.getElementById('primary-nav') as HTMLElement | null;
+  if (toggle && nav) {
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      toggle.setAttribute('aria-label', open ? 'Open navigation menu' : 'Close navigation menu');
+      nav.hidden = open;
+    });
+
+    /* Close nav when any anchor link is clicked */
+    nav.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Open navigation menu');
+        nav.hidden = true;
+      });
+    });
+  }
+</script>

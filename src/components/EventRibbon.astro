@@ -1,0 +1,260 @@
+---
+import events from '../data/events.json';
+import EventCard from './EventCard.astro';
+---
+
+<section id="the-year" class="events-section" aria-labelledby="events-heading">
+  <div class="container">
+
+    <header class="events-section__header">
+      <h2 id="events-heading" class="events-section__title">The year</h2>
+      <p class="events-section__sub">
+        Ten events. One a month. Free or low-cost. All across Burton.
+      </p>
+    </header>
+
+    <!-- Filter controls -->
+    <div class="event-filters" role="group" aria-label="Filter events by type or time of day">
+      <button class="event-filter is-active" data-filter="all" aria-pressed="true" type="button">All</button>
+      <button class="event-filter" data-filter="free" aria-pressed="false" type="button">Free</button>
+      <button class="event-filter" data-filter="ticketed" aria-pressed="false" type="button">Ticketed</button>
+      <button class="event-filter" data-filter="daytime" aria-pressed="false" type="button">Daytime</button>
+      <button class="event-filter" data-filter="evening" aria-pressed="false" type="button">Evening</button>
+    </div>
+
+  </div>
+
+  <!-- Ribbon: horizontal scroll on desktop, vertical stack on mobile -->
+  <div class="event-ribbon" role="list" aria-label="Programme events">
+    <div class="event-ribbon__track">
+      {events.map((event) => (
+        <div class="event-ribbon__item" role="listitem">
+          <EventCard event={event} />
+        </div>
+      ))}
+    </div>
+
+    <!-- "No results" message for filtered state -->
+    <p class="event-ribbon__empty" hidden aria-live="polite">
+      No events match this filter. <button class="event-ribbon__reset" type="button">Show all</button>
+    </p>
+  </div>
+
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────────────────── */
+  .events-section {
+    background: var(--ink);
+    padding-block: clamp(var(--space-12), 8vw, var(--space-20));
+    overflow: hidden;
+  }
+
+  /* ── Header ───────────────────────────────────────────────────────────── */
+  .events-section__header {
+    margin-bottom: var(--space-8);
+  }
+
+  .events-section__title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-optical-sizing: auto;
+    color: var(--paper);
+    line-height: 1.05;
+    margin-bottom: var(--space-3);
+  }
+
+  .events-section__sub {
+    font-family: var(--font-body);
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    color: var(--body);
+    max-width: 50ch;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ── Filter buttons ───────────────────────────────────────────────────── */
+  .event-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-8);
+  }
+
+  .event-filter {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    padding: 0.4rem 1rem;
+    border-radius: 2rem;
+    border: 1.5px solid rgba(201, 191, 186, 0.3);
+    background: transparent;
+    color: var(--body);
+    cursor: pointer;
+    transition: background 150ms var(--ease-out), color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+    line-height: 1;
+  }
+
+  .event-filter:hover {
+    border-color: var(--paper);
+    color: var(--paper);
+  }
+
+  .event-filter.is-active,
+  .event-filter[aria-pressed="true"] {
+    background: var(--paper);
+    color: var(--ink);
+    border-color: var(--paper);
+  }
+
+  .event-filter:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .event-filter { transition: none; }
+  }
+
+  /* ── Ribbon container ─────────────────────────────────────────────────── */
+  .event-ribbon {
+    padding-inline: var(--space-6);
+  }
+
+  .event-ribbon__track {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  /* Desktop: horizontal scroll ribbon */
+  @media (min-width: 768px) {
+    .event-ribbon {
+      /* Extend to edges of viewport — align left with container */
+      margin-inline: calc(-1 * var(--space-6));
+      padding-inline: var(--space-6);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      /* Custom scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(201, 191, 186, 0.4) transparent;
+      padding-bottom: var(--space-4);
+    }
+    .event-ribbon::-webkit-scrollbar {
+      height: 4px;
+    }
+    .event-ribbon::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .event-ribbon::-webkit-scrollbar-thumb {
+      background: rgba(201, 191, 186, 0.4);
+      border-radius: 2px;
+    }
+
+    .event-ribbon__track {
+      flex-direction: row;
+      align-items: stretch;
+      width: max-content;
+    }
+  }
+
+  /* ── Individual ribbon item ───────────────────────────────────────────── */
+  .event-ribbon__item {
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 768px) {
+    .event-ribbon__item {
+      width: clamp(240px, 26vw, 292px);
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+    }
+    .event-ribbon__item > :global(.event-card) {
+      flex: 1;
+    }
+  }
+
+  /* Hide filtered cards */
+  .event-ribbon__item[hidden],
+  .event-ribbon__item[data-hidden] {
+    display: none;
+  }
+
+  /* ── Empty state ──────────────────────────────────────────────────────── */
+  .event-ribbon__empty {
+    font-family: var(--font-body);
+    color: var(--body);
+    font-size: var(--text-base);
+    padding: var(--space-6) 0;
+  }
+
+  .event-ribbon__reset {
+    background: none;
+    border: none;
+    color: var(--ember);
+    font-family: var(--font-body);
+    font-size: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+  .event-ribbon__reset:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+</style>
+
+<script>
+  const filterBtns = document.querySelectorAll<HTMLButtonElement>('.event-filter');
+  const items = document.querySelectorAll<HTMLElement>('.event-ribbon__item');
+  const emptyMsg = document.querySelector<HTMLElement>('.event-ribbon__empty');
+  const resetBtn = document.querySelector<HTMLButtonElement>('.event-ribbon__reset');
+
+  function applyFilter(filter: string) {
+    let visible = 0;
+
+    items.forEach(item => {
+      const card = item.querySelector<HTMLElement>('.event-card');
+      if (!card) return;
+
+      const matches =
+        filter === 'all' ||
+        card.dataset.ticketing === filter ||
+        card.dataset.time === filter;
+
+      item.hidden = !matches;
+      if (matches) visible++;
+    });
+
+    if (emptyMsg) emptyMsg.hidden = visible > 0;
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter ?? 'all';
+
+      filterBtns.forEach(b => {
+        const active = b === btn;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-pressed', String(active));
+      });
+
+      applyFilter(filter);
+    });
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    filterBtns.forEach(b => {
+      const active = b.dataset.filter === 'all';
+      b.classList.toggle('is-active', active);
+      b.setAttribute('aria-pressed', String(active));
+    });
+    applyFilter('all');
+  });
+</script>

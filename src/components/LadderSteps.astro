@@ -1,0 +1,263 @@
+---
+// No props — static section content
+
+const steps = [
+  {
+    num: '01',
+    title: 'Come to one.',
+    body: 'Free or from £7.50 — no commitment, no joining, just show up. We have an event a month across Burton.',
+    ctaLabel: 'See the year',
+    ctaHref: '#the-year',
+  },
+  {
+    num: '02',
+    title: 'Join the community.',
+    body: "Sign up once and you'll hear about the next event first — straight to your phone or inbox.",
+    ctaLabel: 'Join free',
+    ctaHref: '#signup',
+  },
+  {
+    num: '03',
+    title: 'Become a Founding Member.',
+    body: 'Back the year-round programme and the venue campaign. Be one of the first people to say: Burton deserves this.',
+    ctaLabel: 'Find out more',
+    ctaHref: '#membership',
+  },
+] as const;
+---
+
+<section id="how-it-works" class="ladder-section" aria-labelledby="ladder-heading">
+  <div class="container">
+
+    <h2 id="ladder-heading" class="ladder-heading">How it works</h2>
+
+    <ol class="ladder-steps">
+      {steps.map(step => (
+        <li class="ladder-step">
+
+          <span class="ladder-step__num" aria-hidden="true">{step.num}</span>
+
+          <div class="ladder-step__body">
+            <h3 class="ladder-step__title">{step.title}</h3>
+            <p class="ladder-step__desc">{step.body}</p>
+            <a href={step.ctaHref} class="ladder-step__cta">
+              {step.ctaLabel}
+              <span class="ladder-step__arrow" aria-hidden="true">→</span>
+            </a>
+          </div>
+
+        </li>
+      ))}
+    </ol>
+
+    <!-- Connecting tagline -->
+    <p class="ladder-tagline" aria-hidden="true">
+      Come once. Come back. Shape what's next.
+    </p>
+
+  </div>
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────────────────── */
+  .ladder-section {
+    background: var(--ink);
+    padding-block: clamp(var(--space-12), 9vw, var(--space-20));
+  }
+
+  /* ── Section heading ──────────────────────────────────────────────────── */
+  .ladder-heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    font-optical-sizing: auto;
+    line-height: 1.05;
+    color: var(--paper);
+    margin-bottom: clamp(var(--space-10), 6vw, var(--space-14));
+  }
+
+  /* ── Steps list ───────────────────────────────────────────────────────── */
+  .ladder-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    /* Vertical connector line on mobile */
+    position: relative;
+  }
+
+  /* Mobile: vertical line connecting the steps */
+  @media (max-width: 767px) {
+    .ladder-steps::before {
+      content: '';
+      position: absolute;
+      left: 0.75rem; /* aligns with centre of number */
+      top: 2.5rem;
+      bottom: 2.5rem;
+      width: 2px;
+      background: linear-gradient(
+        to bottom,
+        var(--ember),
+        rgba(201, 191, 186, 0.15)
+      );
+    }
+  }
+
+  @media (min-width: 768px) {
+    .ladder-steps {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      /* Horizontal connector line */
+      position: relative;
+    }
+    .ladder-steps::before {
+      content: '';
+      position: absolute;
+      top: 1.35rem; /* aligns with centre of number */
+      left: 2.5rem;
+      right: 2.5rem;
+      height: 2px;
+      background: linear-gradient(
+        to right,
+        var(--ember),
+        var(--red),
+        rgba(201, 191, 186, 0.15)
+      );
+    }
+  }
+
+  /* ── Individual step ──────────────────────────────────────────────────── */
+  .ladder-step {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-5);
+    padding: var(--space-6) 0;
+    border-bottom: 1px solid rgba(58, 44, 44, 0.5);
+    position: relative;
+    z-index: 1;
+  }
+
+  .ladder-step:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  @media (min-width: 768px) {
+    .ladder-step {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0 var(--space-8) var(--space-8) 0;
+      border-bottom: none;
+      border-right: 1px solid rgba(58, 44, 44, 0.5);
+    }
+    .ladder-step:last-child {
+      padding-right: 0;
+      border-right: none;
+    }
+  }
+
+  /* ── Step number (large display figure) ──────────────────────────────── */
+  .ladder-step__num {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1;
+    color: var(--red);
+    font-optical-sizing: auto;
+    flex-shrink: 0;
+    width: 2.8rem;
+    text-align: center;
+    /* Sits above the connector line */
+    background: var(--ink);
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (min-width: 768px) {
+    .ladder-step__num {
+      width: auto;
+      text-align: left;
+      margin-bottom: var(--space-6);
+    }
+  }
+
+  /* ── Step content ─────────────────────────────────────────────────────── */
+  .ladder-step__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .ladder-step__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    font-optical-sizing: auto;
+    color: var(--paper);
+    line-height: 1.15;
+    margin: 0;
+  }
+
+  .ladder-step__desc {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: 1.65;
+    color: var(--body);
+    max-width: 38ch;
+    margin: 0;
+  }
+
+  /* Micro-CTA */
+  .ladder-step__cta {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--ember);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    transition: color 150ms var(--ease-out), gap 150ms var(--ease-out);
+    width: fit-content;
+  }
+  .ladder-step__cta:hover {
+    color: var(--paper);
+    gap: 0.5em;
+  }
+  .ladder-step__cta:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  .ladder-step__arrow {
+    transition: transform 150ms var(--ease-out);
+  }
+  .ladder-step__cta:hover .ladder-step__arrow {
+    transform: translateX(3px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ladder-step__cta,
+    .ladder-step__arrow { transition: none; }
+    .ladder-step__cta:hover .ladder-step__arrow { transform: none; }
+  }
+
+  /* ── Tagline ──────────────────────────────────────────────────────────── */
+  .ladder-tagline {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    font-weight: 400;
+    color: var(--ember);
+    margin-top: clamp(var(--space-10), 5vw, var(--space-14));
+    font-optical-sizing: auto;
+    letter-spacing: -0.01em;
+  }
+</style>

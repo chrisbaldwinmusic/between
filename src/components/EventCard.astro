@@ -1,0 +1,268 @@
+---
+interface Event {
+  slug: string;
+  name: string;
+  month: string;
+  date: string;
+  format: string;
+  blurb: string;
+  venue: string;
+  ticketing: 'free' | 'ticketed';
+  priceFrom: string | null;
+  ticketUrl: string | null;
+  registerUrl: string | null;
+  accent: string;
+  access: string;
+  status: string;
+  timeOfDay: 'daytime' | 'evening';
+}
+
+interface Props { event: Event }
+const { event } = Astro.props;
+
+// Determine action CTA
+let actionLabel: string;
+let actionHref: string;
+let actionExternal = false;
+
+if (event.status === 'soldout') {
+  actionLabel = 'Sold out';
+  actionHref = '';
+} else if (event.status === 'past') {
+  actionLabel = '';
+  actionHref = '';
+} else {
+  const url = event.ticketing === 'free' ? event.registerUrl : event.ticketUrl;
+  if (url) {
+    actionLabel = event.ticketing === 'free' ? 'Register' : 'Get tickets';
+    actionHref = `${url}?utm_source=between&utm_medium=events&utm_campaign=${event.slug}`;
+    actionExternal = true;
+  } else {
+    actionLabel = 'Notify me';
+    actionHref = `#signup`;
+  }
+}
+
+// Parse date parts safely (UTC to avoid timezone shift)
+const [y, m, d] = event.date.split('-').map(Number);
+const dateObj = new Date(Date.UTC(y, m - 1, d));
+const weekday = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dateObj.getUTCDay()];
+const longDate = `${weekday} ${d} ${event.month}`;
+---
+
+<article
+  class="event-card"
+  style={`--accent: ${event.accent}`}
+  data-ticketing={event.ticketing}
+  data-time={event.timeOfDay}
+>
+  <div class="event-card__meta">
+    <span class="event-card__month">{event.month}</span>
+    <span class="event-card__tod" aria-label={event.timeOfDay === 'daytime' ? 'Daytime event' : 'Evening event'}>
+      {event.timeOfDay === 'daytime' ? '☀ Daytime' : '● Evening'}
+    </span>
+  </div>
+
+  <h3 class="event-card__name">
+    <a class="event-card__link" href={`/events/${event.slug}`}>
+      {event.name}
+    </a>
+  </h3>
+
+  <p class="event-card__format">{event.format}</p>
+
+  <p class="event-card__venue">
+    <span aria-hidden="true" class="event-card__pin">⌖</span>
+    {event.venue}
+  </p>
+
+  <div class="event-card__footer">
+    <span class={`event-card__price event-card__price--${event.ticketing}`}>
+      {event.ticketing === 'free' ? 'Free' : event.priceFrom}
+    </span>
+
+    {actionLabel && actionHref && (
+      <a
+        href={actionHref}
+        class="btn event-card__btn"
+        {...(actionExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
+        {...(event.status === 'soldout' ? { 'aria-disabled': 'true' } : {})}
+      >
+        {actionLabel}
+        {actionExternal && <span class="sr-only"> (opens in new tab)</span>}
+      </a>
+    )}
+    {event.status === 'soldout' && (
+      <span class="btn event-card__btn event-card__btn--soldout" aria-label="Sold out">Sold out</span>
+    )}
+  </div>
+</article>
+
+<style>
+  .event-card {
+    background: #fff;
+    border-top: 4px solid var(--accent);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    box-shadow: 0 2px 16px rgba(26, 18, 18, 0.12);
+    transition: transform var(--ease-out) 200ms, box-shadow var(--ease-out) 200ms;
+    min-width: 0; /* prevent flex child overflow */
+  }
+
+  .event-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(26, 18, 18, 0.18);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .event-card,
+    .event-card:hover {
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /* Meta row: month + time of day */
+  .event-card__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .event-card__month {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--body);
+  }
+
+  .event-card__tod {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--body);
+    white-space: nowrap;
+  }
+
+  /* Name */
+  .event-card__name {
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    font-optical-sizing: auto;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .event-card__link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .event-card__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  /* Position context for the stretched link */
+  .event-card {
+    position: relative;
+  }
+  /* Ensure real interactive elements (button) sit above the stretched link */
+  .event-card__btn,
+  .event-card__footer {
+    position: relative;
+    z-index: 1;
+  }
+
+  .event-card__link:focus-visible {
+    outline: none;
+  }
+  .event-card__link:focus-visible::after {
+    outline: 3px solid var(--ember);
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Format */
+  .event-card__format {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Venue */
+  .event-card__venue {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+    margin: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35em;
+  }
+  .event-card__pin {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 1em;
+    line-height: 1.5;
+  }
+
+  /* Footer: price + CTA */
+  .event-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: auto;
+    padding-top: var(--space-2);
+    border-top: 1px solid rgba(26, 18, 18, 0.08);
+  }
+
+  .event-card__price {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .event-card__price--free {
+    color: #2d5a1b; /* accessible dark green — contrast 7.1:1 on white */
+  }
+  .event-card__price--ticketed {
+    color: var(--red);
+  }
+
+  /* CTA button */
+  .event-card__btn {
+    font-size: var(--text-sm);
+    padding: 0.5rem 1rem;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background var(--ease-out) 150ms;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+  }
+  .event-card__btn:hover {
+    background: var(--red);
+    color: var(--paper);
+  }
+  .event-card__btn--soldout {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+</style>

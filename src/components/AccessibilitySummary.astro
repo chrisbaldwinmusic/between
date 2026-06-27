@@ -1,0 +1,264 @@
+---
+// No props — static section content
+
+const commitments = [
+  {
+    heading: 'Step-free access',
+    body: 'All main venues — Burton Library, Brewhouse Arts Centre, Stapenhill Gardens, and Burton Market Place — have step-free entry.',
+  },
+  {
+    heading: 'Quiet spaces',
+    body: 'A calm, low-stimulus space is available at most indoor events. Ask a steward when you arrive.',
+  },
+  {
+    heading: 'BSL interpretation',
+    body: 'British Sign Language interpretation is available at any event — just give us a few days\' notice so we can arrange it.',
+  },
+  {
+    heading: 'Access fund',
+    body: 'If cost is a barrier to attending a ticketed event, contact us. We have a small fund and will do what we can.',
+  },
+  {
+    heading: 'Tickets for Good',
+    body: 'Free and subsidised tickets are available through Tickets for Good for people facing financial hardship.',
+  },
+] as const;
+---
+
+<section id="access" class="access-section" aria-labelledby="access-heading">
+  <div class="container">
+
+    <div class="access-inner">
+
+      <!-- Summary grid -->
+      <div class="access-commitments">
+
+        <h2 id="access-heading" class="access-heading">Access</h2>
+
+        <ul class="access-list" role="list">
+          {commitments.map(c => (
+            <li class="access-item">
+              <h3 class="access-item__title">{c.heading}</h3>
+              <p class="access-item__body">{c.body}</p>
+            </li>
+          ))}
+        </ul>
+
+      </div>
+
+      <!-- Sidebar: schemes + contact -->
+      <aside class="access-sidebar" aria-label="Safety schemes and contact">
+
+        <div class="access-schemes">
+          <h3 class="access-schemes__heading">Our commitments</h3>
+          <ul class="access-schemes__list" role="list">
+            <li class="access-scheme">
+              <span class="access-scheme__badge" aria-hidden="true">✓</span>
+              <span><strong>Safe Gigs for Women</strong> — trained staff, zero tolerance policy</span>
+            </li>
+            <li class="access-scheme">
+              <span class="access-scheme__badge" aria-hidden="true">✓</span>
+              <span><strong>Good Night Out</strong> — campaign members; all venues briefed</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="access-contact">
+          <p class="access-contact__line">
+            Tell us what you need — we'll do our best to make it work.
+          </p>
+          <a
+            href="mailto:accessibility@sonicboom.org.uk?subject=Access%20request%20%E2%80%94%20The%20Space%20Between"
+            class="access-contact__email"
+            rel="noopener"
+          >
+            accessibility@sonicboom.org.uk
+          </a>
+        </div>
+
+        <a
+          href="/accessibility"
+          class="access-fullpage"
+        >
+          Full access statement <span aria-hidden="true">→</span>
+        </a>
+
+      </aside>
+
+    </div>
+
+  </div>
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────────────────── */
+  .access-section {
+    background: var(--ink);
+    padding-block: clamp(var(--space-12), 9vw, var(--space-20));
+  }
+
+  /* ── Inner layout ─────────────────────────────────────────────────────── */
+  .access-inner {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(var(--space-10), 6vw, var(--space-14));
+  }
+
+  @media (min-width: 900px) {
+    .access-inner {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: clamp(var(--space-10), 5vw, var(--space-14));
+    }
+    .access-commitments { flex: 1; }
+    .access-sidebar { flex: 0 0 min(40%, 380px); }
+  }
+
+  /* ── Heading ──────────────────────────────────────────────────────────── */
+  .access-heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    font-optical-sizing: auto;
+    line-height: 1.05;
+    color: var(--paper);
+    margin-bottom: clamp(var(--space-8), 5vw, var(--space-10));
+  }
+
+  /* ── Commitment list ──────────────────────────────────────────────────── */
+  .access-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .access-item {
+    padding-block: var(--space-5);
+    border-bottom: 1px solid rgba(58, 44, 44, 0.8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .access-item:first-child { border-top: 1px solid rgba(58, 44, 44, 0.8); }
+
+  .access-item__title {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: 700;
+    color: var(--paper);
+    margin: 0;
+  }
+
+  .access-item__body {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.65;
+    color: var(--body);
+    max-width: 58ch;
+    margin: 0;
+  }
+
+  /* ── Sidebar ──────────────────────────────────────────────────────────── */
+  .access-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  /* Schemes */
+  .access-schemes__heading {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--body);
+    margin-bottom: var(--space-4);
+  }
+
+  .access-schemes__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .access-scheme {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.55;
+    color: var(--body);
+  }
+
+  .access-scheme strong { color: var(--paper); }
+
+  .access-scheme__badge {
+    flex-shrink: 0;
+    color: var(--ember);
+    font-weight: 700;
+    margin-top: 0.1em;
+  }
+
+  /* Contact */
+  .access-contact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    background: rgba(232, 162, 61, 0.08);
+    border-left: 3px solid var(--ember);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  .access-contact__line {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--paper);
+    margin: 0;
+    font-style: italic;
+  }
+
+  .access-contact__email {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--ember);
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .access-contact__email:hover { text-decoration: underline; }
+  .access-contact__email:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Full page link */
+  .access-fullpage {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--body);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    transition: color 150ms var(--ease-out);
+  }
+  .access-fullpage:hover { color: var(--paper); }
+  .access-fullpage:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+</style>

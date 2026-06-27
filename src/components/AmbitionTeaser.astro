@@ -1,0 +1,179 @@
+---
+// This section holds the prose for §6.6.
+// The live demand-poll widget (DemandMeter) is added in Step 8.
+// At that point, replace the placeholder block below with <DemandMeter />.
+---
+
+<section id="the-ambition" class="ambition-section" aria-labelledby="ambition-heading">
+  <div class="container">
+
+    <div class="ambition-inner">
+
+      <!-- Copy -->
+      <div class="ambition-copy">
+
+        <h2 id="ambition-heading" class="ambition-heading">
+          The ambition
+        </h2>
+
+        <p class="ambition-body">
+          Burton hasn't had a dedicated grassroots music venue for a long time.
+        </p>
+
+        <p class="ambition-body">
+          East Staffordshire Borough Council is exploring the business case for one.
+          Our ambition is to be part of making it happen — if the demand is there.
+        </p>
+
+        <p class="ambition-body">
+          The Space Between is how we find out, together, whether it is. Every event
+          we run, every person who joins the community, every voice added here builds
+          the picture funders and decision-makers need to see.
+        </p>
+
+        <p class="ambition-body ambition-body--em">
+          We're not there yet. But we're building the case — and you're part of it.
+        </p>
+
+      </div>
+
+      <!-- Demand poll placeholder — replaced by DemandMeter component in Step 8 -->
+      <div class="ambition-poll" aria-label="Venue demand poll — coming soon">
+
+        <p class="ambition-poll__question">
+          Would you use a permanent grassroots music venue in Burton?
+        </p>
+
+        <div class="ambition-poll__placeholder" role="presentation">
+          <p class="ambition-poll__coming">
+            <span class="ambition-poll__icon" aria-hidden="true">◎</span>
+            Live demand meter — launching Winter 2026
+          </p>
+          <p class="ambition-poll__hint">
+            Sign up below and you'll be among the first to add your voice when
+            we open the demand count.
+          </p>
+        </div>
+
+        <!-- TODO: Replace ambition-poll__placeholder with <DemandMeter /> in Step 8 -->
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────────────────── */
+  .ambition-section {
+    background: var(--ink-soft);
+    padding-block: clamp(var(--space-12), 9vw, var(--space-20));
+    border-top: 1px solid var(--line);
+  }
+
+  /* ── Inner layout ─────────────────────────────────────────────────────── */
+  .ambition-inner {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(var(--space-10), 6vw, var(--space-14));
+  }
+
+  @media (min-width: 900px) {
+    .ambition-inner {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: clamp(var(--space-10), 5vw, var(--space-14));
+    }
+    .ambition-copy { flex: 1; }
+    .ambition-poll { flex: 0 0 min(44%, 420px); }
+  }
+
+  /* ── Copy ─────────────────────────────────────────────────────────────── */
+  .ambition-heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    font-optical-sizing: auto;
+    line-height: 1.05;
+    color: var(--paper);
+    margin-bottom: var(--space-6);
+  }
+
+  .ambition-body {
+    font-family: var(--font-body);
+    font-size: clamp(1rem, 2vw, 1.1rem);
+    line-height: 1.75;
+    color: var(--body);
+    max-width: 54ch;
+    margin-bottom: var(--space-5);
+  }
+
+  .ambition-body--em {
+    color: var(--paper);
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  /* ── Poll area ────────────────────────────────────────────────────────── */
+  .ambition-poll {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: clamp(var(--space-6), 4vw, var(--space-8));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .ambition-poll__question {
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 2.5vw, 1.4rem);
+    font-weight: 700;
+    font-optical-sizing: auto;
+    line-height: 1.3;
+    color: var(--paper);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .ambition-poll__placeholder {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .ambition-poll__coming {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--ember);
+    margin: 0;
+  }
+
+  .ambition-poll__icon {
+    font-size: 1.25rem;
+    animation: pulse-ring 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ambition-poll__icon { animation: none; }
+  }
+
+  .ambition-poll__hint {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--body);
+    margin: 0;
+  }
+</style>

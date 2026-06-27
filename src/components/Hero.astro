@@ -1,0 +1,275 @@
+---
+// Self-hosted webm takes priority; YouTube nocookie is the fallback.
+const videoSrc: string | null = null; // TODO: add self-hosted .webm if available
+const youtubeSrc: string = 'nb_TL5TfI2I';
+---
+
+<section class="hero" aria-labelledby="hero-headline">
+
+  <!-- ── Background ──────────────────────────────────────────────────────── -->
+  <div class="hero__bg" aria-hidden="true">
+
+    {videoSrc && (
+      <video
+        class="hero__video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="none"
+      >
+        <source src={videoSrc} type="video/webm" />
+        <source src={videoSrc.replace('.webm', '.mp4')} type="video/mp4" />
+      </video>
+    )}
+
+    {youtubeSrc && !videoSrc && (
+      <iframe
+        class="hero__video hero__video--yt"
+        src={`https://www.youtube-nocookie.com/embed/${youtubeSrc}?autoplay=1&mute=1&loop=1&playlist=${youtubeSrc}&controls=0&disablekb=1&fs=0&rel=0&showinfo=0`}
+        allow="autoplay"
+        title="Background aftermovie"
+        tabindex="-1"
+        aria-hidden="true"
+      />
+    )}
+
+    <div class="hero__poster"></div>
+
+    <!-- Dark gradient overlay — preserves text contrast at all screen sizes -->
+    <div class="hero__overlay"></div>
+
+    <!-- Static grain texture — decorative, hidden under prefers-reduced-motion -->
+    <div class="hero__grain" aria-hidden="true"></div>
+
+    <!-- Warm ember glow — disabled under prefers-reduced-motion -->
+    <div class="hero__glow" aria-hidden="true"></div>
+
+  </div>
+
+  <!-- ── Content ─────────────────────────────────────────────────────────── -->
+  <div class="hero__content container">
+
+    <h1 id="hero-headline" class="hero__headline">
+      The space between festivals is where a town decides what it wants.
+    </h1>
+
+    <p class="hero__sub">
+      One free or low-cost event a month, all year, across Burton —
+      come to one, then come back.
+    </p>
+
+    <div class="hero__actions">
+      <a href="#signup" class="btn btn-primary hero__cta-primary">
+        Join the community
+      </a>
+      <a href="#the-year" class="btn btn-ghost-dark">
+        See the year <span aria-hidden="true">↓</span>
+      </a>
+    </div>
+
+    <p class="hero__count" aria-live="polite" aria-atomic="true">
+      <strong class="hero__count-n" id="hero-count">—</strong>
+      <span class="hero__count-text"> people are already in.</span>
+    </p>
+
+  </div>
+
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    min-height: 100vh; /* fallback */
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: clamp(var(--space-12), 10vh, var(--space-24));
+    overflow: hidden;
+    background: var(--ink);
+  }
+
+  /* ── Background layer ─────────────────────────────────────────────────── */
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* Poster — warm dark gradient fallback until real image is placed */
+  .hero__poster {
+    position: absolute;
+    inset: 0;
+    background-color: var(--ink);
+    background-image:
+      url('/img/hero-poster.jpg'),
+      linear-gradient(160deg, #2a1a14 0%, #1A1212 50%, #0f0a08 100%);
+    background-size: cover;
+    background-position: center 35%;
+  }
+
+  /* Video — sits above poster, hidden in reduced-motion */
+  .hero__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0.55;
+  }
+  .hero__video--yt {
+    border: none;
+    /* Cover the section; YouTube aspect ratio needs this treatment */
+    width: 177.78vh; /* 16/9 × 100vh */
+    height: 56.25vw; /* 9/16 × 100vw */
+    min-width: 100%;
+    min-height: 100%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__video { display: none; }
+  }
+
+  /* Dark gradient overlay — top and bottom darken for nav + text legibility */
+  .hero__overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        to bottom,
+        rgba(26, 18, 18, 0.55) 0%,
+        rgba(26, 18, 18, 0.10) 25%,
+        rgba(26, 18, 18, 0.15) 55%,
+        rgba(26, 18, 18, 0.80) 80%,
+        rgba(26, 18, 18, 0.96) 100%
+      );
+  }
+
+  /* Static grain — always visible, not animated */
+  .hero__grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px;
+  }
+
+  /* Ember glow — animated warm radial, disabled under reduced-motion */
+  .hero__glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 60% 50% at 50% 80%,
+      rgba(232, 162, 61, 0.10) 0%,
+      transparent 70%
+    );
+    animation: glow-breathe 8s ease-in-out infinite alternate;
+  }
+  @keyframes glow-breathe {
+    from { opacity: 0.6; transform: scale(1); }
+    to   { opacity: 1;   transform: scale(1.06); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__glow { animation: none; opacity: 0.7; }
+  }
+
+  /* ── Content ──────────────────────────────────────────────────────────── */
+  .hero__content {
+    position: relative;
+    z-index: 1;
+    max-width: var(--max-w);
+    width: 100%;
+  }
+
+  .hero__headline {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5.5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--paper);
+    letter-spacing: -0.02em;
+    font-optical-sizing: auto;
+    max-width: 18ch;
+    margin-bottom: var(--space-6);
+  }
+
+  .hero__sub {
+    font-family: var(--font-body);
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--body);
+    max-width: 44ch;
+    margin-bottom: var(--space-8);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-8);
+  }
+  .hero__cta-primary {
+    font-size: var(--text-base);
+    padding: 0.75rem 1.5rem;
+  }
+
+  /* Live count line */
+  .hero__count {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25em;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--body);
+    max-width: none;
+    opacity: 0.9;
+  }
+  .hero__count-n {
+    font-weight: 700;
+    color: var(--ember);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Hidden until JS populates it */
+  .hero__count[data-empty] {
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  /* Fetch live count from /api/results (wired in Step 8; safe to run now) */
+  (async () => {
+    const countEl = document.getElementById('hero-count') as HTMLElement | null;
+    const section = countEl?.closest('.hero__count') as HTMLElement | null;
+    if (!countEl || !section) return;
+
+    /* Hide until we have a real number */
+    section.dataset.empty = '';
+
+    try {
+      const res = await fetch('/api/results');
+      if (!res.ok) return;
+      const { total } = await res.json() as { total: number };
+      if (typeof total === 'number' && total > 0) {
+        countEl.textContent = total.toLocaleString('en-GB');
+        delete section.dataset.empty;
+      }
+    } catch {
+      /* Fail silently — count stays hidden */
+    }
+  })();
+
+  /* Stop video if user prefers reduced motion (belt-and-suspenders over CSS) */
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const video = document.querySelector<HTMLVideoElement>('.hero__video:not(.hero__video--yt)');
+    if (video) { video.pause(); video.src = ''; }
+  }
+</script>

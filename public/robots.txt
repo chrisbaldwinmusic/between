@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://between.sonicboom.org.uk/sitemap-index.xml

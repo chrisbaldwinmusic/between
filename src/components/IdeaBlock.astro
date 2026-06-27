@@ -1,0 +1,186 @@
+---
+// No props — static section content
+---
+
+<section id="idea" class="idea-section" aria-labelledby="idea-heading">
+  <div class="container">
+
+    <div class="idea-inner">
+
+      <!-- Copy -->
+      <div class="idea-copy">
+        <h2 id="idea-heading" class="idea-heading">
+          One&nbsp;day isn't enough.
+        </h2>
+        <p class="idea-body">
+          Sonic Boom is the loud part. The Space Between is everything else —
+          the months where a music scene is either built or quietly lost.
+        </p>
+        <p class="idea-body">
+          Our job is simple: give you a reason to come once. Then give you a
+          reason to come back. And eventually, a reason to shape what this
+          town sounds like next.
+        </p>
+      </div>
+
+      <!-- Loop graphic -->
+      <div class="idea-loop" role="img" aria-label="The community loop: Come once, then come back, then shape what's next">
+
+        <div class="loop-node">
+          <span class="loop-node__num" aria-hidden="true">1</span>
+          <strong class="loop-node__label">Come once</strong>
+          <span class="loop-node__sub">An event a month. Free or from&nbsp;£7.50.</span>
+        </div>
+
+        <span class="loop-arrow" aria-hidden="true"></span>
+
+        <div class="loop-node">
+          <span class="loop-node__num" aria-hidden="true">2</span>
+          <strong class="loop-node__label">Come back</strong>
+          <span class="loop-node__sub">Join the community. Hear what's next&nbsp;first.</span>
+        </div>
+
+        <span class="loop-arrow" aria-hidden="true"></span>
+
+        <div class="loop-node loop-node--red">
+          <span class="loop-node__num" aria-hidden="true">3</span>
+          <strong class="loop-node__label">Shape what's next</strong>
+          <span class="loop-node__sub">Founding Membership. Make the case&nbsp;with&nbsp;us.</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────────────────── */
+  .idea-section {
+    background: var(--paper);
+    padding-block: clamp(var(--space-12), 9vw, var(--space-20));
+  }
+
+  /* ── Inner layout: copy left, loop right on wide screens ─────────────── */
+  .idea-inner {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(var(--space-10), 6vw, var(--space-14));
+  }
+
+  @media (min-width: 900px) {
+    .idea-inner {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: clamp(var(--space-12), 6vw, var(--space-16));
+    }
+    .idea-copy {
+      flex: 0 0 min(46%, 520px);
+    }
+    .idea-loop {
+      flex: 1;
+    }
+  }
+
+  /* ── Copy ─────────────────────────────────────────────────────────────── */
+  .idea-heading {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    font-optical-sizing: auto;
+    line-height: 1.05;
+    color: var(--ink);
+    margin-bottom: var(--space-6);
+  }
+
+  .idea-body {
+    font-family: var(--font-body);
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    line-height: 1.75;
+    color: var(--ink-soft);
+    max-width: 52ch;
+    margin-bottom: var(--space-5);
+  }
+  .idea-body:last-child { margin-bottom: 0; }
+
+  /* ── Loop graphic ─────────────────────────────────────────────────────── */
+  .idea-loop {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  @media (min-width: 640px) {
+    .idea-loop {
+      flex-direction: row;
+      align-items: stretch;
+    }
+  }
+
+  /* Arrow connector — ↓ on mobile, → on wide */
+  .loop-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--line);
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    padding: var(--space-2) var(--space-3);
+  }
+  .loop-arrow::before {
+    content: '↓';
+  }
+  @media (min-width: 640px) {
+    .loop-arrow::before { content: '→'; }
+    .loop-arrow {
+      align-self: center;
+      padding: 0 var(--space-2);
+    }
+  }
+
+  /* Node cards */
+  .loop-node {
+    background: #fff;
+    border-left: 4px solid var(--ember);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex: 1;
+    box-shadow: 0 2px 10px rgba(26, 18, 18, 0.07);
+    min-width: 0;
+  }
+
+  .loop-node--red {
+    border-color: var(--red);
+  }
+
+  .loop-node__num {
+    font-family: var(--font-display);
+    font-size: var(--text-xs);
+    font-weight: 800;
+    color: var(--body);
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .loop-node__label {
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+    font-optical-sizing: auto;
+  }
+
+  .loop-node__sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+</style>

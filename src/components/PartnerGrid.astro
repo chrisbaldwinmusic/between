@@ -1,0 +1,175 @@
+---
+// TODO: Add logo image paths when partner logos are supplied.
+// Place logo files in public/img/partners/[partner-slug].png (or .svg).
+// Recommended: white/transparent SVG for dark section, or colour for light.
+
+const partners = [
+  {
+    name: 'East Staffordshire Borough Council',
+    slug: 'esbc',
+    url: 'https://www.eaststaffsbc.gov.uk/?utm_source=between&utm_medium=partners&utm_campaign=esbc',
+  },
+  {
+    name: 'Burton Library',
+    slug: 'burton-library',
+    url: 'https://www.burtonlibrary.co.uk/?utm_source=between&utm_medium=partners&utm_campaign=burton-library',
+  },
+  {
+    name: 'The Brewhouse Arts Centre',
+    slug: 'brewhouse',
+    url: 'https://www.brewhouseartscentre.co.uk/?utm_source=between&utm_medium=partners&utm_campaign=brewhouse',
+  },
+  {
+    name: 'Burton & South Derbyshire College',
+    slug: 'bsdc',
+    url: 'https://www.bsdc.ac.uk/?utm_source=between&utm_medium=partners&utm_campaign=bsdc',
+  },
+  {
+    name: 'Burton Folk Club',
+    slug: 'burton-folk-club',
+    url: null,
+  },
+  {
+    name: 'Burton Albion FC',
+    slug: 'burton-albion',
+    url: 'https://www.burtonalbionfc.co.uk/?utm_source=between&utm_medium=partners&utm_campaign=burton-albion',
+  },
+  {
+    name: 'Circularity',
+    slug: 'circularity',
+    url: 'https://www.circularity.org/?utm_source=between&utm_medium=partners&utm_campaign=circularity',
+  },
+  {
+    name: 'BBC Introducing East Midlands',
+    slug: 'bbc-introducing',
+    url: 'https://www.bbc.co.uk/introducing/east-midlands?utm_source=between&utm_medium=partners&utm_campaign=bbc-introducing',
+  },
+  {
+    name: 'Staffordshire Wildlife Trust',
+    slug: 'staffs-wildlife',
+    url: 'https://www.staffs-wildlife.org.uk/?utm_source=between&utm_medium=partners&utm_campaign=staffs-wildlife',
+  },
+  {
+    name: 'Burton Cultural Arts',
+    slug: 'bca',
+    url: null,
+  },
+] as const;
+---
+
+<section class="partners-section" aria-labelledby="partners-heading">
+  <div class="container">
+
+    <h2 id="partners-heading" class="partners-heading">Our partners</h2>
+
+    <ul class="partners-grid" role="list" aria-label="Partner organisations">
+      {partners.map(partner => (
+        <li class="partner-tile">
+          {partner.url ? (
+            <a
+              class="partner-tile__link"
+              href={partner.url}
+              rel="noopener noreferrer"
+              target="_blank"
+              aria-label={`${partner.name} (opens in new tab)`}
+            >
+              {/* TODO: Replace span with <img src={`/img/partners/${partner.slug}.svg`} alt={partner.name} width="160" height="60" loading="lazy" /> */}
+              <span class="partner-tile__name" aria-hidden="true">{partner.name}</span>
+              <span class="sr-only">{partner.name}</span>
+            </a>
+          ) : (
+            <div class="partner-tile__static" aria-label={partner.name}>
+              {/* TODO: Replace with <img> when logo is available */}
+              <span class="partner-tile__name">{partner.name}</span>
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+
+  </div>
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────────────────── */
+  .partners-section {
+    background: var(--paper);
+    padding-block: clamp(var(--space-10), 7vw, var(--space-16));
+    border-top: 1px solid rgba(58, 44, 44, 0.12);
+  }
+
+  /* ── Heading ──────────────────────────────────────────────────────────── */
+  .partners-heading {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--body);
+    margin-bottom: clamp(var(--space-6), 4vw, var(--space-10));
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────────────────── */
+  .partners-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  @media (min-width: 480px) {
+    .partners-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (min-width: 768px) {
+    .partners-grid { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  /* ── Tile ─────────────────────────────────────────────────────────────── */
+  .partner-tile__link,
+  .partner-tile__static {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    padding: var(--space-3) var(--space-4);
+    background: #fff;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(26, 18, 18, 0.08);
+    text-align: center;
+    transition: border-color 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+    width: 100%;
+  }
+
+  .partner-tile__link:hover {
+    border-color: var(--ember);
+    box-shadow: 0 2px 8px rgba(232, 162, 61, 0.15);
+  }
+  .partner-tile__link:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .partner-tile__link { transition: none; }
+  }
+
+  /* Text placeholder (shown until real logo images are added) */
+  .partner-tile__name {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  .partner-tile__link .partner-tile__name {
+    color: var(--ink-soft);
+  }
+
+  /* When real <img> logos are added, the .partner-tile__name span should be removed */
+</style>
