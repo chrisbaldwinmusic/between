@@ -4,7 +4,7 @@
     {
       "name": "between-preview",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "html-site", "-p", "8090", "--cors", "-c-1"],
+      "runtimeArgs": ["http-server", "between-html-site", "-p", "8090", "--cors", "-c-1"],
       "port": 8090
     }
   ]
