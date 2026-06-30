@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Space Between — Sonic Boom Music CIC</title>
+  <meta name="description" content="The year-round home of music in Burton upon Trent. One free or low-cost event a month, all year. Join the community.">
+  <link rel="canonical" href="https://between.sonicboom.org.uk/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://between.sonicboom.org.uk/">
+  <meta property="og:title" content="The Space Between — Sonic Boom Music CIC">
+  <meta property="og:description" content="The year-round home of music in Burton upon Trent. One free or low-cost event a month, all year. Join the community.">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- TODO: Cloudflare Web Analytics
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon='{"token": "REPLACE_WITH_TOKEN"}'></script>
+  -->
+
+  <style>
+    /* ── Fonts ──────────────────────────────────────────────────────────── */
+    @font-face {
+      font-family: 'Fraunces';
+      src: url('fonts/fraunces/fraunces-normal-latin.woff2') format('woff2');
+      font-weight: 300 900; font-style: normal; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Fraunces';
+      src: url('fonts/fraunces/fraunces-italic-latin.woff2') format('woff2');
+      font-weight: 300 900; font-style: italic; font-display: swap;
+    }
+    @font-face {
+      font-family: 'Hanken Grotesk';
+      src: url('fonts/hanken/hanken-400-latin.woff2') format('woff2');
+      font-weight: 400 600; font-style: normal; font-display: swap;
+    }
+
+    /* ── Tokens ─────────────────────────────────────────────────────────── */
+    :root {
+      --ink:      #1A1212;
+      --ink-soft: #241A1A;
+      --red:      #C8102E;
+      --ember:    #E8A23D;
+      --paper:    #F4EFEA;
+      --body:     #C9BFBA;
+      --line:     #3A2C2C;
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-body:    'Hanken Grotesk', -apple-system, Arial, sans-serif;
+      --max-w: 1200px;
+      --nav-h: 3.5rem;
+      --radius: 6px;
+      --ease: cubic-bezier(0.25,0,0.25,1);
+    }
+
+    /* ── Reset ──────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; background: var(--ink); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body { font-family: var(--font-body); font-size: clamp(1rem,2.5vw,1.125rem); line-height: 1.65; color: var(--ink); background: var(--paper); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    img, video, svg { display: block; max-width: 100%; }
+    a { color: inherit; }
+    ul, ol { list-style: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+    h1,h2,h3,h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; }
+
+    /* ── Utilities ──────────────────────────────────────────────────────── */
+    .container { width: 100%; max-width: var(--max-w); margin-inline: auto; padding-inline: clamp(1rem,5vw,2.5rem); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .section-dark { background: var(--ink); color: var(--body); }
+    .section-dark a:not(.btn) { color: var(--ember); }
+
+    /* ── Focus / skip link ──────────────────────────────────────────────── */
+    :focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; border-radius: 3px; }
+    .skip-link { position: absolute; top: -100%; left: 1rem; z-index: 9999; background: var(--red); color: var(--paper); padding: .375rem 1rem; border-radius: 0 0 var(--radius) var(--radius); font-size: .875rem; font-weight: 600; text-decoration: none; transition: top 200ms var(--ease); }
+    .skip-link:focus { top: 0; }
+
+    /* ── Buttons ────────────────────────────────────────────────────────── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .625rem 1.25rem; border-radius: var(--radius); font-family: var(--font-body); font-size: .875rem; font-weight: 600; text-decoration: none; border: 2px solid transparent; transition: background 200ms, color 200ms, border-color 200ms; white-space: nowrap; }
+    .btn-primary { background: var(--red); color: var(--paper); border-color: var(--red); }
+    .btn-primary:hover { background: #a30d24; border-color: #a30d24; }
+    .btn-ghost-dark { background: transparent; color: var(--paper); border-color: rgba(244,239,234,.35); }
+    .btn-ghost-dark:hover { border-color: var(--paper); background: rgba(244,239,234,.08); }
+
+    /* ── Nav ────────────────────────────────────────────────────────────── */
+    .site-nav { position: sticky; top: 0; z-index: 100; background: var(--ink); border-bottom: 1px solid var(--line); }
+    .site-nav__inner { display: flex; align-items: center; gap: 1rem; height: var(--nav-h); }
+    .site-nav__brand { display: flex; flex-direction: column; line-height: 1.15; text-decoration: none; flex-shrink: 0; }
+    .site-nav__brand-name { font-family: var(--font-display); font-size: .875rem; font-weight: 700; color: var(--paper); letter-spacing: -.01em; }
+    .site-nav__brand-by { font-size: .65rem; font-weight: 500; color: var(--body); letter-spacing: .08em; text-transform: uppercase; }
+    .site-nav__brand:hover .site-nav__brand-name { color: var(--ember); }
+    .site-nav__toggle { display: flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; margin-left: auto; border-radius: var(--radius); color: var(--body); flex-shrink: 0; }
+    .site-nav__toggle:hover { color: var(--paper); }
+    .hamburger { display: flex; flex-direction: column; gap: 5px; width: 20px; }
+    .hamburger span { display: block; height: 2px; background: currentColor; border-radius: 1px; transition: transform 200ms, opacity 200ms; }
+    .site-nav__toggle[aria-expanded="true"] .hamburger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .site-nav__toggle[aria-expanded="true"] .hamburger span:nth-child(2) { opacity: 0; }
+    .site-nav__toggle[aria-expanded="true"] .hamburger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    #primary-nav { position: absolute; top: var(--nav-h); left: 0; right: 0; background: var(--ink-soft); border-bottom: 1px solid var(--line); padding: 1rem 0; }
+    #primary-nav[hidden] { display: none; }
+    #primary-nav ul { display: flex; flex-direction: column; }
+    .nav-link { display: block; padding: .75rem clamp(1rem,5vw,2.5rem); font-size: .875rem; font-weight: 500; color: var(--body); text-decoration: none; transition: color 200ms, background 200ms; }
+    .nav-link:hover { color: var(--paper); background: rgba(255,255,255,.04); }
+    .site-nav__cta { flex-shrink: 0; font-size: .75rem; padding: .5rem .875rem; }
+    @media(min-width:900px){
+      .site-nav__toggle { display: none; }
+      #primary-nav { position: static; background: transparent; border: none; padding: 0; flex: 1; display: block !important; }
+      #primary-nav ul { flex-direction: row; gap: .25rem; justify-content: center; flex-wrap: wrap; }
+      .nav-link { padding: .5rem .75rem; border-radius: 3px; }
+      .site-nav__cta { font-size: .875rem; padding: .625rem 1.25rem; }
+    }
+
+    /* ── Hero ───────────────────────────────────────────────────────────── */
+    .hero { position: relative; min-height: 100svh; min-height: 100vh; display: flex; align-items: flex-end; padding-bottom: clamp(3rem,10vh,6rem); overflow: hidden; background: var(--ink); }
+    .hero__bg { position: absolute; inset: 0; }
+    .hero__poster { position: absolute; inset: 0; background: url('img/hero-poster.jpg') center 35%/cover no-repeat, linear-gradient(160deg,#2a1a14,#1A1212 50%,#0f0a08); opacity: .7; }
+    .hero__overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(26,18,18,.55) 0%, rgba(26,18,18,.1) 25%, rgba(26,18,18,.15) 55%, rgba(26,18,18,.8) 80%, rgba(26,18,18,.96) 100%); }
+    .hero__glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 60% 50% at 50% 80%, rgba(232,162,61,.1), transparent 70%); animation: glow 8s ease-in-out infinite alternate; }
+    @keyframes glow { from { opacity: .6; } to { opacity: 1; } }
+    @media(prefers-reduced-motion:reduce) { .hero__glow { animation: none; } }
+    .hero__content { position: relative; z-index: 1; }
+    .hero__headline { font-family: var(--font-display); font-size: clamp(2rem,5.5vw,4rem); font-weight: 800; line-height: 1.1; color: var(--paper); letter-spacing: -.02em; max-width: 18ch; margin-bottom: 1.5rem; }
+    .hero__sub { font-size: clamp(1rem,2.5vw,1.25rem); color: var(--body); max-width: 44ch; margin-bottom: 2rem; line-height: 1.6; }
+    .hero__actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 2rem; }
+    .hero__cta-primary { font-size: 1rem; padding: .75rem 1.5rem; }
+    .hero__count { font-size: .875rem; color: var(--body); opacity: .9; }
+    .hero__count-n { font-weight: 700; color: var(--ember); }
+    .hero__count[data-empty] { opacity: 0; }
+
+    /* ── Idea ───────────────────────────────────────────────────────────── */
+    .idea-section { background: var(--paper); padding-block: clamp(3rem,9vw,5rem); }
+    .idea-inner { display: flex; flex-direction: column; gap: clamp(2.5rem,6vw,3.5rem); }
+    @media(min-width:900px){ .idea-inner { flex-direction: row; align-items: flex-start; } .idea-copy { flex: 0 0 min(46%,520px); } .idea-loop { flex: 1; } }
+    .idea-heading { font-size: clamp(2rem,5vw,3.25rem); font-weight: 800; letter-spacing: -.025em; line-height: 1.05; color: var(--ink); margin-bottom: 1.5rem; }
+    .idea-body { font-size: clamp(1rem,2vw,1.15rem); line-height: 1.75; color: var(--ink-soft); max-width: 52ch; margin-bottom: 1.25rem; }
+    .idea-loop { display: flex; flex-direction: column; gap: 0; }
+    @media(min-width:640px){ .idea-loop { flex-direction: row; align-items: stretch; } }
+    .loop-arrow { display: flex; align-items: center; justify-content: center; color: var(--line); padding: .5rem .75rem; flex-shrink: 0; font-size: 1.25rem; }
+    .loop-arrow::before { content: '↓'; }
+    @media(min-width:640px){ .loop-arrow::before { content: '→'; } .loop-arrow { align-self: center; padding: 0 .5rem; } }
+    .loop-node { background: #fff; border-left: 4px solid var(--ember); border-radius: 0 var(--radius) var(--radius) 0; padding: 1.25rem; display: flex; flex-direction: column; gap: .5rem; flex: 1; box-shadow: 0 2px 10px rgba(26,18,18,.07); }
+    .loop-node--red { border-color: var(--red); }
+    .loop-node__num { font-size: .75rem; font-weight: 800; color: var(--body); }
+    .loop-node__label { font-family: var(--font-display); font-size: clamp(1rem,2vw,1.2rem); font-weight: 700; color: var(--ink); line-height: 1.2; }
+    .loop-node__sub { font-size: .875rem; color: var(--ink-soft); line-height: 1.5; }
+
+    /* ── Events ─────────────────────────────────────────────────────────── */
+    .events-section { background: var(--ink); padding-block: clamp(3rem,8vw,5rem); overflow: hidden; }
+    .events-header { margin-bottom: 2rem; }
+    .events-title { font-size: clamp(2rem,5vw,3.25rem); font-weight: 800; letter-spacing: -.02em; color: var(--paper); line-height: 1.05; margin-bottom: .75rem; }
+    .events-sub { font-size: clamp(1rem,2vw,1.15rem); color: var(--body); max-width: 50ch; line-height: 1.6; }
+    .event-filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 2rem; }
+    .event-filter { font-size: .875rem; font-weight: 600; padding: .4rem 1rem; border-radius: 2rem; border: 1.5px solid rgba(201,191,186,.3); background: transparent; color: var(--body); cursor: pointer; transition: background 150ms, color 150ms, border-color 150ms; }
+    .event-filter:hover { border-color: var(--paper); color: var(--paper); }
+    .event-filter.is-active { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+    .event-grid { display: flex; flex-direction: column; gap: 1rem; }
+    @media(min-width:640px){ .event-grid { display: grid; grid-template-columns: repeat(2,1fr); } }
+    @media(min-width:900px){ .event-grid { grid-template-columns: repeat(3,1fr); } }
+    @media(min-width:1100px){ .event-grid { grid-template-columns: repeat(4,1fr); } }
+    .event-card { background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; transition: border-color 200ms; }
+    .event-card:hover { border-color: rgba(201,191,186,.4); }
+    .event-card[data-hidden] { display: none; }
+    .event-card__month { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--body); }
+    .event-card__tag { font-size: .75rem; font-weight: 600; padding: .2rem .6rem; border-radius: 2rem; display: inline-flex; align-items: center; gap: .25rem; width: fit-content; }
+    .event-card__tag--free { background: rgba(232,162,61,.15); color: var(--ember); }
+    .event-card__tag--ticketed { background: rgba(200,16,46,.15); color: #e84060; }
+    .event-card__name { font-family: var(--font-display); font-size: clamp(1.1rem,2vw,1.3rem); font-weight: 700; color: var(--paper); line-height: 1.2; }
+    .event-card__format { font-size: .875rem; color: var(--body); line-height: 1.5; }
+    .event-card__venue { font-size: .8rem; color: var(--body); display: flex; align-items: flex-start; gap: .3rem; opacity: .7; }
+    .event-card__footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+    .event-card__price { font-family: var(--font-display); font-size: 1rem; font-weight: 700; color: var(--ember); }
+    .event-card__price--free { color: rgba(232,162,61,.6); font-size: .875rem; }
+    .event-card__action { font-size: .75rem; font-weight: 700; padding: .4rem .875rem; background: rgba(255,255,255,.08); color: var(--paper); border-radius: var(--radius); text-decoration: none; border: 1px solid rgba(255,255,255,.15); transition: background 150ms; }
+    .event-card__action:hover { background: rgba(255,255,255,.14); }
+    .event-ribbon__empty { color: var(--body); padding: 1.5rem 0; }
+    .event-ribbon__reset { color: var(--ember); font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+    /* ── Ladder ─────────────────────────────────────────────────────────── */
+    .ladder-section { background: var(--paper); padding-block: clamp(3rem,9vw,5rem); }
+    .ladder-heading { font-size: clamp(2rem,5vw,3.25rem); font-weight: 800; letter-spacing: -.025em; color: var(--ink); margin-bottom: 2.5rem; }
+    .ladder-steps { display: flex; flex-direction: column; gap: 0; }
+    .ladder-step { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .ladder-step__connector { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 2.5rem; }
+    .ladder-step__num { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--ink); color: var(--paper); font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ladder-step:first-child .ladder-step__num { background: var(--ember); }
+    .ladder-step:last-child .ladder-step__num { background: var(--red); }
+    .ladder-step__line { width: 2px; flex: 1; background: var(--line); min-height: 2.5rem; margin-block: .25rem; }
+    .ladder-step:last-child .ladder-step__line { display: none; }
+    .ladder-step__body { padding-bottom: 2rem; flex: 1; }
+    .ladder-step__title { font-family: var(--font-display); font-size: clamp(1.25rem,3vw,1.75rem); font-weight: 700; color: var(--ink); margin-bottom: .5rem; }
+    .ladder-step__desc { font-size: clamp(1rem,2vw,1.1rem); color: var(--ink-soft); line-height: 1.65; max-width: 48ch; margin-bottom: 1rem; }
+    .ladder-step__cta { font-size: .875rem; font-weight: 700; color: var(--red); text-decoration: none; display: inline-flex; align-items: center; gap: .3em; }
+    .ladder-step__cta:hover { color: var(--ink); }
+
+    /* ── Signup ─────────────────────────────────────────────────────────── */
+    .signup-section { background: var(--paper); padding-block: clamp(3rem,9vw,5rem); }
+    .signup-heading { font-size: clamp(2rem,5vw,3.25rem); font-weight: 800; letter-spacing: -.025em; color: var(--ink); margin-bottom: 1rem; }
+    .signup-sub { font-size: clamp(1rem,2vw,1.15rem); line-height: 1.65; color: var(--ink-soft); max-width: 52ch; margin-bottom: clamp(2rem,5vw,3rem); }
+    .signup-options { display: flex; flex-direction: column; gap: 2rem; }
+    @media(min-width:680px){ .signup-options { flex-direction: row; gap: 0; align-items: flex-start; } .signup-option--email { flex: 1; padding-right: clamp(1.5rem,4vw,2.5rem); } .signup-divider { flex-direction: column; width: 1px; min-height: 200px; gap: 1rem; } .signup-divider__line { width: 1px; height: auto; flex: 1; } .signup-divider__or { writing-mode: vertical-lr; } .signup-option--wa { flex: 0 0 min(42%,380px); padding-left: clamp(1.5rem,4vw,2.5rem); } }
+    .signup-option__heading { font-size: 1rem; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+    .signup-option__icon { color: var(--red); }
+    .signup-option__desc { font-size: .875rem; line-height: 1.65; color: var(--ink-soft); max-width: 44ch; margin-bottom: 1rem; }
+    .signup-divider { display: flex; flex-direction: row; align-items: center; gap: .75rem; color: var(--body); font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
+    .signup-divider__line { flex: 1; height: 1px; background: rgba(26,18,18,.12); }
+    .signup-wa-btn { background: #25D366; color: var(--ink); font-size: .875rem; padding: .75rem 1.25rem; display: inline-flex; align-items: center; gap: .75rem; font-weight: 700; border-radius: var(--radius); text-decoration: none; transition: background 150ms; }
+    .signup-wa-btn:hover { background: #1da851; }
+    .signup-privacy { font-size: .75rem; color: var(--body); margin-top: clamp(2rem,4vw,3rem); line-height: 1.6; }
+    .signup-privacy a { color: var(--ink-soft); font-weight: 600; text-decoration: underline; }
+    /* MailerLite overrides */
+    .ml-form-wrapper :global(.ml-form-embedWrapper) { background: transparent !important; border: none !important; padding: 0 !important; box-shadow: none !important; }
+
+    /* ── Membership ─────────────────────────────────────────────────────── */
+    .membership-section { background: var(--paper); padding-block: clamp(3rem,9vw,5rem); border-top: 1px solid rgba(58,44,44,.1); }
+    .membership-inner { display: flex; flex-direction: column; gap: clamp(2.5rem,6vw,3.5rem); }
+    @media(min-width:900px){ .membership-inner { flex-direction: row; align-items: flex-start; } .membership-copy { flex: 1; } .membership-card { flex: 0 0 min(44%,420px); } }
+    .membership-heading { font-size: clamp(2rem,5vw,3.25rem); font-weight: 800; letter-spacing: -.025em; color: var(--ink); margin-bottom: 1.5rem; }
+    .membership-body { font-size: clamp(1rem,2vw,1.1rem); line-height: 1.75; color: var(--ink-soft); max-width: 54ch; margin-bottom: 1.25rem; }
+    .membership-body strong { color: var(--ink); }
+    .membership-launch { display: flex; align-items: flex-start; gap: .5rem; font-size: .875rem; color: var(--ink-soft); margin-top: 1.5rem; padding: 1rem 1.25rem; background: rgba(200,16,46,.06); border-left: 3px solid var(--red); border-radius: 0 3px 3px 0; line-height: 1.55; }
+    .membership-launch__icon { color: var(--red); flex-shrink: 0; }
+    .membership-launch a { color: var(--ink); font-weight: 600; text-decoration: underline; }
+    .membership-card { background: var(--ink); border-radius: var(--radius); padding: clamp(1.5rem,4vw,2rem); display: flex; flex-direction: column; gap: 1.5rem; }
+    .membership-card__label { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--ember); }
+    .membership-benefits { display: flex; flex-direction: column; gap: .75rem; }
+    .membership-benefit { display: flex; align-items: flex-start; gap: .75rem; font-size: .875rem; line-height: 1.55; color: var(--body); }
+    .benefit-tick { color: var(--ember); font-weight: 700; flex-shrink: 0; }
+    .membership-price { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding-block: 1rem; }
+    .membership-price__label { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--body); margin-bottom: .25rem; }
+    .membership-price__value { font-family: var(--font-display); font-size: clamp(1.1rem,2.5vw,1.3rem); font-weight: 700; color: var(--paper); }
+    .membership-cta { display: block; text-align: center; padding: .875rem 1.5rem; font-size: 1rem; }
+    .membership-note { font-size: .75rem; color: var(--body); line-height: 1.55; text-align: center; }
+
+    /* ── Ambition ───────────────────────────────────────────────────────── */
+    .ambition-section { background: var(--ink-soft); padding-block: clamp(3rem,9vw,5rem); }
+    .ambition-inner { display: flex; flex-direction: column; gap: clamp(2.5rem,6vw,3.5rem); }
+    @media(min-width:900px){ .ambition-inner { flex-direction: row; align-items: flex-start; } .ambition-copy { flex: 1; max-width: 540px; } .ambition-meter { flex: 0 0 min(44%,420px); } }
+    .ambition-heading { font-family: var(--font-display); font-size: clamp(2rem,5vw,3.25rem); font-weight: 800; letter-spacing: -.025em; color: var(--paper); margin-bottom: 1.5rem; }
+    .ambition-body { font-size: clamp(1rem,2vw,1.1rem); line-height: 1.75; color: var(--body); max-width: 54ch; margin-bottom: 1.25rem; }
+    .ambition-body em { font-family: var(--font-display); font-style: italic; color: var(--ember); }
+    /* Demand meter */
+    .demand-meter { background: rgba(255,255,255,.04); border: 1.5px solid var(--line); border-radius: var(--radius); padding: clamp(1.5rem,4vw,2rem); display: flex; flex-direction: column; }
+    .dm-pane { display: none; }
+    .demand-meter[data-state="question"] .dm-pane--question { display: flex; flex-direction: column; gap: 1.25rem; }
+    .demand-meter[data-state="voting"]   .dm-pane--voting   { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding-block: 2rem; }
+    .demand-meter[data-state="voted"]    .dm-pane--voted    { display: flex; flex-direction: column; gap: 1.25rem; }
+    .demand-meter[data-state="error"]    .dm-pane--error    { display: flex; flex-direction: column; gap: 1rem; }
+    .dm-question { font-family: var(--font-display); font-size: clamp(1.1rem,2.5vw,1.35rem); font-weight: 700; color: var(--paper); line-height: 1.3; }
+    .dm-choices { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .dm-btn { font-size: 1rem; font-weight: 700; padding: .75rem 1.5rem; border-radius: 3px; border: 1.5px solid transparent; cursor: pointer; flex: 1; min-width: 140px; transition: background 150ms, transform 100ms; }
+    .dm-btn--yes { background: var(--red); color: var(--paper); }
+    .dm-btn--yes:hover { background: #a80d26; transform: translateY(-1px); }
+    .dm-btn--maybe { background: transparent; color: var(--paper); border-color: var(--line); }
+    .dm-btn--maybe:hover { border-color: var(--body); background: rgba(255,255,255,.05); }
+    .dm-intro-note { font-size: .75rem; color: var(--body); line-height: 1.55; }
+    .dm-spinner { width: 32px; height: 32px; border: 3px solid rgba(232,162,61,.2); border-top-color: var(--ember); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .dm-loading-text { font-size: .875rem; color: var(--body); }
+    .dm-bar-track { height: 12px; background: rgba(255,255,255,.08); border-radius: 6px; overflow: hidden; margin-bottom: .75rem; }
+    .dm-bar-fill { height: 100%; width: 0%; background: linear-gradient(to right,var(--red),var(--ember)); border-radius: 6px; transition: width 1.2s cubic-bezier(.25,0,.25,1); }
+    .dm-bar-label { font-size: .875rem; color: var(--body); }
+    .dm-pct-text { font-family: var(--font-display); font-size: clamp(1.5rem,4vw,2rem); font-weight: 800; color: var(--ember); display: block; line-height: 1; margin-bottom: .25rem; }
+    .dm-total-line { font-size: .875rem; color: var(--body); }
+    .dm-total-text { font-weight: 700; color: var(--paper); }
+    .dm-thanks { font-size: .875rem; color: var(--body); padding: .75rem 1rem; background: rgba(232,162,61,.08); border-left: 3px solid var(--ember); border-radius: 0 3px 3px 0; line-height: 1.55; }
+    .dm-chosen { font-weight: 700; color: var(--paper); }
+    .dm-postcode__label { display: block; font-size: .75rem; font-weight: 700; color: var(--body); margin-bottom: .5rem; }
+    .dm-postcode__opt { font-weight: 400; display: block; margin-top: .25rem; }
+    .dm-postcode__row { display: flex; gap: .5rem; }
+    .dm-postcode__input { font-family: var(--font-body); font-size: .875rem; background: rgba(255,255,255,.07); border: 1.5px solid var(--line); border-radius: 3px; color: var(--paper); padding: .55rem .875rem; flex: 1; min-width: 0; text-transform: uppercase; }
+    .dm-postcode__input::placeholder { color: var(--body); text-transform: none; }
+    .dm-postcode__input:focus { outline: 3px solid var(--ember); outline-offset: 2px; border-color: transparent; }
+    .dm-postcode__submit { font-family: var(--font-body); font-size: .875rem; font-weight: 700; background: var(--line); color: var(--paper); border: none; border-radius: 3px; padding: .55rem 1rem; cursor: pointer; white-space: nowrap; }
+    .dm-postcode__hint { font-size: .75rem; color: var(--body); line-height: 1.5; margin-top: .5rem; }
+    .dm-postcode__done { font-size: .875rem; color: var(--ember); font-weight: 600; }
+    .dm-nudge { font-size: .875rem; color: var(--body); line-height: 1.55; }
+    .dm-nudge a { color: var(--ember); font-weight: 600; text-decoration: underline; }
+    .dm-error-text { font-size: .875rem; color: var(--body); }
+    .dm-retry { font-size: .875rem; font-weight: 700; background: var(--red); color: var(--paper); border-radius: 3px; padding: .6rem 1.25rem; width: fit-content; cursor: pointer; }
+
+    /* ── Get involved ───────────────────────────────────────────────────── */
+    .involved-section { background: var(--paper); padding-block: clamp(3rem,9vw,5rem); }
+    .involved-heading { font-size: clamp(2rem,5vw,3.25rem); font-weight: 800; letter-spacing: -.025em; color: var(--ink); margin-bottom: .75rem; }
+    .involved-sub { font-size: clamp(1rem,2vw,1.15rem); color: var(--ink-soft); max-width: 52ch; margin-bottom: clamp(2rem,5vw,3rem); line-height: 1.65; }
+    .involved-doors { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    @media(min-width:600px){ .involved-doors { grid-template-columns: repeat(3,1fr); } }
+    .involved-door { background: #fff; border-radius: var(--radius); padding: 1.5rem; display: flex; flex-direction: column; gap: .75rem; box-shadow: 0 2px 10px rgba(26,18,18,.07); }
+    .involved-door__icon { font-size: 1.5rem; line-height: 1; }
+    .involved-door__title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+    .involved-door__desc { font-size: .875rem; color: var(--ink-soft); line-height: 1.6; flex: 1; }
+    .involved-door__cta { font-size: .875rem; font-weight: 700; color: var(--red); text-decoration: none; display: inline-flex; align-items: center; gap: .3em; margin-top: auto; }
+    .involved-door__cta:hover { color: var(--ink); }
+
+    /* ── Accessibility ──────────────────────────────────────────────────── */
+    .access-section { background: var(--ink); padding-block: clamp(3rem,8vw,5rem); }
+    .access-heading { font-size: clamp(1.75rem,4vw,2.5rem); font-weight: 800; letter-spacing: -.02em; color: var(--paper); margin-bottom: .75rem; }
+    .access-sub { font-size: clamp(1rem,2vw,1.1rem); color: var(--body); max-width: 52ch; margin-bottom: 2rem; line-height: 1.65; }
+    .access-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem; }
+    @media(min-width:600px){ .access-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(min-width:900px){ .access-grid { grid-template-columns: repeat(4,1fr); } }
+    .access-item { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem; }
+    .access-item__icon { font-size: 1.5rem; margin-bottom: .75rem; }
+    .access-item__title { font-family: var(--font-body); font-size: .875rem; font-weight: 700; color: var(--paper); margin-bottom: .5rem; }
+    .access-item__desc { font-size: .8rem; color: var(--body); line-height: 1.55; }
+    .access-frameworks { font-size: .875rem; color: var(--body); line-height: 1.65; margin-bottom: 1.5rem; }
+    .access-frameworks a { color: var(--ember); }
+    .access-contact { font-size: .875rem; color: var(--body); }
+    .access-contact a { color: var(--ember); font-weight: 600; }
+
+    /* ── Partners ───────────────────────────────────────────────────────── */
+    .partners-section { background: var(--paper); padding-block: clamp(2.5rem,7vw,4rem); border-top: 1px solid rgba(58,44,44,.12); }
+    .partners-heading { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--body); margin-bottom: clamp(1.5rem,4vw,2.5rem); }
+    .partners-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: .75rem; }
+    @media(min-width:480px){ .partners-grid { grid-template-columns: repeat(3,1fr); } }
+    @media(min-width:768px){ .partners-grid { grid-template-columns: repeat(5,1fr); } }
+    .partner-tile { display: flex; align-items: center; justify-content: center; min-height: 64px; padding: .75rem 1rem; background: #fff; border-radius: 3px; border: 1px solid rgba(26,18,18,.08); text-align: center; transition: border-color 150ms; }
+    a.partner-tile:hover { border-color: var(--ember); }
+    .partner-tile__name { font-size: .75rem; font-weight: 600; color: var(--ink-soft); line-height: 1.4; }
+
+    /* ── Strip signup ───────────────────────────────────────────────────── */
+    .strip-section { background: var(--ink); padding-block: clamp(2.5rem,7vw,4rem); border-top: 1px solid var(--line); }
+    .strip-inner { display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-start; }
+    @media(min-width:700px){ .strip-inner { flex-direction: row; align-items: center; justify-content: space-between; gap: 2rem; } }
+    .strip-copy .strip-heading { font-family: var(--font-display); font-size: clamp(1.25rem,3vw,1.75rem); font-weight: 700; color: var(--paper); margin-bottom: .5rem; }
+    .strip-copy p { font-size: .875rem; color: var(--body); max-width: 44ch; line-height: 1.55; }
+    .strip-actions { display: flex; flex-wrap: wrap; gap: .75rem; flex-shrink: 0; }
+    .strip-wa-btn { background: #25D366; color: var(--ink); font-size: .875rem; padding: .625rem 1.25rem; display: inline-flex; align-items: center; gap: .5rem; font-weight: 700; border-radius: var(--radius); text-decoration: none; }
+    .strip-wa-btn:hover { background: #1da851; }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    .site-footer { background: var(--ink); border-top: 1px solid var(--line); padding-top: 4rem; padding-bottom: 2.5rem; }
+    .site-footer__inner { display: grid; grid-template-columns: 1fr; gap: 2.5rem; }
+    @media(min-width:768px){ .site-footer__inner { grid-template-columns: 2fr 1fr 1fr; align-items: start; } }
+    .footer-name { font-family: var(--font-display); font-size: 1.375rem; font-weight: 700; color: var(--paper); margin-bottom: .25rem; }
+    .footer-org { font-size: .875rem; color: var(--body); font-weight: 500; margin-bottom: 1rem; }
+    .footer-signoff { font-family: var(--font-display); font-size: 1.125rem; font-weight: 400; font-style: italic; color: var(--ember); }
+    .footer-nav { display: flex; flex-direction: column; gap: .75rem; }
+    .footer-nav a { font-size: .875rem; color: var(--body); text-decoration: none; transition: color 200ms; }
+    .footer-nav a:hover { color: var(--ember); }
+    .footer-socials-label { font-size: .75rem; font-weight: 600; color: var(--body); letter-spacing: .06em; text-transform: uppercase; margin-bottom: .75rem; }
+    .footer-social-list { display: flex; gap: .75rem; flex-wrap: wrap; }
+    .footer-social-link { display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border: 1px solid var(--line); border-radius: var(--radius); color: var(--body); transition: color 200ms, border-color 200ms; }
+    .footer-social-link:hover { color: var(--ember); border-color: var(--ember); }
+    .footer-social-link svg { width: 1rem; height: 1rem; }
+    .footer-legal { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 1rem; }
+    .footer-legal p { font-size: .75rem; color: var(--line); }
+
+    @media(prefers-reduced-motion:reduce){ *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+<header class="site-nav" role="banner">
+  <div class="site-nav__inner container">
+    <a href="/" class="site-nav__brand" aria-label="The Space Between — home">
+      <span class="site-nav__brand-name">The Space Between</span>
+      <span class="site-nav__brand-by">Sonic Boom</span>
+    </a>
+    <button class="site-nav__toggle" aria-controls="primary-nav" aria-expanded="false" aria-label="Open navigation menu">
+      <span class="hamburger" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
+    <nav id="primary-nav" hidden aria-label="Primary navigation">
+      <ul>
+        <li><a href="#idea"         class="nav-link">The idea</a></li>
+        <li><a href="#the-year"     class="nav-link">The year</a></li>
+        <li><a href="#how-it-works" class="nav-link">How it works</a></li>
+        <li><a href="#membership"   class="nav-link">Membership</a></li>
+        <li><a href="#the-ambition" class="nav-link">The ambition</a></li>
+        <li><a href="#get-involved" class="nav-link">Get involved</a></li>
+        <li><a href="#access"       class="nav-link">Access</a></li>
+      </ul>
+    </nav>
+    <a href="#signup" class="btn btn-primary site-nav__cta">Join the community</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+  <section class="hero" aria-labelledby="hero-headline">
+    <div class="hero__bg" aria-hidden="true">
+      <div class="hero__poster"></div>
+      <div class="hero__overlay"></div>
+      <div class="hero__glow"></div>
+    </div>
+    <div class="hero__content container">
+      <h1 id="hero-headline" class="hero__headline">
+        The space between festivals is where a town decides what it wants.
+      </h1>
+      <p class="hero__sub">
+        One free or low-cost event a month, all year, across Burton —
+        come to one, then come back.
+      </p>
+      <div class="hero__actions">
+        <a href="#signup?utm_source=between&utm_medium=hero&utm_campaign=join" class="btn btn-primary hero__cta-primary">
+          Join the community
+        </a>
+        <a href="#the-year" class="btn btn-ghost-dark">
+          See the year <span aria-hidden="true">↓</span>
+        </a>
+      </div>
+      <p class="hero__count" aria-live="polite" aria-atomic="true" data-empty>
+        <strong class="hero__count-n" id="hero-count">—</strong>
+        <span> people are already in.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── The idea ───────────────────────────────────────────────────────── -->
+  <section id="idea" class="idea-section" aria-labelledby="idea-heading">
+    <div class="container">
+      <div class="idea-inner">
+        <div class="idea-copy">
+          <h2 id="idea-heading" class="idea-heading">One&nbsp;day isn't enough.</h2>
+          <p class="idea-body">
+            Sonic Boom is the loud part. The Space Between is everything else —
+            the months where a music scene is either built or quietly lost.
+          </p>
+          <p class="idea-body">
+            Our job is simple: give you a reason to come once. Then give you a
+            reason to come back. And eventually, a reason to shape what this
+            town sounds like next.
+          </p>
+        </div>
+        <div class="idea-loop" role="img" aria-label="The community loop: Come once, then come back, then shape what's next">
+          <div class="loop-node">
+            <span class="loop-node__num">1</span>
+            <strong class="loop-node__label">Come once</strong>
+            <span class="loop-node__sub">An event a month. Free or from&nbsp;£7.50.</span>
+          </div>
+          <span class="loop-arrow" aria-hidden="true"></span>
+          <div class="loop-node">
+            <span class="loop-node__num">2</span>
+            <strong class="loop-node__label">Come back</strong>
+            <span class="loop-node__sub">Join the community. Hear what's next&nbsp;first.</span>
+          </div>
+          <span class="loop-arrow" aria-hidden="true"></span>
+          <div class="loop-node loop-node--red">
+            <span class="loop-node__num">3</span>
+            <strong class="loop-node__label">Shape what's next</strong>
+            <span class="loop-node__sub">Founding Membership. Make the case&nbsp;with&nbsp;us.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── The year ───────────────────────────────────────────────────────── -->
+  <section id="the-year" class="events-section" aria-labelledby="events-heading">
+    <div class="container">
+      <header class="events-header">
+        <h2 id="events-heading" class="events-title">The year</h2>
+        <p class="events-sub">Ten events. One a month. Free or low-cost. All across Burton.</p>
+      </header>
+      <div class="event-filters" role="group" aria-label="Filter events">
+        <button class="event-filter is-active" data-filter="all"      aria-pressed="true"  type="button">All</button>
+        <button class="event-filter"           data-filter="free"     aria-pressed="false" type="button">Free</button>
+        <button class="event-filter"           data-filter="ticketed" aria-pressed="false" type="button">Ticketed</button>
+        <button class="event-filter"           data-filter="daytime"  aria-pressed="false" type="button">Daytime</button>
+        <button class="event-filter"           data-filter="evening"  aria-pressed="false" type="button">Evening</button>
+      </div>
+      <div class="event-grid" role="list" aria-label="Programme events">
+
+        <article class="event-card" role="listitem" data-ticketing="ticketed" data-time="evening">
+          <p class="event-card__month">Oct 2026</p>
+          <span class="event-card__tag event-card__tag--ticketed">● Evening</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Folk, Stories &amp; Firelight</a></h3>
+          <p class="event-card__format">Intergenerational folk &amp; storytelling</p>
+          <p class="event-card__venue">📍 Burton Library</p>
+          <div class="event-card__footer">
+            <span class="event-card__price">£7.50</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=folk-stories-firelight" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="ticketed" data-time="evening">
+          <p class="event-card__month">Dec 2026</p>
+          <span class="event-card__tag event-card__tag--ticketed">● Evening</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Winter Sounds</a></h3>
+          <p class="event-card__format">Founding Membership launch &amp; live music</p>
+          <p class="event-card__venue">📍 The Brewhouse Arts Centre</p>
+          <div class="event-card__footer">
+            <span class="event-card__price">£7.50</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=winter-sounds" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="free" data-time="daytime">
+          <p class="event-card__month">Jan 2027</p>
+          <span class="event-card__tag event-card__tag--free">☀ Daytime</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">New Year Community Sing</a></h3>
+          <p class="event-card__format">Free community singing</p>
+          <p class="event-card__venue">📍 Burton Library</p>
+          <div class="event-card__footer">
+            <span class="event-card__price event-card__price--free">Free</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=new-year-community-sing" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="ticketed" data-time="evening">
+          <p class="event-card__month">Feb 2027</p>
+          <span class="event-card__tag event-card__tag--ticketed">● Evening</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Love Your Local</a></h3>
+          <p class="event-card__format">Pub music trail</p>
+          <p class="event-card__venue">📍 Multiple Burton venues</p>
+          <div class="event-card__footer">
+            <span class="event-card__price">£7.50</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=love-your-local" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="free" data-time="daytime">
+          <p class="event-card__month">Mar 2027</p>
+          <span class="event-card__tag event-card__tag--free">☀ Daytime</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Family Music Discovery Day</a></h3>
+          <p class="event-card__format">Free family daytime event</p>
+          <p class="event-card__venue">📍 Burton Library</p>
+          <div class="event-card__footer">
+            <span class="event-card__price event-card__price--free">Free</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=family-music-discovery-day" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="ticketed" data-time="evening">
+          <p class="event-card__month">Apr 2027</p>
+          <span class="event-card__tag event-card__tag--ticketed">● Evening</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Global Sounds</a></h3>
+          <p class="event-card__format">World music showcase</p>
+          <p class="event-card__venue">📍 The Brewhouse Arts Centre</p>
+          <div class="event-card__footer">
+            <span class="event-card__price">£7.50</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=global-sounds" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="free" data-time="daytime">
+          <p class="event-card__month">May 2027</p>
+          <span class="event-card__tag event-card__tag--free">☀ Daytime</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Music in the Market</a></h3>
+          <p class="event-card__format">Free outdoor pop-up</p>
+          <p class="event-card__venue">📍 Burton Market Place</p>
+          <div class="event-card__footer">
+            <span class="event-card__price event-card__price--free">Free</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=music-in-the-market" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="free" data-time="daytime">
+          <p class="event-card__month">Jun 2027</p>
+          <span class="event-card__tag event-card__tag--free">☀ Daytime</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Summer Park Sessions</a></h3>
+          <p class="event-card__format">Free outdoor afternoon</p>
+          <p class="event-card__venue">📍 Stapenhill Gardens</p>
+          <div class="event-card__footer">
+            <span class="event-card__price event-card__price--free">Free</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=summer-park-sessions" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="free" data-time="evening">
+          <p class="event-card__month">Jul 2027</p>
+          <span class="event-card__tag event-card__tag--free">● Evening</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Youth Takeover</a></h3>
+          <p class="event-card__format">Young artists showcase</p>
+          <p class="event-card__venue">📍 The Brewhouse Arts Centre</p>
+          <div class="event-card__footer">
+            <span class="event-card__price event-card__price--free">Free</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=youth-takeover" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+        <article class="event-card" role="listitem" data-ticketing="free" data-time="daytime">
+          <p class="event-card__month">Sep 2027</p>
+          <span class="event-card__tag event-card__tag--free">☀ Daytime</span>
+          <h3 class="event-card__name"><a href="#signup" style="text-decoration:none;color:inherit">Community Music Trail</a></h3>
+          <p class="event-card__format">Multi-venue trail</p>
+          <p class="event-card__venue">📍 Multiple Burton venues</p>
+          <div class="event-card__footer">
+            <span class="event-card__price event-card__price--free">Free</span>
+            <a href="#signup?utm_source=between&utm_medium=eventcard&utm_campaign=community-music-trail" class="event-card__action">Notify me</a>
+          </div>
+        </article>
+
+      </div>
+      <p class="event-ribbon__empty" hidden aria-live="polite">
+        No events match this filter.
+        <button class="event-ribbon__reset" type="button">Show all</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── How it works ───────────────────────────────────────────────────── -->
+  <section id="how-it-works" class="ladder-section" aria-labelledby="ladder-heading">
+    <div class="container">
+      <h2 id="ladder-heading" class="ladder-heading">How it works</h2>
+      <div class="ladder-steps">
+
+        <div class="ladder-step">
+          <div class="ladder-step__connector">
+            <div class="ladder-step__num" aria-hidden="true">1</div>
+            <div class="ladder-step__line" aria-hidden="true"></div>
+          </div>
+          <div class="ladder-step__body">
+            <h3 class="ladder-step__title">Come to one</h3>
+            <p class="ladder-step__desc">Free or from £7.50. No commitment. Just turn up and see what Burton sounds like when it comes together.</p>
+            <a href="#the-year" class="ladder-step__cta">See the programme →</a>
+          </div>
+        </div>
+
+        <div class="ladder-step">
+          <div class="ladder-step__connector">
+            <div class="ladder-step__num" aria-hidden="true">2</div>
+            <div class="ladder-step__line" aria-hidden="true"></div>
+          </div>
+          <div class="ladder-step__body">
+            <h3 class="ladder-step__title">Join the community</h3>
+            <p class="ladder-step__desc">Hear about every event before it's announced publicly. Early tickets. Updates from behind the scenes. Free to join.</p>
+            <a href="#signup?utm_source=between&utm_medium=ladder&utm_campaign=join" class="ladder-step__cta">Join the community →</a>
+          </div>
+        </div>
+
+        <div class="ladder-step">
+          <div class="ladder-step__connector">
+            <div class="ladder-step__num" aria-hidden="true">3</div>
+            <div class="ladder-step__line" aria-hidden="true"></div>
+          </div>
+          <div class="ladder-step__body">
+            <h3 class="ladder-step__title">Become a Founding Member</h3>
+            <p class="ladder-step__desc">Back the year-round programme and the campaign for a permanent home for grassroots music in Burton. Launching at Winter Sounds, December 2026.</p>
+            <a href="#membership?utm_source=between&utm_medium=ladder&utm_campaign=membership" class="ladder-step__cta">Learn about membership →</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Signup ─────────────────────────────────────────────────────────── -->
+  <section id="signup" class="signup-section" aria-labelledby="signup-heading">
+    <div class="container">
+      <h2 id="signup-heading" class="signup-heading">Join the community</h2>
+      <p class="signup-sub">
+        Free to join. Hear about every event before it's announced —
+        straight to your inbox or your phone.
+      </p>
+      <div class="signup-options">
+
+        <div class="signup-option signup-option--email">
+          <h3 class="signup-option__heading">
+            <span class="signup-option__icon" aria-hidden="true">✉</span>
+            By email
+          </h3>
+          <p class="signup-option__desc">
+            We'll send you event news, early ticket links, and nothing else.
+            Unsubscribe any time.
+          </p>
+          <!-- MailerLite embed — account 1114181 / form 147122363674134026 -->
+          <div class="ml-embedded" data-form="147122363674134026"></div>
+        </div>
+
+        <div class="signup-divider" aria-hidden="true">
+          <span class="signup-divider__line"></span>
+          <span class="signup-divider__or">or</span>
+          <span class="signup-divider__line"></span>
+        </div>
+
+        <div class="signup-option signup-option--wa">
+          <h3 class="signup-option__heading">
+            <span class="signup-option__icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </span>
+            On WhatsApp
+          </h3>
+          <p class="signup-option__desc">
+            Join our WhatsApp Community for event reminders and behind-the-scenes
+            updates from Sonic Boom. Free to join — leave any time.
+          </p>
+          <a href="https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm?utm_source=between&utm_medium=signup&utm_campaign=whatsapp"
+             class="signup-wa-btn" rel="noopener noreferrer" target="_blank">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Join the WhatsApp Community
+            <span class="sr-only">(opens WhatsApp — free to join and leave)</span>
+          </a>
+        </div>
+
+      </div>
+      <p class="signup-privacy">
+        We use your email to tell you about The Space Between events and news. We never sell your data.
+        <a href="privacy.html">Privacy notice →</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Membership ─────────────────────────────────────────────────────── -->
+  <section id="membership" class="membership-section" aria-labelledby="membership-heading">
+    <div class="container">
+      <div class="membership-inner">
+        <div class="membership-copy">
+          <h2 id="membership-heading" class="membership-heading">Founding Membership</h2>
+          <p class="membership-body">
+            Founding Membership is membership of The Space Between community — the people
+            who show up, year-round, and build the case together that Burton deserves more.
+          </p>
+          <p class="membership-body">
+            It is not membership of a venue. A permanent home for grassroots music
+            in Burton is <strong>our ambition</strong>. We're working to build the business
+            case — with funders, the council, and the community. Every Founding Member is
+            evidence that the demand is real.
+          </p>
+          <p class="membership-body">
+            Back the year-round programme. Back the campaign. Be one of the first people
+            to say: Burton is serious about this.
+          </p>
+          <p class="membership-launch">
+            <span class="membership-launch__icon" aria-hidden="true">◆</span>
+            Founding Membership launches at
+            <a href="#the-year">Winter Sounds</a>,
+            5 December 2026. Sign up below to hear about it first.
+          </p>
+        </div>
+        <div class="membership-card" aria-label="Founding Membership details">
+          <p class="membership-card__label">Founding Member</p>
+          <ul class="membership-benefits" aria-label="What you get">
+            <li class="membership-benefit"><span class="benefit-tick" aria-hidden="true">✓</span> Hear about every event before it's announced publicly</li>
+            <li class="membership-benefit"><span class="benefit-tick" aria-hidden="true">✓</span> Priority tickets when they go on sale</li>
+            <li class="membership-benefit"><span class="benefit-tick" aria-hidden="true">✓</span> Invitation to members' events and conversations about what comes next</li>
+            <li class="membership-benefit"><span class="benefit-tick" aria-hidden="true">✓</span> Your name in the programme (if you'd like it)</li>
+            <li class="membership-benefit"><span class="benefit-tick" aria-hidden="true">✓</span> You're part of the evidence — every member is counted</li>
+          </ul>
+          <div class="membership-price">
+            <p class="membership-price__label">Membership price</p>
+            <p class="membership-price__value">TBC — announced at Winter Sounds</p>
+          </div>
+          <!-- TODO: Replace href with Ticket Tailor link when available -->
+          <a href="#signup?utm_source=between&utm_medium=membership&utm_campaign=founding" class="btn btn-primary membership-cta">
+            Become a Founding Member
+          </a>
+          <p class="membership-note">Available from December 2026. Sign up to be notified the moment it launches.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── The ambition ───────────────────────────────────────────────────── -->
+  <section id="the-ambition" class="ambition-section" aria-labelledby="ambition-heading">
+    <div class="container">
+      <div class="ambition-inner">
+        <div class="ambition-copy">
+          <h2 id="ambition-heading" class="ambition-heading">The ambition</h2>
+          <p class="ambition-body">Burton hasn't had a dedicated grassroots music venue for a long time.</p>
+          <p class="ambition-body">East Staffordshire Borough Council is exploring the business case for one. Our ambition is to be part of making it happen — if the demand is there.</p>
+          <p class="ambition-body">The Space Between is how we find out, together, whether it is. Every event we run, every person who joins the community, every voice added here builds the picture funders and decision-makers need to see.</p>
+          <p class="ambition-body"><em>We're not there yet. But we're building the case — and you're part of it.</em></p>
+        </div>
+        <div class="ambition-meter">
+          <div class="demand-meter" data-state="question" aria-label="Venue demand poll">
+            <p class="sr-only" aria-live="polite" id="dm-status"></p>
+            <div class="dm-pane dm-pane--question">
+              <p class="dm-question" id="dm-q">Would you use a permanent grassroots music venue in Burton?</p>
+              <div class="dm-choices" role="group" aria-labelledby="dm-q">
+                <button class="dm-btn dm-btn--yes" data-choice="yes" type="button">Yes, I would</button>
+                <button class="dm-btn dm-btn--maybe" data-choice="maybe" type="button">Maybe / not sure</button>
+              </div>
+              <p class="dm-intro-note">One tap — no sign-up required. Your answer is added to the demand count immediately.</p>
+            </div>
+            <div class="dm-pane dm-pane--voting" aria-hidden="true">
+              <span class="dm-spinner" aria-hidden="true"></span>
+              <p class="dm-loading-text">Adding your voice…</p>
+            </div>
+            <div class="dm-pane dm-pane--voted">
+              <div>
+                <div class="dm-bar-track"><div class="dm-bar-fill"></div></div>
+                <p class="dm-bar-label"><strong class="dm-pct-text">0</strong>% <span>of respondents said yes</span></p>
+              </div>
+              <p class="dm-total-line"><strong class="dm-total-text">0</strong> voices counted so far</p>
+              <p class="dm-thanks">Your voice — <span class="dm-chosen"></span> — has been added. Thank you.</p>
+              <div class="dm-postcode">
+                <form class="dm-postcode__form" novalidate>
+                  <label for="dm-postcode-input" class="dm-postcode__label">
+                    Add your postcode
+                    <span class="dm-postcode__opt">(optional — helps show demand is local)</span>
+                  </label>
+                  <div class="dm-postcode__row">
+                    <input type="text" id="dm-postcode-input" name="postcode" class="dm-postcode__input"
+                      autocomplete="postal-code" maxlength="8" placeholder="e.g. DE13"
+                      aria-describedby="dm-postcode-hint" />
+                    <button type="submit" class="dm-postcode__submit">Add</button>
+                  </div>
+                  <p id="dm-postcode-hint" class="dm-postcode__hint">We only keep the outward code (e.g. DE13). Never stored against your name.</p>
+                </form>
+                <p class="dm-postcode__done" hidden>Postcode added — thanks.</p>
+              </div>
+              <p class="dm-nudge"><a href="#signup">Join the community</a> to hear what happens with this data and what comes next.</p>
+            </div>
+            <div class="dm-pane dm-pane--error">
+              <p class="dm-error-text">Something went wrong — your vote wasn't recorded. Please try again.</p>
+              <button class="dm-retry" type="button">Try again</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Get involved ───────────────────────────────────────────────────── -->
+  <section id="get-involved" class="involved-section" aria-labelledby="involved-heading">
+    <div class="container">
+      <h2 id="involved-heading" class="involved-heading">Get involved</h2>
+      <p class="involved-sub">Three ways in — come as an audience member, an artist, or a partner.</p>
+      <div class="involved-doors">
+        <div class="involved-door">
+          <div class="involved-door__icon" aria-hidden="true">🎟</div>
+          <h3 class="involved-door__title">Come to a show</h3>
+          <p class="involved-door__desc">Free or from £7.50. One event a month, all across Burton. No commitment — just show up.</p>
+          <a href="#signup?utm_source=between&utm_medium=involved&utm_campaign=audiences" class="involved-door__cta">Join the community →</a>
+        </div>
+        <div class="involved-door">
+          <div class="involved-door__icon" aria-hidden="true">🎸</div>
+          <h3 class="involved-door__title">Want to play?</h3>
+          <p class="involved-door__desc">We're building a programme that reflects Burton's musical talent. If you're a local artist and want to be part of it, get in touch.</p>
+          <a href="mailto:hello@sonicboom.org.uk?subject=Artist%20enquiry%20—%20The%20Space%20Between&utm_source=between&utm_medium=involved&utm_campaign=artists" class="involved-door__cta">Get in touch →</a>
+        </div>
+        <div class="involved-door">
+          <div class="involved-door__icon" aria-hidden="true">🤝</div>
+          <h3 class="involved-door__title">Partner or press?</h3>
+          <p class="involved-door__desc">We're working with local organisations, funders, and media. If you'd like to be involved, we'd love to hear from you.</p>
+          <a href="mailto:hello@sonicboom.org.uk?subject=Partnership%20enquiry%20—%20The%20Space%20Between&utm_source=between&utm_medium=involved&utm_campaign=partners" class="involved-door__cta">Say hello →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Access ─────────────────────────────────────────────────────────── -->
+  <section id="access" class="access-section" aria-labelledby="access-heading">
+    <div class="container">
+      <h2 id="access-heading" class="access-heading">Access</h2>
+      <p class="access-sub">The Space Between is for everyone. Here's what we have in place — and how to tell us what you need.</p>
+      <div class="access-grid">
+        <div class="access-item">
+          <div class="access-item__icon" aria-hidden="true">♿</div>
+          <h3 class="access-item__title">Step-free access</h3>
+          <p class="access-item__desc">All venues on our programme have step-free access. Access details are listed per event.</p>
+        </div>
+        <div class="access-item">
+          <div class="access-item__icon" aria-hidden="true">🔇</div>
+          <h3 class="access-item__title">Quiet spaces</h3>
+          <p class="access-item__desc">Quiet areas available at indoor events. Let us know in advance and we'll confirm what's available.</p>
+        </div>
+        <div class="access-item">
+          <div class="access-item__icon" aria-hidden="true">🤟</div>
+          <h3 class="access-item__title">BSL interpretation</h3>
+          <p class="access-item__desc">BSL interpretation available on request. Contact us at least two weeks before the event.</p>
+        </div>
+        <div class="access-item">
+          <div class="access-item__icon" aria-hidden="true">🎟</div>
+          <h3 class="access-item__title">Access fund &amp; Tickets for Good</h3>
+          <p class="access-item__desc">Complimentary companion tickets available. We're proud to be a Tickets for Good partner.</p>
+        </div>
+      </div>
+      <p class="access-frameworks">
+        We are committed to the <strong>Safe Gigs for Women</strong> and <strong>Good Night Out Campaign</strong> frameworks.
+      </p>
+      <p class="access-contact">
+        Tell us what you need:
+        <a href="mailto:accessibility@sonicboom.org.uk?utm_source=between&utm_medium=access&utm_campaign=access">accessibility@sonicboom.org.uk</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Partners ───────────────────────────────────────────────────────── -->
+  <section class="partners-section" aria-labelledby="partners-heading">
+    <div class="container">
+      <h2 id="partners-heading" class="partners-heading">Our partners</h2>
+      <ul class="partners-grid" role="list" aria-label="Partner organisations">
+        <li><a class="partner-tile" href="https://www.eaststaffsbc.gov.uk/?utm_source=between&utm_medium=partners&utm_campaign=esbc" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">East Staffordshire Borough Council</span></a></li>
+        <li><a class="partner-tile" href="https://www.burtonlibrary.co.uk/?utm_source=between&utm_medium=partners&utm_campaign=burton-library" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">Burton Library</span></a></li>
+        <li><a class="partner-tile" href="https://www.brewhouseartscentre.co.uk/?utm_source=between&utm_medium=partners&utm_campaign=brewhouse" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">The Brewhouse Arts Centre</span></a></li>
+        <li><a class="partner-tile" href="https://www.bsdc.ac.uk/?utm_source=between&utm_medium=partners&utm_campaign=bsdc" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">Burton &amp; South Derbyshire College</span></a></li>
+        <li><div class="partner-tile"><span class="partner-tile__name">Burton Folk Club</span></div></li>
+        <li><a class="partner-tile" href="https://www.burtonalbionfc.co.uk/?utm_source=between&utm_medium=partners&utm_campaign=burton-albion" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">Burton Albion FC</span></a></li>
+        <li><a class="partner-tile" href="https://www.circularity.org/?utm_source=between&utm_medium=partners&utm_campaign=circularity" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">Circularity</span></a></li>
+        <li><a class="partner-tile" href="https://www.bbc.co.uk/introducing/east-midlands?utm_source=between&utm_medium=partners&utm_campaign=bbc-introducing" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">BBC Introducing East Midlands</span></a></li>
+        <li><a class="partner-tile" href="https://www.staffs-wildlife.org.uk/?utm_source=between&utm_medium=partners&utm_campaign=staffs-wildlife" rel="noopener noreferrer" target="_blank"><span class="partner-tile__name">Staffordshire Wildlife Trust</span></a></li>
+        <li><div class="partner-tile"><span class="partner-tile__name">Burton Cultural Arts</span></div></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── Strip signup ───────────────────────────────────────────────────── -->
+  <section class="strip-section section-dark" aria-label="Join the community">
+    <div class="container">
+      <div class="strip-inner">
+        <div class="strip-copy">
+          <h2 class="strip-heading">Don't miss what's next.</h2>
+          <p>Join the community — hear about every event first, straight to your inbox or phone.</p>
+        </div>
+        <div class="strip-actions">
+          <a href="#signup?utm_source=between&utm_medium=strip&utm_campaign=email" class="btn btn-primary">Join by email</a>
+          <a href="https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm?utm_source=between&utm_medium=strip&utm_campaign=whatsapp"
+             class="strip-wa-btn" rel="noopener noreferrer" target="_blank">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Join on WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Footer ───────────────────────────────────────────────────────────── -->
+<footer class="site-footer" role="contentinfo">
+  <div class="container site-footer__inner">
+    <div>
+      <p class="footer-name">The Space Between</p>
+      <p class="footer-org">Sonic Boom Music CIC</p>
+      <p class="footer-signoff"><em>Believe in the Power of Music.</em></p>
+    </div>
+    <nav class="footer-nav" aria-label="Footer navigation">
+      <a href="https://sonicboom.org.uk?utm_source=between&utm_medium=footer&utm_campaign=sonicboom" target="_blank" rel="noopener noreferrer">sonicboom.org.uk</a>
+      <a href="https://festival.sonicboom.org.uk?utm_source=between&utm_medium=footer&utm_campaign=festival" target="_blank" rel="noopener noreferrer">festival.sonicboom.org.uk</a>
+      <a href="privacy.html">Privacy notice</a>
+      <a href="mailto:hello@sonicboom.org.uk">hello@sonicboom.org.uk</a>
+    </nav>
+    <div>
+      <p class="footer-socials-label" id="footer-socials-label">Follow us</p>
+      <ul class="footer-social-list" role="list" aria-labelledby="footer-socials-label">
+        <li><a href="https://www.instagram.com/sonicboom.org.uk?utm_source=between&utm_medium=footer&utm_campaign=instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="footer-social-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a></li>
+        <li><a href="https://www.facebook.com/sonicboom.org.uk?utm_source=between&utm_medium=footer&utm_campaign=facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="footer-social-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a></li>
+        <li><a href="https://x.com/SonicBoomFest?utm_source=between&utm_medium=footer&utm_campaign=x" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)" class="footer-social-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.91-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a></li>
+        <li><a href="https://open.spotify.com/user/313qiihcnz7ssyevcrfunabjtxjm?utm_source=between&utm_medium=footer&utm_campaign=spotify" target="_blank" rel="noopener noreferrer" aria-label="Spotify" class="footer-social-link"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg></a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-legal container">
+    <p>Registered in England. Sonic Boom Music CIC.</p>
+    <p>Burton upon Trent, Staffordshire</p>
+  </div>
+</footer>
+
+<!-- ── MailerLite ────────────────────────────────────────────────────────── -->
+<script>
+(function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[]).push(arguments);},l=d.createElement(e),l.async=1,l.src=u,n=d.getElementsByTagName(e)[0],n.parentNode.insertBefore(l,n);})(window,document,'script','https://assets.mailerlite.com/js/universal.js','ml');
+ml('account', '1114181');
+</script>
+
+<script>
+  // ── Nav hamburger ──────────────────────────────────────────────────────
+  const toggle = document.querySelector('.site-nav__toggle');
+  const nav    = document.getElementById('primary-nav');
+  if (toggle && nav) {
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      toggle.setAttribute('aria-label', open ? 'Open navigation menu' : 'Close navigation menu');
+      nav.hidden = open;
+    });
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open navigation menu');
+      nav.hidden = true;
+    }));
+  }
+
+  // ── Event filters ─────────────────────────────────────────────────────
+  const filterBtns = document.querySelectorAll('.event-filter');
+  const eventCards = document.querySelectorAll('.event-card');
+  const emptyMsg   = document.querySelector('.event-ribbon__empty');
+  const resetBtn   = document.querySelector('.event-ribbon__reset');
+
+  function applyFilter(filter) {
+    let visible = 0;
+    eventCards.forEach(card => {
+      const show = filter === 'all' || card.dataset.ticketing === filter || card.dataset.time === filter;
+      card.dataset.hidden = show ? '' : 'true';
+      if (show) { delete card.dataset.hidden; visible++; } else { card.dataset.hidden = 'true'; }
+    });
+    if (emptyMsg) emptyMsg.hidden = visible > 0;
+  }
+
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter || 'all';
+      filterBtns.forEach(b => { b.classList.toggle('is-active', b === btn); b.setAttribute('aria-pressed', String(b === btn)); });
+      applyFilter(filter);
+    });
+  });
+  resetBtn?.addEventListener('click', () => {
+    filterBtns.forEach(b => { b.classList.toggle('is-active', b.dataset.filter === 'all'); b.setAttribute('aria-pressed', String(b.dataset.filter === 'all')); });
+    applyFilter('all');
+  });
+
+  // ── Demand meter ──────────────────────────────────────────────────────
+  const meter    = document.querySelector('.demand-meter');
+  const statusEl = document.getElementById('dm-status');
+  if (meter) {
+    let counts = { total: 0, yes: 0, maybe: 0, yesPct: 0 };
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const announce = msg => { if (statusEl) statusEl.textContent = msg; };
+
+    async function fetchCounts() {
+      try {
+        const res = await fetch('/api/results');
+        if (res.ok) counts = await res.json();
+      } catch {}
+    }
+
+    function showResult(choice) {
+      meter.dataset.state = 'voted';
+      const fill    = meter.querySelector('.dm-bar-fill');
+      const pctEl   = meter.querySelector('.dm-pct-text');
+      const totalEl = meter.querySelector('.dm-total-text');
+      const chosenEl = meter.querySelector('.dm-chosen');
+      const meterEl  = meter.querySelector('[role="meter"]');
+      if (pctEl)   pctEl.textContent   = counts.yesPct;
+      if (totalEl) totalEl.textContent = counts.total.toLocaleString('en-GB');
+      if (chosenEl) chosenEl.textContent = choice === 'yes' ? 'yes' : choice === 'maybe' ? 'maybe / not sure' : 'already counted';
+      if (fill) { fill.style.width = '0%'; requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = counts.yesPct + '%'; })); }
+      announce(counts.yesPct + '% said yes. ' + counts.total.toLocaleString('en-GB') + ' people have responded.');
+    }
+
+    meter.querySelectorAll('.dm-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const choice = btn.dataset.choice;
+        meter.dataset.state = 'voting';
+        announce('Submitting your response…');
+        try {
+          const res  = await fetch('/api/vote', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ choice }) });
+          const data = await res.json();
+          if (data.ok || data.alreadyVoted) {
+            counts = { total: data.total, yes: data.yes, maybe: data.maybe, yesPct: data.yesPct };
+            const userChoice = data.alreadyVoted ? 'already' : choice;
+            localStorage.setItem('tsb-voted', userChoice);
+            showResult(userChoice);
+          } else { throw new Error('rejected'); }
+        } catch { meter.dataset.state = 'error'; announce('Something went wrong. Please try again.'); }
+      });
+    });
+
+    const pcForm = meter.querySelector('.dm-postcode__form');
+    const pcDone = meter.querySelector('.dm-postcode__done');
+    pcForm?.addEventListener('submit', async e => {
+      e.preventDefault();
+      const input = pcForm.querySelector('input[name="postcode"]');
+      const postcode = input?.value.trim();
+      if (!postcode) { input?.focus(); return; }
+      try { await fetch('/api/vote', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ postcodeOnly: true, postcode }) }); } catch {}
+      pcForm.hidden = true;
+      if (pcDone) pcDone.hidden = false;
+      announce('Postcode added — thank you.');
+    });
+
+    meter.querySelector('.dm-retry')?.addEventListener('click', () => { meter.dataset.state = 'question'; });
+
+    (async () => {
+      await fetchCounts();
+      const saved = localStorage.getItem('tsb-voted');
+      if (saved) { showResult(saved); } else { meter.dataset.state = 'question'; }
+    })();
+  }
+
+  // ── Hero count ────────────────────────────────────────────────────────
+  (async () => {
+    const countEl = document.getElementById('hero-count');
+    const section = countEl?.closest('.hero__count');
+    if (!countEl || !section) return;
+    try {
+      const res = await fetch('/api/results');
+      if (!res.ok) return;
+      const { total } = await res.json();
+      if (typeof total === 'number' && total > 0) {
+        countEl.textContent = total.toLocaleString('en-GB');
+        delete section.dataset.empty;
+      }
+    } catch {}
+  })();
+</script>
+
+</body>
+</html>
