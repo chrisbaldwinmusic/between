@@ -2,15 +2,22 @@
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import schedule from '../../data/schedule.json';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const db = Astro.locals.runtime?.env?.OPS_DB;
+
+let items = [];
+if (db) {
+  const { results } = await db.prepare('SELECT * FROM schedule_items ORDER BY start_date ASC').all();
+  items = results;
+}
 
 const today = new Date().toISOString().slice(0, 10);
 
-function status(start: string, end: string) {
-  if (today < start) return 'upcoming';
-  if (today > end) return 'done';
+function computedStatus(item: any) {
+  if (item.status_override) return item.status_override;
+  if (today < item.start_date) return 'upcoming';
+  if (today > item.end_date) return 'done';
   return 'active';
 }
 
@@ -18,6 +25,7 @@ const statusLabel: Record<string, string> = {
   upcoming: 'Upcoming',
   active: 'In progress',
   done: 'Done',
+  blocked: 'Blocked',
 };
 
 function fmt(d: string) {
@@ -26,12 +34,11 @@ function fmt(d: string) {
   return `${day} ${months[m - 1]} ${y}`;
 }
 
-// Active items first, then upcoming (soonest first), then done (most recent first)
-const order = { active: 0, upcoming: 1, done: 2 };
-const sorted = [...schedule].sort((a, b) => {
-  const sa = status(a.start, a.end), sb = status(b.start, b.end);
+const order = { active: 0, blocked: 0, upcoming: 1, done: 2 };
+const sorted = [...items].sort((a, b) => {
+  const sa = computedStatus(a), sb = computedStatus(b);
   if (order[sa] !== order[sb]) return order[sa] - order[sb];
-  return a.start.localeCompare(b.start);
+  return a.start_date.localeCompare(b.start_date);
 });
 ---
 <BaseLayout title="Schedule · Between Ops" nav="internal" authEmail={authEmail}>
@@ -40,21 +47,39 @@ const sorted = [...schedule].sort((a, b) => {
       <div class="container">
         <h1 class="sched-heading">Schedule</h1>
         <p class="sched-intro">
-          22 Sept 2026 – 30 Nov 2027, from the ACE application. Status is computed from today's
-          date. Edit <code>src/data/schedule.json</code> to update.
+          Status is automatic from today's date unless you override it. Click a status badge to
+          cycle it, or add notes inline.
         </p>
 
-        <ol class="sched-list" role="list">
+        <form class="add-form" id="add-sched-form">
+          <input class="add-form__input add-form__task" name="task" type="text" placeholder="New schedule item…" required />
+          <input class="add-form__input add-form__owner" name="owner" type="text" placeholder="Owner" />
+          <input class="add-form__input add-form__date" name="start_date" type="date" required aria-label="Start date" />
+          <input class="add-form__input add-form__date" name="end_date" type="date" required aria-label="End date" />
+          <button class="btn btn-primary add-form__submit" type="submit">Add</button>
+        </form>
+        <p class="add-form__msg" id="add-form-msg" role="status"></p>
+
+        <ol class="sched-list" id="sched-list" role="list">
           {sorted.map(item => {
-            const s = status(item.start, item.end);
+            const s = computedStatus(item);
             return (
-              <li class={`sched-item sched-item--${s}`}>
+              <li class={`sched-item sched-item--${s}`} data-id={item.id} data-override={item.status_override ?? ''}>
                 <div class="sched-item__dates">
-                  <span class="sched-item__range">{fmt(item.start)} – {fmt(item.end)}</span>
-                  <span class="sched-item__status">{statusLabel[s]}</span>
+                  <span class="sched-item__range">{fmt(item.start_date)} – {fmt(item.end_date)}</span>
+                  <button class="sched-item__status" type="button" data-role="cycle-status">{statusLabel[s]}</button>
                 </div>
                 <p class="sched-item__task">{item.task}</p>
-                <p class="sched-item__owner">{item.owner}</p>
+                <div class="sched-item__footer">
+                  <span class="sched-item__owner">{item.owner || '—'}</span>
+                  <button class="sched-item__delete" type="button" data-role="delete" aria-label={`Remove: ${item.task}`}>Remove</button>
+                </div>
+                <textarea
+                  class="sched-item__notes"
+                  data-role="notes"
+                  placeholder="Notes… (saves on blur)"
+                  rows="1"
+                >{item.notes}</textarea>
               </li>
             );
           })}
@@ -63,6 +88,116 @@ const sorted = [...schedule].sort((a, b) => {
     </section>
   </main>
 </BaseLayout>
+
+<script>
+  const STATUS_LABEL: Record<string, string> = {
+    upcoming: 'Upcoming', active: 'In progress', done: 'Done', blocked: 'Blocked',
+  };
+  const CYCLE = [null, 'blocked', 'done']; // null = automatic from dates
+
+  const listEl = document.getElementById('sched-list')!;
+  const form = document.getElementById('add-sched-form') as HTMLFormElement;
+  const msgEl = document.getElementById('add-form-msg')!;
+
+  function showMsg(text: string, isError = false) {
+    msgEl.textContent = text;
+    msgEl.classList.toggle('add-form__msg--error', isError);
+  }
+
+  function computeAutoStatus(item: { start_date: string; end_date: string }): string {
+    const today = new Date().toISOString().slice(0, 10);
+    if (today < item.start_date) return 'upcoming';
+    if (today > item.end_date) return 'done';
+    return 'active';
+  }
+
+  async function api(path: string, options: RequestInit = {}) {
+    const res = await fetch(path, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
+  }
+
+  listEl.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    const li = target.closest('li.sched-item') as HTMLLIElement | null;
+    if (!li) return;
+    const id = li.dataset.id;
+
+    if (target.dataset.role === 'cycle-status') {
+      const current = li.dataset.override || null;
+      const next = CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length];
+      li.classList.add('sched-item--busy');
+      try {
+        const { item } = await api(`/api/team/schedule/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status_override: next }),
+        });
+        applyStatus(li, item);
+      } catch (err: any) {
+        showMsg(err.message, true);
+      } finally {
+        li.classList.remove('sched-item--busy');
+      }
+    }
+
+    if (target.dataset.role === 'delete') {
+      li.classList.add('sched-item--busy');
+      try {
+        await api(`/api/team/schedule/${id}`, { method: 'DELETE' });
+        li.remove();
+      } catch (err: any) {
+        li.classList.remove('sched-item--busy');
+        showMsg(err.message, true);
+      }
+    }
+  });
+
+  function applyStatus(li: HTMLElement, item: { status_override: string | null; start_date: string; end_date: string }) {
+    li.dataset.override = item.status_override || '';
+    const status = item.status_override || computeAutoStatus(item);
+    li.className = `sched-item sched-item--${status}`;
+    const btn = li.querySelector<HTMLButtonElement>('[data-role="cycle-status"]')!;
+    btn.textContent = STATUS_LABEL[status];
+  }
+
+  listEl.addEventListener('blur', async (e) => {
+    const el = e.target as HTMLElement;
+    if (el.dataset?.role !== 'notes') return;
+    const li = el.closest('li.sched-item') as HTMLLIElement;
+    const id = li.dataset.id;
+    const notes = (el as HTMLTextAreaElement).value;
+    try {
+      await api(`/api/team/schedule/${id}`, { method: 'PATCH', body: JSON.stringify({ notes }) });
+    } catch (err: any) {
+      showMsg(err.message, true);
+    }
+  }, true);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showMsg('');
+    const fd = new FormData(form);
+    const task = String(fd.get('task') || '').trim();
+    const owner = String(fd.get('owner') || '').trim();
+    const start_date = String(fd.get('start_date') || '');
+    const end_date = String(fd.get('end_date') || '');
+    if (!task || !start_date || !end_date) return;
+
+    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    submitBtn.disabled = true;
+    try {
+      await api('/api/team/schedule', { method: 'POST', body: JSON.stringify({ task, owner, start_date, end_date }) });
+      location.reload();
+    } catch (err: any) {
+      showMsg(err.message, true);
+      submitBtn.disabled = false;
+    }
+  });
+</script>
 
 <style>
   .sched-section {
@@ -75,24 +210,52 @@ const sorted = [...schedule].sort((a, b) => {
     font-family: var(--font-body);
     color: var(--paper);
     font-size: var(--text-2xl);
-    margin-bottom: var(--space-3);
+    margin-bottom: var(--space-2);
   }
 
   .sched-intro {
     color: var(--body);
     font-size: var(--text-sm);
     max-width: 65ch;
-    margin-bottom: var(--space-6);
-  }
-  .sched-intro code {
-    font-family: monospace;
-    font-size: 0.9em;
-    background: rgba(255,255,255,0.08);
-    color: var(--paper);
-    padding: 0.1em 0.4em;
-    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-5);
   }
 
+  /* ── Add form ─────────────────────────────────────────────────────────── */
+  .add-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  .add-form__input {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--paper);
+    padding: 0.55rem 0.75rem;
+    color-scheme: dark;
+  }
+  .add-form__input::placeholder { color: var(--body); }
+  .add-form__input:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
+  }
+  .add-form__task { flex: 1 1 240px; }
+  .add-form__owner { flex: 1 1 140px; }
+  .add-form__date { flex: 0 1 150px; }
+  .add-form__submit { flex-shrink: 0; padding: 0.55rem 1.25rem; font-size: var(--text-sm); }
+
+  .add-form__msg {
+    font-size: var(--text-xs);
+    color: var(--body);
+    min-height: 1.2em;
+    margin-bottom: var(--space-6);
+  }
+  .add-form__msg--error { color: var(--red); }
+
+  /* ── List ─────────────────────────────────────────────────────────────── */
   .sched-list {
     list-style: none;
     display: flex;
@@ -109,15 +272,18 @@ const sorted = [...schedule].sort((a, b) => {
     border-left: 3px solid var(--body);
     padding: var(--space-3) var(--space-4);
     min-width: 0;
+    transition: opacity 150ms var(--ease-out);
   }
+  .sched-item--busy { opacity: 0.5; pointer-events: none; }
   .sched-item--active   { border-left-color: var(--red); }
   .sched-item--upcoming { border-left-color: var(--ember); }
   .sched-item--done     { border-left-color: #4caf50; opacity: 0.6; }
+  .sched-item--blocked  { border-left-color: #b46bd6; }
 
   .sched-item__dates {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: var(--space-2);
     margin-bottom: 0.35rem;
@@ -139,10 +305,19 @@ const sorted = [...schedule].sort((a, b) => {
     letter-spacing: 0.06em;
     color: var(--body);
     white-space: nowrap;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.15rem 0.5rem;
   }
-  .sched-item--active .sched-item__status   { color: var(--red); }
-  .sched-item--upcoming .sched-item__status { color: var(--ember); }
-  .sched-item--done .sched-item__status     { color: #4caf50; }
+  .sched-item--active .sched-item__status   { color: var(--red); border-color: var(--red); }
+  .sched-item--upcoming .sched-item__status { color: var(--ember); border-color: var(--ember); }
+  .sched-item--done .sched-item__status     { color: #4caf50; border-color: #4caf50; }
+  .sched-item--blocked .sched-item__status  { color: #d9a6f0; border-color: #b46bd6; }
+  .sched-item__status:hover { background: rgba(255,255,255,0.06); }
+  .sched-item__status:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
+  }
 
   .sched-item__task {
     font-size: var(--text-sm);
@@ -152,10 +327,50 @@ const sorted = [...schedule].sort((a, b) => {
     max-width: none;
   }
 
+  .sched-item__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: 0.35rem;
+  }
+
   .sched-item__owner {
     font-size: 0.7rem;
     font-weight: 600;
     color: var(--ember);
     max-width: none;
   }
+
+  .sched-item__delete {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--body);
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--radius-sm);
+  }
+  .sched-item__delete:hover { color: var(--red); background: rgba(255,255,255,0.06); }
+  .sched-item__delete:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
+  }
+
+  .sched-item__notes {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--body);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.6rem;
+    resize: vertical;
+    min-height: 2rem;
+  }
+  .sched-item__notes:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
+    color: var(--paper);
+  }
+  .sched-item__notes::placeholder { color: var(--line); }
 </style>

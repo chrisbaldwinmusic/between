@@ -16,6 +16,7 @@ A mobile-first, mostly-static site whose job is simple: **welcome someone in, or
 - **[Astro](https://astro.build)** — static output, content-led, near-zero client JS
 - **Cloudflare Workers (with static assets)** — the existing `between` Worker (`between.sonic-boom.workers.dev`), deployed via `wrangler deploy`, not Cloudflare Pages
 - **Astro API routes (`src/pages/api/*`) + KV** — the dynamic features: the venue-demand poll and the email signup proxy
+- **`/team`** — a live, D1-backed project/productivity tool for the delivery team (roster, schedule, to-dos, activity log), not part of the public site. See `docs/DEPLOY.md` §4a.
 - **Sonic Boom's shared mailer** (`mailer.sonicboom.org.uk`) + **Cloudflare Turnstile** — email capture
 - **Ticket Tailor** — ticketing (per-event links)
 - **Cloudflare Web Analytics** — privacy-first, no cookie wall

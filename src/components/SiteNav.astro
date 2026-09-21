@@ -37,6 +37,10 @@ const navLinks = [
       </ul>
     </nav>
 
+    <a href="/team" class="btn btn-ghost-dark site-nav__team">
+      <span aria-hidden="true">🔒</span> Team<span class="sr-only"> login</span>
+    </a>
+
     <a href="#signup" class="btn btn-primary site-nav__cta">
       Join the community
     </a>
@@ -159,6 +163,14 @@ const navLinks = [
     padding: 0.5rem 0.875rem;
   }
 
+  /* Team login — compact, secondary to the primary CTA */
+  .site-nav__team {
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+    padding: 0.5rem 0.7rem;
+    gap: 0.35em;
+  }
+
   /* ── Desktop ────────────────────────────────────────── */
   @media (min-width: 900px) {
     .site-nav__toggle { display: none; }
@@ -186,6 +198,11 @@ const navLinks = [
     .site-nav__cta {
       font-size: var(--text-sm);
       padding: 0.625rem 1.25rem;
+    }
+
+    .site-nav__team {
+      font-size: var(--text-xs);
+      padding: 0.625rem 1rem;
     }
   }
 </style>

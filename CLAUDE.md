@@ -8,7 +8,8 @@ You are building **between.sonicboom.org.uk** for Sonic Boom Music CIC. Read `do
 - **Cloudflare Workers** (with static assets) for hosting — deployed to the existing `between` Worker (`between.sonic-boom.workers.dev`, custom domain `between.sonicboom.org.uk`) via `wrangler deploy`, **not** Cloudflare Pages. Dynamic routes are **Astro API endpoints** (`src/pages/api/*.js`, `prerender = false`) reading bindings via `context.locals.runtime.env` — not a top-level `functions/` folder, which the `@astrojs/cloudflare` adapter's `_worker.js` makes unreachable. KV backs the venue poll and the email signup proxy (`/api/subscribe` → `mailer.sonicboom.org.uk`, Sonic Boom's shared mailer, not MailerLite).
 - Email signup protected by **Cloudflare Turnstile**; **Ticket Tailor** (via events.sonicboom.org.uk) for tickets; **Cloudflare Web Analytics**.
 - The whole site sits behind **Cloudflare Access** (sonicboom.org.uk email domain) during pre-launch, covering both the custom domain and the workers.dev subdomain — see `DEPLOY.md` §5a.
-- Self-hosted fonts. No client-side framework beyond what Astro needs. Keep JS minimal.
+- Self-hosted fonts. No client-side framework beyond what Astro needs. Keep JS minimal on the **public** pages.
+- **`/team` is a separate internal tool, not part of the public marketing site.** It's a live project/productivity manager for the delivery team (roster, schedule, to-dos), backed by D1 (`OPS_DB`), with real writes and an activity log — not static content, not a checklist. Hard rules 2–8 below are written for the public site; `/team` follows its own dark, dense, utilitarian styling (see the existing `src/pages/team/*.astro`) rather than the warm marketing brand system, and JS there is fine where it makes the tool work. It still needs to be accessible and mobile-usable, but it doesn't need to "welcome someone in or count them in" (rule 5) — its job is to run the project.
 
 ## Hard rules — never break these
 

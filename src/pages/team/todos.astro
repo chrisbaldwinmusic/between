@@ -2,9 +2,15 @@
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import todos from '../../data/todos.json';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const db = Astro.locals.runtime?.env?.OPS_DB;
+
+let todos = [];
+if (db) {
+  const { results } = await db.prepare('SELECT * FROM todos ORDER BY done ASC, created_at DESC').all();
+  todos = results;
+}
 
 const areas = [...new Set(todos.map(t => t.area))];
 ---
@@ -13,27 +19,159 @@ const areas = [...new Set(todos.map(t => t.area))];
     <section class="todo-section">
       <div class="container">
         <h1 class="todo-heading">To-dos</h1>
-        <p class="todo-intro">
-          Edit <code>src/data/todos.json</code> to add, reassign or clear items.
-        </p>
+        <p class="todo-intro">Live and shared. Check things off, add new ones, reassign as they move.</p>
 
-        {areas.map(area => (
-          <div class="todo-group">
-            <h2 class="todo-group__heading">{area}</h2>
-            <ul class="todo-list" role="list">
-              {todos.filter(t => t.area === area).map(t => (
-                <li class="todo-item">
-                  <p class="todo-item__task">{t.task}</p>
-                  <p class="todo-item__owner">{t.owner}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <form class="add-form" id="add-todo-form">
+          <input class="add-form__input add-form__task" name="task" type="text" placeholder="New to-do…" required />
+          <input class="add-form__input add-form__owner" name="owner" type="text" placeholder="Owner" />
+          <input class="add-form__input add-form__area" name="area" type="text" placeholder="Area" list="area-options" />
+          <datalist id="area-options">
+            {areas.map(a => <option value={a} />)}
+          </datalist>
+          <button class="btn btn-primary add-form__submit" type="submit">Add</button>
+        </form>
+        <p class="add-form__msg" id="add-form-msg" role="status"></p>
+
+        <div id="todo-groups" data-empty-label="Nothing here yet.">
+          {areas.map(area => (
+            <div class="todo-group" data-area={area}>
+              <h2 class="todo-group__heading">{area}</h2>
+              <ul class="todo-list" role="list">
+                {todos.filter(t => t.area === area).map(t => (
+                  <li class="todo-item" data-id={t.id} data-done={t.done ? '1' : '0'}>
+                    <label class="todo-item__check">
+                      <input type="checkbox" checked={!!t.done} data-role="toggle" />
+                      <span class="todo-item__task">{t.task}</span>
+                    </label>
+                    <div class="todo-item__meta">
+                      <span class="todo-item__owner">{t.owner || '—'}</span>
+                      <button class="todo-item__delete" type="button" data-role="delete" aria-label={`Delete: ${t.task}`}>✕</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   </main>
 </BaseLayout>
+
+<template id="todo-item-template">
+  <li class="todo-item">
+    <label class="todo-item__check">
+      <input type="checkbox" data-role="toggle" />
+      <span class="todo-item__task"></span>
+    </label>
+    <div class="todo-item__meta">
+      <span class="todo-item__owner"></span>
+      <button class="todo-item__delete" type="button" data-role="delete">✕</button>
+    </div>
+  </li>
+</template>
+
+<script>
+  const groupsEl = document.getElementById('todo-groups')!;
+  const form = document.getElementById('add-todo-form') as HTMLFormElement;
+  const msgEl = document.getElementById('add-form-msg')!;
+  const itemTemplate = document.getElementById('todo-item-template') as HTMLTemplateElement;
+
+  function showMsg(text: string, isError = false) {
+    msgEl.textContent = text;
+    msgEl.classList.toggle('add-form__msg--error', isError);
+  }
+
+  function findOrCreateGroup(area: string): HTMLElement {
+    let group = groupsEl.querySelector<HTMLElement>(`.todo-group[data-area="${CSS.escape(area)}"]`);
+    if (group) return group;
+    group = document.createElement('div');
+    group.className = 'todo-group';
+    group.dataset.area = area;
+    group.innerHTML = `<h2 class="todo-group__heading"></h2><ul class="todo-list" role="list"></ul>`;
+    group.querySelector('h2')!.textContent = area;
+    groupsEl.appendChild(group);
+    return group;
+  }
+
+  function renderItem(todo: any): HTMLLIElement {
+    const node = itemTemplate.content.cloneNode(true) as DocumentFragment;
+    const li = node.querySelector('li')!;
+    li.dataset.id = String(todo.id);
+    li.dataset.done = todo.done ? '1' : '0';
+    (li.querySelector('input[type="checkbox"]') as HTMLInputElement).checked = !!todo.done;
+    li.querySelector('.todo-item__task')!.textContent = todo.task;
+    li.querySelector('.todo-item__owner')!.textContent = todo.owner || '—';
+    li.querySelector('.todo-item__delete')!.setAttribute('aria-label', `Delete: ${todo.task}`);
+    return li;
+  }
+
+  async function api(path: string, options: RequestInit = {}) {
+    const res = await fetch(path, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
+  }
+
+  groupsEl.addEventListener('change', async (e) => {
+    const input = e.target as HTMLInputElement;
+    if (input.dataset.role !== 'toggle') return;
+    const li = input.closest('li.todo-item') as HTMLLIElement;
+    const id = li.dataset.id;
+    const done = input.checked;
+    li.classList.add('todo-item--busy');
+    try {
+      await api(`/api/team/todos/${id}`, { method: 'PATCH', body: JSON.stringify({ done }) });
+      li.dataset.done = done ? '1' : '0';
+    } catch (err: any) {
+      input.checked = !done;
+      showMsg(err.message, true);
+    } finally {
+      li.classList.remove('todo-item--busy');
+    }
+  });
+
+  groupsEl.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest('[data-role="delete"]') as HTMLButtonElement | null;
+    if (!btn) return;
+    const li = btn.closest('li.todo-item') as HTMLLIElement;
+    const id = li.dataset.id;
+    li.classList.add('todo-item--busy');
+    try {
+      await api(`/api/team/todos/${id}`, { method: 'DELETE' });
+      li.remove();
+    } catch (err: any) {
+      li.classList.remove('todo-item--busy');
+      showMsg(err.message, true);
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showMsg('');
+    const fd = new FormData(form);
+    const task = String(fd.get('task') || '').trim();
+    const owner = String(fd.get('owner') || '').trim();
+    const area = String(fd.get('area') || '').trim() || 'General';
+    if (!task) return;
+
+    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    submitBtn.disabled = true;
+    try {
+      const { todo } = await api('/api/team/todos', { method: 'POST', body: JSON.stringify({ task, owner, area }) });
+      const group = findOrCreateGroup(area);
+      group.querySelector('.todo-list')!.prepend(renderItem(todo));
+      form.reset();
+    } catch (err: any) {
+      showMsg(err.message, true);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
 
 <style>
   .todo-section {
@@ -46,25 +184,51 @@ const areas = [...new Set(todos.map(t => t.area))];
     font-family: var(--font-body);
     color: var(--paper);
     font-size: var(--text-2xl);
-    margin-bottom: var(--space-3);
+    margin-bottom: var(--space-2);
   }
 
   .todo-intro {
     color: var(--body);
     font-size: var(--text-sm);
-    max-width: 65ch;
-    margin-bottom: var(--space-8);
-  }
-  .todo-intro code {
-    font-family: monospace;
-    font-size: 0.9em;
-    background: rgba(255,255,255,0.08);
-    color: var(--paper);
-    padding: 0.1em 0.4em;
-    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-5);
   }
 
-  .todo-group { margin-bottom: var(--space-8); }
+  /* ── Add form ─────────────────────────────────────────────────────────── */
+  .add-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  .add-form__input {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--paper);
+    padding: 0.55rem 0.75rem;
+  }
+  .add-form__input::placeholder { color: var(--body); }
+  .add-form__input:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
+  }
+  .add-form__task { flex: 1 1 240px; }
+  .add-form__owner { flex: 1 1 140px; }
+  .add-form__area { flex: 0 1 130px; }
+  .add-form__submit { flex-shrink: 0; padding: 0.55rem 1.25rem; font-size: var(--text-sm); }
+
+  .add-form__msg {
+    font-size: var(--text-xs);
+    color: var(--body);
+    min-height: 1.2em;
+    margin-bottom: var(--space-6);
+  }
+  .add-form__msg--error { color: var(--red); }
+
+  /* ── Groups ───────────────────────────────────────────────────────────── */
+  .todo-group { margin-bottom: var(--space-6); }
   .todo-group:last-child { margin-bottom: 0; }
 
   .todo-group__heading {
@@ -93,24 +257,55 @@ const areas = [...new Set(todos.map(t => t.area))];
     padding: var(--space-3) var(--space-4);
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.3rem;
     min-width: 0;
+    transition: opacity 150ms var(--ease-out);
+  }
+  .todo-item--busy { opacity: 0.5; pointer-events: none; }
+  .todo-item[data-done="1"] .todo-item__task {
+    color: var(--body);
+    text-decoration: line-through;
   }
 
   @media (min-width: 640px) {
     .todo-item {
       flex-direction: row;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       gap: var(--space-4);
     }
+  }
+
+  .todo-item__check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .todo-item__check input {
+    margin-top: 0.2em;
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--red);
+    flex-shrink: 0;
   }
 
   .todo-item__task {
     font-size: var(--text-sm);
     color: var(--paper);
     line-height: 1.5;
-    max-width: none;
+  }
+
+  .todo-item__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-shrink: 0;
+    padding-left: 1.6rem;
+  }
+  @media (min-width: 640px) {
+    .todo-item__meta { padding-left: 0; }
   }
 
   .todo-item__owner {
@@ -118,6 +313,18 @@ const areas = [...new Set(todos.map(t => t.area))];
     font-weight: 700;
     color: var(--ember);
     white-space: nowrap;
-    max-width: none;
+  }
+
+  .todo-item__delete {
+    color: var(--body);
+    font-size: 0.8rem;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--radius-sm);
+  }
+  .todo-item__delete:hover { color: var(--red); background: rgba(255,255,255,0.06); }
+  .todo-item__delete:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
   }
 </style>

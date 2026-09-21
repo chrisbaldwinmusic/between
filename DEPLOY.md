@@ -114,6 +114,33 @@ npx wrangler d1 create between-votes
 ```
 Schema: `votes(id, choice, outward_code, created_at)`. `/api/results` aggregates with `COUNT`/`GROUP BY`. KV is simpler and recommended unless you specifically need per-response geography.
 
+## 4a. D1 database (the /team ops tool)
+
+`/team` is a **live, editable project/productivity tool**, not static content — to-dos, the
+schedule and the roster are all read and written from a D1 database (`OPS_DB` binding, database
+`between-ops`), with every write logged to an `activity_log` table shown on the dashboard.
+
+Schema lives at `d1/schema.sql`. Already created and bound (see `wrangler.toml`). To recreate
+elsewhere:
+
+```bash
+npx wrangler d1 create between-ops
+# paste the returned database_id into wrangler.toml under [[d1_databases]]
+npx wrangler d1 execute between-ops --remote --file=d1/schema.sql
+```
+
+For local dev, seed the **local** D1 emulation separately (it's a different SQLite file, not the
+production database) so `npm run dev` / `wrangler dev` has data to show:
+
+```bash
+npx wrangler d1 execute between-ops --local --file=d1/schema.sql
+```
+
+The API routes are under `src/pages/api/team/*` (`todos`, `schedule`, `roster`, `activity`),
+each `prerender = false`, reading/writing via `context.locals.runtime.env.OPS_DB`. Every write
+stamps the actor from `Cf-Access-Authenticated-User-Email` (the header Cloudflare Access injects)
+so changes are attributable — see §5a.
+
 ## 5. Values & env vars
 
 Most integrations are **public client-side values**, not secrets:
@@ -125,6 +152,7 @@ Most integrations are **public client-side values**, not secrets:
 | Ticket Tailor URLs | In `events.json` / membership (public) |
 | Cloudflare Web Analytics token | In the `BaseLayout` snippet (public) |
 | `VENUE_KV` | KV binding (step 4) — not a secret |
+| `OPS_DB` | D1 binding (step 4a) — not a secret |
 
 Only add a Worker **secret** if you later build a Resend-backed email function:
 `npx wrangler secret put RESEND_API_KEY`.
@@ -185,6 +213,7 @@ Delete project**); it isn't wired to anything and costs nothing left as-is.
 - [ ] WhatsApp Community invite link live
 - [ ] Ticket Tailor links in for any on-sale events (currently a general redirect to events.sonicboom.org.uk)
 - [ ] `VENUE_KV` bound; `/api/vote` and `/api/results` work on the live domain
+- [ ] `OPS_DB` bound; `/team` to-dos, schedule and roster read/write correctly on the live domain
 - [ ] Cloudflare Web Analytics token in; data registering
 - [ ] Workers Builds connected to GitHub for automatic deploys (step 3), if wanted
 
