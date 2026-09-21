@@ -5,9 +5,9 @@ You are building **between.sonicboom.org.uk** for Sonic Boom Music CIC. Read `do
 ## Stack (don't substitute without asking)
 
 - **Astro**, static output, `@astrojs/cloudflare` adapter.
-- **Cloudflare Pages** for hosting; dynamic routes are **Astro API endpoints** (`src/pages/api/*.js`, `prerender = false`) reading bindings via `context.locals.runtime.env` — not a top-level `functions/` folder, which the `@astrojs/cloudflare` adapter's `_worker.js` makes unreachable. KV backs the venue poll and the email signup proxy (`/api/subscribe` → `mailer.sonicboom.org.uk`, Sonic Boom's shared mailer, not MailerLite).
+- **Cloudflare Workers** (with static assets) for hosting — deployed to the existing `between` Worker (`between.sonic-boom.workers.dev`, custom domain `between.sonicboom.org.uk`) via `wrangler deploy`, **not** Cloudflare Pages. Dynamic routes are **Astro API endpoints** (`src/pages/api/*.js`, `prerender = false`) reading bindings via `context.locals.runtime.env` — not a top-level `functions/` folder, which the `@astrojs/cloudflare` adapter's `_worker.js` makes unreachable. KV backs the venue poll and the email signup proxy (`/api/subscribe` → `mailer.sonicboom.org.uk`, Sonic Boom's shared mailer, not MailerLite).
 - Email signup protected by **Cloudflare Turnstile**; **Ticket Tailor** (via events.sonicboom.org.uk) for tickets; **Cloudflare Web Analytics**.
-- The whole site sits behind **Cloudflare Access** (sonicboom.org.uk email domain) during pre-launch — see `DEPLOY.md` §5a.
+- The whole site sits behind **Cloudflare Access** (sonicboom.org.uk email domain) during pre-launch, covering both the custom domain and the workers.dev subdomain — see `DEPLOY.md` §5a.
 - Self-hosted fonts. No client-side framework beyond what Astro needs. Keep JS minimal.
 
 ## Hard rules — never break these

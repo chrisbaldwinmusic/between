@@ -1,10 +1,19 @@
-# Deploy — Cloudflare Pages
+# Deploy — Cloudflare Workers
 
-How to get `between.sonicboom.org.uk` live on Cloudflare Pages, including the KV binding for the venue poll, the custom domain, and a pre-launch checklist.
+How to get `between.sonicboom.org.uk` live on the existing **`between`** Cloudflare Worker
+(account: Sonic Boom, `between.sonic-boom.workers.dev`), including the KV binding for the venue
+poll, the custom domain, and a pre-launch checklist.
+
+This project deploys as a **Worker with static assets**, not Cloudflare Pages. It reuses the
+`between` Worker that already existed on the account before this codebase — matching how the
+account's other subdomains (`mailer.`, `platform.`, etc.) are deployed.
 
 ## 1. Astro config
 
-`astro.config.mjs` should use the Cloudflare adapter and static output:
+`astro.config.mjs` uses the Cloudflare adapter and static output. No component in this project
+uses `astro:assets` / `<Image>` (plain `<img>` tags throughout), so `imageService` is
+`'passthrough'` — `'compile'` mode bundles an unused Sharp-dependent image endpoint that breaks
+once real dynamic routes exist.
 
 ```js
 import { defineConfig } from 'astro/config';
@@ -12,65 +21,80 @@ import cloudflare from '@astrojs/cloudflare';
 
 export default defineConfig({
   output: 'static',
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    imageService: 'passthrough',
+    sessionKVBindingName: undefined,
+    platformProxy: { enabled: true }, // KV emulation for `npm run dev`
+  }),
   site: 'https://between.sonicboom.org.uk',
 });
 ```
 
 Build command: `npm run build` · Output directory: `dist`.
 
-## 2. Local dev with API routes + KV
-
-`wrangler.toml` (for local Functions + KV during development):
+## 2. wrangler.toml — Worker, not Pages
 
 ```toml
-name = "between-sonicboom"
-compatibility_date = "2024-11-01"
-pages_build_output_dir = "dist"
+name = "between"
+main = "./dist/_worker.js/index.js"
+compatibility_date = "2026-09-21"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
 
 [[kv_namespaces]]
 binding = "VENUE_KV"
-id = "PLACEHOLDER"            # real id added after you create the namespace (step 4)
-preview_id = "PLACEHOLDER"
+id = "2202b52bbf514acebf0fa67f5bf4713e"
+preview_id = "78f18b42723a401b8a3444298e9cbd7f"
 ```
+
+**Important — two things that are easy to get wrong:**
+
+1. The `@astrojs/cloudflare` adapter builds `dist/_worker.js` ("advanced mode"). Cloudflare
+   treats a top-level `functions/` directory and an `_worker.js` as mutually exclusive — if
+   `_worker.js` exists, `functions/` is never invoked. So the dynamic routes (`/api/vote`,
+   `/api/results`, `/api/subscribe`) live as ordinary Astro pages under `src/pages/api/*.js`,
+   each with `export const prerender = false;`. They read bindings as
+   `context.locals.runtime.env.VENUE_KV`, not `context.env`.
+2. `[assets] directory = "./dist"` uploads everything in `dist/`, including the `_worker.js`
+   folder itself, as downloadable static files unless excluded. `public/.assetsignore` (copied
+   to `dist/.assetsignore` on every build) contains `_worker.js` to prevent that.
 
 Run locally:
 
 ```bash
 npm run build
-npx wrangler pages dev ./dist          # runs the built worker + binds KV
+npx wrangler dev            # real Worker mode — binds KV, serves ASSETS, runs the API routes
 ```
 
-**Important:** the `@astrojs/cloudflare` adapter builds `dist/_worker.js` ("advanced mode").
-Cloudflare Pages treats a top-level `functions/` directory and an `_worker.js` as mutually
-exclusive — if `_worker.js` exists, `functions/` is never invoked. So the dynamic routes
-(`/api/vote`, `/api/results`, `/api/subscribe`) live as ordinary Astro pages under
-`src/pages/api/*.js`, each with `export const prerender = false;`. They read bindings as
-`context.locals.runtime.env.VENUE_KV`, not `context.env`. `astro.config.mjs` sets
-`platformProxy: { enabled: true }` so `npm run dev` also gets KV emulation, not just
-`wrangler pages dev`.
+(`npx wrangler pages dev ./dist` also still works for a quick static-only smoke test, but it
+doesn't reflect the real deploy target — use `wrangler dev` / `wrangler deploy`.)
 
-## 3. Connect the repo to Cloudflare Pages
+## 3. Deploy
 
-1. Push the repo to GitHub/GitLab.
-2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git**.
-3. Pick the repo. Build settings:
-   - **Framework preset:** Astro
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-4. Deploy. You get a `*.pages.dev` preview URL — test it before adding the custom domain.
+```bash
+npm run build
+npx wrangler deploy
+```
 
-## 4. Create & bind the KV namespace (venue poll)
+This **updates the existing `between` Worker in place** (script name `between` matches
+`wrangler.toml`'s `name`) — it does not create a new project. Deploys to:
+`https://between.sonic-boom.workers.dev`.
 
-Dashboard route:
-1. **Workers & Pages → KV → Create namespace** → name it `VENUE_KV`. Copy the namespace ID.
-2. Your Pages project → **Settings → Functions → KV namespace bindings → Add**:
-   - Variable name: `VENUE_KV`
-   - Namespace: the one you just made
-   - Add for **both Production and Preview**.
-3. Put the namespace ID into `wrangler.toml` for local dev.
+### Connect Git for automatic deploys (optional, one-time dashboard step)
 
-Or via CLI:
+The `between` Worker isn't currently connected to GitHub — deploys are manual (`wrangler deploy`)
+unless you wire up **Workers Builds**:
+
+1. Cloudflare dashboard → **Workers & Pages → `between` → Settings → Build → Connect to Git**.
+2. Authorize the Cloudflare GitHub App for `chrisbaldwinmusic/between` (one-time OAuth/App
+   install — this step can't be done via API, only the dashboard).
+3. Build command: `npm run build` · Deploy command: `npx wrangler deploy` · Root directory: `/`.
+
+## 4. KV namespace (venue poll)
+
+Already created and bound: `VENUE_KV` (see `wrangler.toml`). To recreate elsewhere:
 
 ```bash
 npx wrangler kv namespace create VENUE_KV
@@ -82,7 +106,7 @@ npx wrangler kv namespace create VENUE_KV --preview
 
 ```bash
 npx wrangler d1 create between-votes
-# bind as DB in Pages → Settings → Functions → D1 bindings, and in wrangler.toml:
+# bind as DB in wrangler.toml:
 # [[d1_databases]]
 # binding = "DB"
 # database_name = "between-votes"
@@ -96,22 +120,27 @@ Most integrations are **public client-side values**, not secrets:
 
 | Value | How it's set |
 |---|---|
-| MailerLite form/account ID | In the embed in `SignupForm` (public) |
+| Email signup (Turnstile + `mailer.sonicboom.org.uk`) | `SignupSection`/`SignupStrip` + `src/pages/api/subscribe.js` (public) |
 | WhatsApp invite link | In component/data (public) |
 | Ticket Tailor URLs | In `events.json` / membership (public) |
 | Cloudflare Web Analytics token | In the `BaseLayout` snippet (public) |
 | `VENUE_KV` | KV binding (step 4) — not a secret |
 
-Only add a Pages **secret** if you later build a Resend-backed email function: **Settings → Environment variables → Add → Encrypt** → `RESEND_API_KEY`.
+Only add a Worker **secret** if you later build a Resend-backed email function:
+`npx wrangler secret put RESEND_API_KEY`.
 
 ## 5a. Pre-launch access gate
 
 The whole site (including `/team`) sits behind **Cloudflare Access**, not application code. The
-Access application "Between (Sonic Boom)" is created against `between.sonicboom.org.uk`, reusing
-the account's existing **"Sonic Boom team"** policy (`email_domain = sonicboom.org.uk`, login via
-Google Workspace SSO or a one-time PIN emailed to the address). Nothing in this repo needs to
-change to keep it working — it's edge-level, configured in the Cloudflare dashboard under
-**Zero Trust → Access → Applications**.
+Access application "Between (Sonic Boom)" covers both `between.sonicboom.org.uk` and
+`between.sonic-boom.workers.dev`, reusing the account's existing **"Sonic Boom team"** policy
+(`email_domain = sonicboom.org.uk`, login via Google Workspace SSO or a one-time PIN emailed to
+the address). Nothing in this repo needs to change to keep it working — it's edge-level,
+configured in the Cloudflare dashboard under **Zero Trust → Access → Applications**.
+
+**Whenever you add or change a hostname this Worker serves from (a new custom domain, a renamed
+workers.dev subdomain), add it to the Access app's domain list immediately** — a hostname the
+Access app doesn't know about is served unauthenticated. This bit us twice while setting this up.
 
 The `/team` section (people, schedule, to-dos, ops procedures — `src/pages/team/`) is internal
 and marked `noindex`. It stays behind Access even after the public marketing pages go live, unless
@@ -119,9 +148,27 @@ you split the Access application to scope it to `/team/*` only.
 
 ## 6. Custom domain + DNS
 
-1. Pages project → **Custom domains → Set up a custom domain** → `between.sonicboom.org.uk`.
-2. If `sonicboom.org.uk` is already on Cloudflare DNS, Cloudflare adds the `CNAME` for the `between` subdomain automatically — accept it. If DNS is elsewhere, add a `CNAME` record: `between` → `<project>.pages.dev` (proxied).
-3. Wait for the certificate to issue (usually minutes). Pages serves HTTPS automatically.
+Already attached: `between.sonicboom.org.uk` → the `between` Worker, via a **Workers Custom
+Domain** (`PUT /accounts/{account_id}/workers/domains/records`), not a Pages custom domain. This
+creates a managed `AAAA` placeholder record and issues its own certificate automatically — no
+manual DNS record needed.
+
+To reattach elsewhere or recreate from scratch:
+
+```bash
+# via dashboard: Workers & Pages → between → Settings → Domains & Routes → Add → Custom domain
+# or via API:
+curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/workers/domains/records" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"zone_id":"<sonicboom.org.uk zone id>","hostname":"between.sonicboom.org.uk","service":"between","environment":"production"}'
+```
+
+Certificate issuance (Google Trust Services, TXT validation) typically takes 1–3 minutes.
+
+**Note:** a Cloudflare Pages project (`between-sonicboom`) was created earlier in this project's
+history and is now unused — the deploy target is the `between` Worker. Delete the Pages project
+from the dashboard if you want to tidy up (**Workers & Pages → between-sonicboom → Settings →
+Delete project**); it isn't wired to anything and costs nothing left as-is.
 
 ## 7. Pre-launch checklist
 
@@ -134,11 +181,12 @@ you split the Access application to scope it to `/team/*` only.
 - [ ] OG image + favicon set in
 
 **Integrations**
-- [ ] MailerLite form live and tested (a real test sign-up arrives)
+- [ ] Email signup tested end-to-end (a real test sign-up arrives via mailer.sonicboom.org.uk)
 - [ ] WhatsApp Community invite link live
-- [ ] Ticket Tailor links in for any on-sale events
-- [ ] `VENUE_KV` bound in Production + Preview; `/api/vote` and `/api/results` work on the `pages.dev` URL
+- [ ] Ticket Tailor links in for any on-sale events (currently a general redirect to events.sonicboom.org.uk)
+- [ ] `VENUE_KV` bound; `/api/vote` and `/api/results` work on the live domain
 - [ ] Cloudflare Web Analytics token in; data registering
+- [ ] Workers Builds connected to GitHub for automatic deploys (step 3), if wanted
 
 **Quality**
 - [ ] Mobile (≈375px) checked end to end

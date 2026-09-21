@@ -47,10 +47,10 @@ Ten events, in order: Folk Stories & Firelight (Oct) · Winter Sounds (Dec) · N
 | WhatsApp Community invite link | `SignupSection` / `SignupStrip` | Public | MVP | https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm ✓ |
 | Ticket Tailor links | `events.json`, membership | Public | rolling | events.sonicboom.org.uk (general redirect) ✓ — swap for per-event deep links as they go live |
 | Cloudflare Web Analytics token | `BaseLayout` snippet | Public | MVP | |
-| KV namespace `VENUE_KV` | `wrangler.toml` + Pages binding | Binding (not a secret) | step 8 | |
-| Custom domain `between.sonicboom.org.uk` | Cloudflare Pages + DNS | — | launch | |
+| KV namespace `VENUE_KV` | `wrangler.toml` binding on the `between` Worker | Binding (not a secret) | step 8 | ✓ done |
+| Custom domain `between.sonicboom.org.uk` | Workers Custom Domain (not Pages) + DNS | — | launch | ✓ done |
 
-> None of the integration values above are secrets — the mailer proxy/Ticket Tailor/WhatsApp/Analytics are all client-side or public values, and `VENUE_KV` is a binding. There are no API secrets to manage unless you later add a Resend-backed email function (then `RESEND_API_KEY` becomes a Pages secret).
+> None of the integration values above are secrets — the mailer proxy/Ticket Tailor/WhatsApp/Analytics are all client-side or public values, and `VENUE_KV` is a binding. There are no API secrets to manage unless you later add a Resend-backed email function (then `RESEND_API_KEY` becomes a Worker secret via `wrangler secret put`).
 
 ## Standing copy (already known — for reference)
 

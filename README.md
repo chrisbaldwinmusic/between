@@ -14,7 +14,7 @@ A mobile-first, mostly-static site whose job is simple: **welcome someone in, or
 ## Stack
 
 - **[Astro](https://astro.build)** — static output, content-led, near-zero client JS
-- **Cloudflare Pages** — hosting + CI from Git
+- **Cloudflare Workers (with static assets)** — the existing `between` Worker (`between.sonic-boom.workers.dev`), deployed via `wrangler deploy`, not Cloudflare Pages
 - **Astro API routes (`src/pages/api/*`) + KV** — the dynamic features: the venue-demand poll and the email signup proxy
 - **Sonic Boom's shared mailer** (`mailer.sonicboom.org.uk`) + **Cloudflare Turnstile** — email capture
 - **Ticket Tailor** — ticketing (per-event links)
@@ -29,7 +29,7 @@ A mobile-first, mostly-static site whose job is simple: **welcome someone in, or
 | [`docs/concept.md`](./docs/concept.md) | The full concept & build spec — the why and the what |
 | [`docs/PROMPTS.md`](./docs/PROMPTS.md) | Ordered build prompts — paste into Claude Code one at a time |
 | [`docs/CONTENT.md`](./docs/CONTENT.md) | Content & asset checklist — the values/files you must supply |
-| [`docs/DEPLOY.md`](./docs/DEPLOY.md) | Cloudflare Pages deploy, KV binding, env vars, DNS, pre-launch checklist |
+| [`docs/DEPLOY.md`](./docs/DEPLOY.md) | Cloudflare Workers deploy, KV binding, env vars, DNS, pre-launch checklist |
 
 ## Quickstart
 
@@ -37,7 +37,8 @@ A mobile-first, mostly-static site whose job is simple: **welcome someone in, or
 npm install
 npm run dev        # local dev (Astro)
 npm run build      # static build → /dist
-npx wrangler pages dev ./dist   # test the built worker + KV locally
+npx wrangler dev             # real Worker mode — KV + API routes locally
+npx wrangler deploy          # deploy to the live `between` Worker
 ```
 
 ## Build approach
