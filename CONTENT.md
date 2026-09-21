@@ -9,7 +9,7 @@ Everything you need to supply for the build, where it goes, and whether it block
 | Font direction — Fraunces serif vs strict Arial/Hanken | `tokens.css` / decision | MVP | |
 | Founding Membership price | `MembershipBlock`, `/membership` | MVP | |
 | Founding Membership benefits (3–4 bullets) | `MembershipBlock` | MVP | |
-| Poll storage — KV (counts) or D1 (per-response postcodes) | `functions/api/`, `DEPLOY.md` | step 8 | |
+| Poll storage — KV (counts) or D1 (per-response postcodes) | `src/pages/api/`, `DEPLOY.md` | step 8 | |
 | Which partners to display + logo permissions | `PartnerGrid` | MVP | |
 
 ## Media & imagery
@@ -33,8 +33,8 @@ Everything you need to supply for the build, where it goes, and whether it block
 | Confirmed dates for all ten (replace indicative Saturdays) | MVP | |
 | Final blurb per event | MVP | |
 | Free/ticketed + priceFrom per event | MVP | |
-| Ticket Tailor URL per ticketed event (as they go live) | rolling | |
-| Register URL per free event | rolling | |
+| Ticket Tailor URL per ticketed event (as they go live) | rolling | events.sonicboom.org.uk (general redirect) ✓ — swap for per-event deep links as they go live |
+| Register URL per free event | rolling | events.sonicboom.org.uk (general redirect) ✓ |
 | Access note per event | MVP | |
 
 Ten events, in order: Folk Stories & Firelight (Oct) · Winter Sounds (Dec) · New Year Community Sing (Jan) · Love Your Local (Feb) · Family Music Discovery Day (Mar) · Global Sounds (Apr) · Music in the Market (May) · Summer Park Sessions (Jun) · Youth Takeover (Jul) · Community Music Trail (Sep).
@@ -43,14 +43,14 @@ Ten events, in order: Folk Stories & Firelight (Oct) · Winter Sounds (Dec) · N
 
 | Item | Where it lives | Public or secret | MVP? | Value / status |
 |---|---|---|---|---|
-| MailerLite account + form ID | `SignupSection` embed | Public (client embed) | MVP | Account 1114181 · Form 147122363674134026 ✓ |
+| Email signup | `src/pages/api/subscribe.js` proxies to `mailer.sonicboom.org.uk`, Turnstile sitekey `0x4AAAAAAE-sD2W4nkc17NQU` | Public | MVP | ✓ done — reuses Sonic Boom's shared mailer, not MailerLite |
 | WhatsApp Community invite link | `SignupSection` / `SignupStrip` | Public | MVP | https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm ✓ |
-| Ticket Tailor links | `events.json`, membership | Public | rolling | |
+| Ticket Tailor links | `events.json`, membership | Public | rolling | events.sonicboom.org.uk (general redirect) ✓ — swap for per-event deep links as they go live |
 | Cloudflare Web Analytics token | `BaseLayout` snippet | Public | MVP | |
 | KV namespace `VENUE_KV` | `wrangler.toml` + Pages binding | Binding (not a secret) | step 8 | |
 | Custom domain `between.sonicboom.org.uk` | Cloudflare Pages + DNS | — | launch | |
 
-> None of the integration values above are secrets — MailerLite/Ticket Tailor/WhatsApp/Analytics are all client-side public values, and `VENUE_KV` is a binding. There are no API secrets to manage unless you later add a Resend-backed email function (then `RESEND_API_KEY` becomes a Pages secret).
+> None of the integration values above are secrets — the mailer proxy/Ticket Tailor/WhatsApp/Analytics are all client-side or public values, and `VENUE_KV` is a binding. There are no API secrets to manage unless you later add a Resend-backed email function (then `RESEND_API_KEY` becomes a Pages secret).
 
 ## Standing copy (already known — for reference)
 

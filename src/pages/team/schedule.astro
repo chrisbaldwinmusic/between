@@ -1,0 +1,141 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import schedule from '../../data/schedule.json';
+
+const today = new Date().toISOString().slice(0, 10);
+
+function status(start: string, end: string) {
+  if (today < start) return 'upcoming';
+  if (today > end) return 'done';
+  return 'active';
+}
+
+const statusLabel: Record<string, string> = {
+  upcoming: 'Upcoming',
+  active: 'In progress',
+  done: 'Done',
+};
+
+function fmt(d: string) {
+  const [y, m, day] = d.split('-').map(Number);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${day} ${months[m - 1]} ${y}`;
+}
+---
+<BaseLayout title="Schedule — The Space Between" nav="internal">
+  <main id="main">
+    <section class="sched-section">
+      <div class="container">
+        <h1 class="sched-heading">Master schedule</h1>
+        <p class="sched-intro">
+          The full delivery timeline from the Arts Council England application — 22 Sept 2026
+          to 30 Nov 2027. Status is worked out automatically from today's date. Edit
+          <code>src/data/schedule.json</code> and redeploy to update it.
+        </p>
+
+        <ol class="sched-list" role="list">
+          {schedule.map(item => {
+            const s = status(item.start, item.end);
+            return (
+              <li class={`sched-item sched-item--${s}`}>
+                <div class="sched-item__dates">
+                  <span class="sched-item__range">{fmt(item.start)} – {fmt(item.end)}</span>
+                  <span class="sched-item__status">{statusLabel[s]}</span>
+                </div>
+                <p class="sched-item__task">{item.task}</p>
+                <p class="sched-item__owner">{item.owner}</p>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .sched-section {
+    background: var(--paper);
+    padding-block: clamp(var(--space-10), 7vw, var(--space-16));
+    min-height: calc(100svh - var(--nav-h));
+  }
+
+  .sched-heading { color: var(--ink); margin-bottom: var(--space-3); }
+
+  .sched-intro {
+    color: var(--ink-soft);
+    max-width: 65ch;
+    margin-bottom: var(--space-8);
+  }
+  .sched-intro code {
+    font-family: monospace;
+    font-size: 0.9em;
+    background: rgba(26, 18, 18, 0.06);
+    padding: 0.1em 0.4em;
+    border-radius: var(--radius-sm);
+  }
+
+  .sched-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .sched-item {
+    background: #fff;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--body);
+    padding: var(--space-4) var(--space-5);
+    box-shadow: 0 2px 10px rgba(26, 18, 18, 0.07);
+    min-width: 0;
+  }
+  .sched-item--active   { border-left-color: var(--red); }
+  .sched-item--upcoming { border-left-color: var(--ember); }
+  .sched-item--done     { border-left-color: #2d5a1b; opacity: 0.75; }
+
+  .sched-item__dates {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+
+  .sched-item__range {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+
+  .sched-item__status {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--body);
+    white-space: nowrap;
+  }
+  .sched-item--active .sched-item__status   { color: var(--red); }
+  .sched-item--upcoming .sched-item__status { color: #a3690f; }
+  .sched-item--done .sched-item__status     { color: #2d5a1b; }
+
+  .sched-item__task {
+    font-size: var(--text-sm);
+    color: var(--ink);
+    line-height: 1.55;
+    margin-bottom: var(--space-2);
+    max-width: none;
+  }
+
+  .sched-item__owner {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--red);
+    max-width: none;
+  }
+</style>

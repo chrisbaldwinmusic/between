@@ -19,7 +19,7 @@ export default defineConfig({
 
 Build command: `npm run build` · Output directory: `dist`.
 
-## 2. Local dev with Functions + KV
+## 2. Local dev with API routes + KV
 
 `wrangler.toml` (for local Functions + KV during development):
 
@@ -38,10 +38,17 @@ Run locally:
 
 ```bash
 npm run build
-npx wrangler pages dev ./dist          # serves functions/ + binds KV
+npx wrangler pages dev ./dist          # runs the built worker + binds KV
 ```
 
-The poll functions read the binding as `context.env.VENUE_KV`.
+**Important:** the `@astrojs/cloudflare` adapter builds `dist/_worker.js` ("advanced mode").
+Cloudflare Pages treats a top-level `functions/` directory and an `_worker.js` as mutually
+exclusive — if `_worker.js` exists, `functions/` is never invoked. So the dynamic routes
+(`/api/vote`, `/api/results`, `/api/subscribe`) live as ordinary Astro pages under
+`src/pages/api/*.js`, each with `export const prerender = false;`. They read bindings as
+`context.locals.runtime.env.VENUE_KV`, not `context.env`. `astro.config.mjs` sets
+`platformProxy: { enabled: true }` so `npm run dev` also gets KV emulation, not just
+`wrangler pages dev`.
 
 ## 3. Connect the repo to Cloudflare Pages
 
@@ -97,6 +104,19 @@ Most integrations are **public client-side values**, not secrets:
 
 Only add a Pages **secret** if you later build a Resend-backed email function: **Settings → Environment variables → Add → Encrypt** → `RESEND_API_KEY`.
 
+## 5a. Pre-launch access gate
+
+The whole site (including `/team`) sits behind **Cloudflare Access**, not application code. The
+Access application "Between (Sonic Boom)" is created against `between.sonicboom.org.uk`, reusing
+the account's existing **"Sonic Boom team"** policy (`email_domain = sonicboom.org.uk`, login via
+Google Workspace SSO or a one-time PIN emailed to the address). Nothing in this repo needs to
+change to keep it working — it's edge-level, configured in the Cloudflare dashboard under
+**Zero Trust → Access → Applications**.
+
+The `/team` section (people, schedule, to-dos, ops procedures — `src/pages/team/`) is internal
+and marked `noindex`. It stays behind Access even after the public marketing pages go live, unless
+you split the Access application to scope it to `/team/*` only.
+
 ## 6. Custom domain + DNS
 
 1. Pages project → **Custom domains → Set up a custom domain** → `between.sonicboom.org.uk`.
@@ -135,3 +155,4 @@ Only add a Pages **secret** if you later build a Resend-backed email function: *
 **Go live**
 - [ ] Custom domain resolves on HTTPS
 - [ ] Test the full journey on a real phone: land → understand → join → see the year → answer the poll
+- [ ] When the public marketing pages are ready to go live, scope the "Between (Sonic Boom)" Access application to `/team/*` only (Zero Trust → Access → Applications), so `/team` stays private but the rest of the site opens up

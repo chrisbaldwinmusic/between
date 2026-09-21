@@ -4,5 +4,5 @@ pages_build_output_dir = "dist"
 
 [[kv_namespaces]]
 binding = "VENUE_KV"
-id = "PLACEHOLDER"
-preview_id = "PLACEHOLDER"
+id = "2202b52bbf514acebf0fa67f5bf4713e"
+preview_id = "78f18b42723a401b8a3444298e9cbd7f"

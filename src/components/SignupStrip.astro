@@ -1,8 +1,7 @@
 ---
 // Compact signup strip — placed just before the Footer.
-// Uses the same MailerLite form and WhatsApp link as SignupSection.
-// The MailerLite universal.js script is already loaded by SignupSection;
-// calling ml('account', ...) a second time is safe (the library no-ops).
+// Uses the same /api/subscribe endpoint and WhatsApp link as SignupSection.
+const TURNSTILE_SITEKEY = '0x4AAAAAAE-sD2W4nkc17NQU';
 
 const WA_URL = 'https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm'
              + '?utm_source=between&utm_medium=footer-strip&utm_campaign=whatsapp';
@@ -22,14 +21,29 @@ const WA_URL = 'https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm'
 
       <div class="signup-strip__actions">
 
-        <!-- Compact MailerLite embed -->
-        <div class="signup-strip__form">
-          <div class="ml-embedded" data-form="147122363674134026"></div>
-        </div>
+        <form class="signup-form signup-strip__form" data-turnstile-sitekey={TURNSTILE_SITEKEY}>
+          <label for="signup-strip-email" class="sr-only">Email</label>
+          <div class="signup-strip__form-row">
+            <input
+              class="signup-form__input signup-strip__input"
+              id="signup-strip-email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              aria-label="Email"
+              required
+              autocomplete="email"
+            />
+            <button class="btn btn-primary signup-form__submit signup-strip__submit" type="submit">
+              Sign up
+            </button>
+          </div>
+          <div class="signup-form__turnstile" id="signup-strip__turnstile"></div>
+          <p class="signup-form__msg" role="status"></p>
+        </form>
 
         <span class="signup-strip__or" aria-hidden="true">or</span>
 
-        <!-- WhatsApp -->
         <a
           href={WA_URL}
           class="signup-strip__wa"
@@ -50,17 +64,11 @@ const WA_URL = 'https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm'
   </div>
 </div>
 
-<!-- Re-initialise MailerLite in case this component loads without SignupSection -->
-<script is:inline>
-if (typeof ml !== 'undefined') {
-  ml('account', '1114181');
-} else {
-  (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])
-  .push(arguments);},l=d.createElement(e),l.async=1,l.src=u,
-  n=d.getElementsByTagName(e)[0],n.parentNode.insertBefore(l,n);})
-  (window,document,'script','https://assets.mailerlite.com/js/universal.js','ml');
-  ml('account', '1114181');
-}
+<!-- Turnstile — safe to load twice; script no-ops if already present -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer is:inline></script>
+
+<script>
+  import '../scripts/signup-form';
 </script>
 
 <style>
@@ -118,13 +126,13 @@ if (typeof ml !== 'undefined') {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   @media (min-width: 600px) {
     .signup-strip__actions {
       flex-direction: row;
-      align-items: center;
+      align-items: flex-start;
       flex-wrap: wrap;
       gap: var(--space-4);
     }
@@ -135,6 +143,43 @@ if (typeof ml !== 'undefined') {
     min-width: 240px;
   }
 
+  .signup-strip__form-row {
+    display: flex;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+
+  .signup-strip__input {
+    flex: 1;
+    min-width: 180px;
+    background: rgba(255,255,255,0.07);
+    border-color: var(--line);
+    color: var(--paper);
+    font-size: var(--text-sm);
+    padding: 0.65rem 1rem;
+  }
+  .signup-strip__input::placeholder { color: var(--body); }
+  .signup-strip__input:focus-visible {
+    background: rgba(255,255,255,0.12);
+  }
+
+  .signup-strip__submit {
+    flex-shrink: 0;
+    width: auto;
+    font-size: var(--text-sm);
+    padding: 0.65rem 1.25rem;
+    white-space: nowrap;
+  }
+
+  .signup-strip__form .signup-form__turnstile {
+    margin-top: var(--space-2);
+  }
+  .signup-strip__form .signup-form__msg {
+    color: var(--body);
+  }
+  .signup-strip__form .signup-form__msg--success { color: var(--ember); }
+  .signup-strip__form .signup-form__msg--error   { color: #ff8080; }
+
   .signup-strip__or {
     font-family: var(--font-body);
     font-size: var(--text-xs);
@@ -143,56 +188,7 @@ if (typeof ml !== 'undefined') {
     letter-spacing: 0.1em;
     color: var(--body);
     flex-shrink: 0;
-  }
-
-  /* MailerLite overrides (dark context) */
-  .signup-strip__form :global(label) {
-    color: var(--body) !important;
-    font-size: var(--text-xs) !important;
-    font-family: var(--font-body) !important;
-    font-weight: 600 !important;
-  }
-  .signup-strip__form :global(input[type="email"]),
-  .signup-strip__form :global(input[type="text"]) {
-    background: rgba(255,255,255,0.07) !important;
-    border: 1.5px solid var(--line) !important;
-    color: var(--paper) !important;
-    font-family: var(--font-body) !important;
-    font-size: var(--text-sm) !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 0.65rem 1rem !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  .signup-strip__form :global(input::placeholder) {
-    color: var(--body) !important;
-  }
-  .signup-strip__form :global(input:focus) {
-    outline: 3px solid var(--ember) !important;
-    outline-offset: 2px !important;
-    border-color: transparent !important;
-    background: rgba(255,255,255,0.12) !important;
-  }
-  .signup-strip__form :global(button[type="submit"]),
-  .signup-strip__form :global(.ml-form-embedSubmit button) {
-    background: var(--red) !important;
-    color: var(--paper) !important;
-    font-family: var(--font-body) !important;
-    font-size: var(--text-sm) !important;
-    font-weight: 700 !important;
-    border: none !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 0.65rem 1.25rem !important;
-    cursor: pointer !important;
-    width: 100% !important;
-    white-space: nowrap !important;
-  }
-  .signup-strip__form :global(.ml-form-embedWrapper),
-  .signup-strip__form :global(.ml-form-embedBody) {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    box-shadow: none !important;
+    align-self: center;
   }
 
   /* ── WhatsApp button (strip) ──────────────────────────────────────────── */
@@ -210,6 +206,7 @@ if (typeof ml !== 'undefined') {
     text-decoration: none;
     white-space: nowrap;
     flex-shrink: 0;
+    align-self: center;
     transition: background 150ms var(--ease-out);
   }
   .signup-strip__wa:hover { background: #1da851; }

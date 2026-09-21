@@ -5,8 +5,9 @@ You are building **between.sonicboom.org.uk** for Sonic Boom Music CIC. Read `do
 ## Stack (don't substitute without asking)
 
 - **Astro**, static output, `@astrojs/cloudflare` adapter.
-- **Cloudflare Pages** for hosting; **Pages Functions + KV** for the venue poll (the only dynamic feature).
-- **MailerLite** embed for email; **Ticket Tailor** links for tickets; **Cloudflare Web Analytics**.
+- **Cloudflare Pages** for hosting; dynamic routes are **Astro API endpoints** (`src/pages/api/*.js`, `prerender = false`) reading bindings via `context.locals.runtime.env` — not a top-level `functions/` folder, which the `@astrojs/cloudflare` adapter's `_worker.js` makes unreachable. KV backs the venue poll and the email signup proxy (`/api/subscribe` → `mailer.sonicboom.org.uk`, Sonic Boom's shared mailer, not MailerLite).
+- Email signup protected by **Cloudflare Turnstile**; **Ticket Tailor** (via events.sonicboom.org.uk) for tickets; **Cloudflare Web Analytics**.
+- The whole site sits behind **Cloudflare Access** (sonicboom.org.uk email domain) during pre-launch — see `DEPLOY.md` §5a.
 - Self-hosted fonts. No client-side framework beyond what Astro needs. Keep JS minimal.
 
 ## Hard rules — never break these
@@ -36,7 +37,7 @@ Red = brand anchor + active/"yes". Ember = warmth, hover, the demand meter. Veri
 ## Conventions
 
 - All event content comes from `src/data/events.json` (schema in `docs/concept.md` §7). Never hard-code event details in components.
-- Placeholders for values I'll supply (MailerLite form ID, WhatsApp invite link, Ticket Tailor URLs, Web Analytics token) must be clearly marked `// TODO:` and listed so I can find them. See `docs/CONTENT.md`.
+- Placeholders for values I'll supply (Web Analytics token, per-event Ticket Tailor deep links) must be clearly marked `// TODO:` and listed so I can find them. See `docs/CONTENT.md`.
 - Self-host fonts with `font-display: swap`.
 - Target Lighthouse 90+ on mobile; lazy-load video and below-fold images.
 

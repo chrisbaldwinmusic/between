@@ -1,0 +1,14 @@
+[
+  { "task": "Confirm Gemma's and Eryn's roles and remit on The Space Between — they aren't named in the ACE application", "owner": "Chris Baldwin", "area": "Team" },
+  { "task": "Recruit and confirm the freelance Social Media & Community Development role (Hannah Wood expected)", "owner": "Chris Baldwin", "area": "Team" },
+  { "task": "Complete Non-Executive Director recruitment (underway alongside this application)", "owner": "Chris Baldwin", "area": "Team" },
+  { "task": "Onboard freelance manager; stand up data, WhatsApp and survey systems", "owner": "Chris Baldwin", "area": "Programme" },
+  { "task": "Run Audience Spectrum profiling to confirm priority audience segments", "owner": "Freelance Community role", "area": "Programme" },
+  { "task": "Set up the 5-question post-event survey + QR-code registration system", "owner": "Freelance Community role", "area": "Programme" },
+  { "task": "Confirm Folk, Stories & Firelight line-up with Burton Folk Club (23 Oct 2026)", "owner": "Dan Brigstock", "area": "Programme" },
+  { "task": "Confirm Winter Sounds bands and open presale; build Founding Membership", "owner": "Dan Brigstock", "area": "Programme" },
+  { "task": "Create the Cloudflare Pages project and connect the GitHub repo", "owner": "Site build", "area": "Site" },
+  { "task": "Bind VENUE_KV in Pages → Settings → Functions (Production + Preview)", "owner": "Site build", "area": "Site" },
+  { "task": "Attach the between.sonicboom.org.uk custom domain once the Pages project exists", "owner": "Site build", "area": "Site" },
+  { "task": "Add MailerLite form ID, WhatsApp invite link, Ticket Tailor URLs and Web Analytics token (see CONTENT.md)", "owner": "Chris Baldwin", "area": "Site" }
+]

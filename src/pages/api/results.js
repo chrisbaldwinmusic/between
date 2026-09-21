@@ -1,8 +1,10 @@
 // GET /api/results — live venue-demand poll counts
 // Response: { total: number, yes: number, maybe: number, yesPct: number }
 
-export async function onRequestGet(context) {
-  const kv = context.env.VENUE_KV;
+export const prerender = false;
+
+export async function GET(context) {
+  const kv = context.locals.runtime?.env?.VENUE_KV;
 
   if (!kv) {
     // KV not bound (local dev without wrangler) — return zeroes

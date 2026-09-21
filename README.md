@@ -15,8 +15,8 @@ A mobile-first, mostly-static site whose job is simple: **welcome someone in, or
 
 - **[Astro](https://astro.build)** — static output, content-led, near-zero client JS
 - **Cloudflare Pages** — hosting + CI from Git
-- **Cloudflare Pages Functions + KV** — the one dynamic feature (the venue-demand poll)
-- **MailerLite** — embedded email capture
+- **Astro API routes (`src/pages/api/*`) + KV** — the dynamic features: the venue-demand poll and the email signup proxy
+- **Sonic Boom's shared mailer** (`mailer.sonicboom.org.uk`) + **Cloudflare Turnstile** — email capture
 - **Ticket Tailor** — ticketing (per-event links)
 - **Cloudflare Web Analytics** — privacy-first, no cookie wall
 - Self-hosted fonts (Fraunces + Hanken Grotesk)
@@ -37,7 +37,7 @@ A mobile-first, mostly-static site whose job is simple: **welcome someone in, or
 npm install
 npm run dev        # local dev (Astro)
 npm run build      # static build → /dist
-npx wrangler pages dev ./dist   # test Pages Functions + KV locally
+npx wrangler pages dev ./dist   # test the built worker + KV locally
 ```
 
 ## Build approach

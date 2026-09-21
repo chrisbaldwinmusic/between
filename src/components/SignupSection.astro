@@ -1,7 +1,7 @@
 ---
-// MailerLite credentials (public client-side embed values — not secrets)
-const ML_ACCOUNT  = '1114181';
-const ML_FORM_ID  = '147122363674134026';
+// Email signup — posts to /api/subscribe (a same-origin proxy to Sonic
+// Boom's shared mailer at mailer.sonicboom.org.uk), protected by Turnstile.
+const TURNSTILE_SITEKEY = '0x4AAAAAAE-sD2W4nkc17NQU';
 
 // WhatsApp Community invite link
 const WA_URL = 'https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm'
@@ -35,7 +35,7 @@ const { showHeading = true } = Astro.props;
 
     <div class="signup-options">
 
-      <!-- ── Email (MailerLite) ───────────────────────────────────────── -->
+      <!-- ── Email ───────────────────────────────────────────────────── -->
       <div class="signup-option signup-option--email">
         <h3 class="signup-option__heading">
           <span class="signup-option__icon" aria-hidden="true">✉</span>
@@ -46,16 +46,24 @@ const { showHeading = true } = Astro.props;
           Unsubscribe any time.
         </p>
 
-        <!--
-          MailerLite universal embed.
-          Form is configured in the MailerLite dashboard:
-          - Ensure each field has a visible <label> (not placeholder-as-label)
-          - Enable double opt-in
-          Account: 1114181  |  Form: 147122363674134026
-        -->
-        <div class="ml-form-wrapper">
-          <div class="ml-embedded" data-form={ML_FORM_ID}></div>
-        </div>
+        <form class="signup-form" id="signup-form" data-turnstile-sitekey={TURNSTILE_SITEKEY}>
+          <div class="signup-form__field">
+            <label for="signup-name" class="signup-form__label">Name (optional)</label>
+            <input class="signup-form__input" id="signup-name" name="name" type="text" autocomplete="name" />
+          </div>
+          <div class="signup-form__field">
+            <label for="signup-email" class="signup-form__label">Email</label>
+            <input class="signup-form__input" id="signup-email" name="email" type="email" required autocomplete="email" />
+          </div>
+
+          <div class="signup-form__turnstile" id="signup-form__turnstile"></div>
+
+          <button class="btn btn-primary signup-form__submit" type="submit">
+            Sign up
+          </button>
+
+          <p class="signup-form__msg" id="signup-form__msg" role="status"></p>
+        </form>
       </div>
 
       <!-- ── Divider ─────────────────────────────────────────────────── -->
@@ -107,13 +115,11 @@ const { showHeading = true } = Astro.props;
   </div>
 </section>
 
-<!-- MailerLite universal embed script — runs once per page load -->
-<script is:inline>
-(function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])
-.push(arguments);},l=d.createElement(e),l.async=1,l.src=u,
-n=d.getElementsByTagName(e)[0],n.parentNode.insertBefore(l,n);})
-(window,document,'script','https://assets.mailerlite.com/js/universal.js','ml');
-ml('account', '1114181');
+<!-- Turnstile — loaded once; safe if multiple signup forms are on the page -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer is:inline></script>
+
+<script>
+  import '../scripts/signup-form';
 </script>
 
 <style>
@@ -244,70 +250,54 @@ ml('account', '1114181');
     }
   }
 
-  /* ── MailerLite form overrides ────────────────────────────────────────── */
-  /* These styles nudge MailerLite's generated output toward our brand.
-     For complete control, also customise the form in the MailerLite dashboard
-     (set visible labels, not placeholder-as-label; enable double opt-in). */
-  .ml-form-wrapper :global(.ml-form-embedWrapper) {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
+  /* ── Signup form ─────────────────────────────────────────────────────── */
+  .signup-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
   }
-  .ml-form-wrapper :global(.ml-form-embedBody),
-  .ml-form-wrapper :global(.ml-form-embedBody .ml-form-embedContent) {
-    padding: 0 !important;
-    margin: 0 !important;
+
+  .signup-form__label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: var(--space-1);
   }
-  .ml-form-wrapper :global(label) {
-    font-family: var(--font-body) !important;
-    font-size: var(--text-sm) !important;
-    font-weight: 600 !important;
-    color: var(--ink) !important;
-    margin-bottom: var(--space-1) !important;
+
+  .signup-form__input {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    background: #fff;
+    border: 1.5px solid rgba(26, 18, 18, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    padding: 0.75rem 1rem;
+    width: 100%;
   }
-  .ml-form-wrapper :global(input[type="email"]),
-  .ml-form-wrapper :global(input[type="text"]) {
-    font-family: var(--font-body) !important;
-    font-size: var(--text-base) !important;
-    background: #fff !important;
-    border: 1.5px solid rgba(26, 18, 18, 0.2) !important;
-    border-radius: var(--radius-sm) !important;
-    color: var(--ink) !important;
-    padding: 0.75rem 1rem !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
+  .signup-form__input:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 2px;
+    border-color: transparent;
   }
-  .ml-form-wrapper :global(input:focus) {
-    outline: 3px solid var(--ember) !important;
-    outline-offset: 2px !important;
-    border-color: transparent !important;
+
+  .signup-form__turnstile {
+    min-height: 65px;
   }
-  .ml-form-wrapper :global(button[type="submit"]),
-  .ml-form-wrapper :global(.ml-form-embedSubmit button) {
-    background: var(--red) !important;
-    color: var(--paper) !important;
-    font-family: var(--font-body) !important;
-    font-size: var(--text-base) !important;
-    font-weight: 700 !important;
-    border: none !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 0.75rem 1.5rem !important;
-    cursor: pointer !important;
-    width: 100% !important;
-    transition: background 150ms var(--ease-out) !important;
+
+  .signup-form__submit {
+    width: 100%;
   }
-  .ml-form-wrapper :global(button[type="submit"]:hover) {
-    background: var(--ink) !important;
+
+  .signup-form__msg {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    min-height: 1.2em;
+    margin: 0;
   }
-  .ml-form-wrapper :global(.ml-form-successBody) {
-    font-family: var(--font-body) !important;
-    color: var(--ink) !important;
-    padding: var(--space-4) !important;
-    background: rgba(232, 162, 61, 0.1) !important;
-    border-radius: var(--radius-sm) !important;
-  }
+  .signup-form__msg--success { color: #2d5a1b; }
+  .signup-form__msg--error   { color: var(--red); }
 
   /* ── WhatsApp button ──────────────────────────────────────────────────── */
   .signup-wa-btn {

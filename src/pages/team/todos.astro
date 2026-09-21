@@ -1,0 +1,111 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import todos from '../../data/todos.json';
+
+const areas = [...new Set(todos.map(t => t.area))];
+---
+<BaseLayout title="To-dos — The Space Between" nav="internal">
+  <main id="main">
+    <section class="todo-section">
+      <div class="container">
+        <h1 class="todo-heading">Open to-dos</h1>
+        <p class="todo-intro">
+          Near-term actions, grouped by area. This is a static list — edit
+          <code>src/data/todos.json</code> and redeploy to add, reassign or remove items.
+        </p>
+
+        {areas.map(area => (
+          <div class="todo-group">
+            <h2 class="todo-group__heading">{area}</h2>
+            <ul class="todo-list" role="list">
+              {todos.filter(t => t.area === area).map(t => (
+                <li class="todo-item">
+                  <p class="todo-item__task">{t.task}</p>
+                  <p class="todo-item__owner">{t.owner}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .todo-section {
+    background: var(--paper);
+    padding-block: clamp(var(--space-10), 7vw, var(--space-16));
+    min-height: calc(100svh - var(--nav-h));
+  }
+
+  .todo-heading { color: var(--ink); margin-bottom: var(--space-3); }
+
+  .todo-intro {
+    color: var(--ink-soft);
+    max-width: 65ch;
+    margin-bottom: var(--space-10);
+  }
+  .todo-intro code {
+    font-family: monospace;
+    font-size: 0.9em;
+    background: rgba(26, 18, 18, 0.06);
+    padding: 0.1em 0.4em;
+    border-radius: var(--radius-sm);
+  }
+
+  .todo-group { margin-bottom: var(--space-10); }
+  .todo-group:last-child { margin-bottom: 0; }
+
+  .todo-group__heading {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--body);
+    margin-bottom: var(--space-3);
+  }
+
+  .todo-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .todo-item {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    box-shadow: 0 1px 6px rgba(26, 18, 18, 0.06);
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .todo-item {
+      flex-direction: row;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+  }
+
+  .todo-item__task {
+    font-size: var(--text-sm);
+    color: var(--ink);
+    line-height: 1.5;
+    max-width: none;
+  }
+
+  .todo-item__owner {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--red);
+    white-space: nowrap;
+    max-width: none;
+  }
+</style>

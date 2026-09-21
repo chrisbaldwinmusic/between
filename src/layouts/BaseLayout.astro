@@ -1,5 +1,6 @@
 ---
 import SiteNav from '../components/SiteNav.astro';
+import TeamNav from '../components/TeamNav.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/tokens.css';
 
@@ -7,12 +8,14 @@ interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
+  nav?: 'public' | 'internal';
 }
 
 const {
   title = 'The Space Between — Sonic Boom Music CIC',
   description = 'The year-round home of music in Burton upon Trent. One free or low-cost event a month, all year. Join the community.',
   ogImage = '/img/og.jpg',
+  nav = 'public',
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -26,6 +29,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {nav === 'internal' && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- Open Graph / Twitter -->
     <meta property="og:type"        content="website" />
@@ -64,7 +68,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to content</a>
-    <SiteNav />
+    {nav === 'internal' ? <TeamNav /> : <SiteNav />}
     <slot />
     <Footer />
   </body>

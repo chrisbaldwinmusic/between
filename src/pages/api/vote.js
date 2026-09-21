@@ -10,9 +10,11 @@
 //   ratelimit:vote:{ip}:{YYYY-MM-DD}     — 1 vote per IP per day (TTL 24 h)
 //   ratelimit:pc:{ip}:{YYYY-MM-DD}       — 1 postcode per IP per day (TTL 24 h)
 
-export async function onRequestPost(context) {
-  const { request, env } = context;
-  const kv = env.VENUE_KV;
+export const prerender = false;
+
+export async function POST(context) {
+  const { request, locals } = context;
+  const kv = locals.runtime?.env?.VENUE_KV;
 
   if (!kv) return err('Poll unavailable', 503);
 
