@@ -1,23 +1,27 @@
 ---
+export const prerender = false;
+
 import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 
 const sections = [
   {
     heading: 'Funder relationship',
     items: [
-      'Arts Council England, Supporting Grassroots Music, round 11 — funding confirmed. £26,000 ACE grant against a £35,900 total project cost (£9,900 match — 27.6%, cash and in-kind).',
+      'Arts Council England, Supporting Grassroots Music, round 11: funding confirmed. £26,000 ACE grant against a £35,900 total project cost (£9,900 match: 27.6%, cash and in-kind).',
       'A full end-of-programme evaluation report is due to Arts Council England by 30 Nov 2027.',
-      'ACE may request case studies, images and audio-visual material for publicity during the funding period — keep a running store of usable assets from every event.',
+      'ACE may request case studies, images and audio-visual material for publicity during the funding period: keep a running store of usable assets from every event.',
     ],
   },
   {
     heading: 'Evaluation cadence',
     items: [
-      'A five-question survey deploys to all ticket holders and registered attenders within 48 hours of every event — channel attribution, repeat-attendance, postcode/geography, and a venue-demand score.',
+      'A five-question survey deploys to all ticket holders and registered attenders within 48 hours of every event: channel attribution, repeat-attendance, postcode/geography, and a venue-demand score.',
       'Attendance recorded at every event: QR-code registration for free daytime sessions, box-office export for ticketed evenings.',
       'Community growth (WhatsApp, email, social) tracked monthly by the freelance community manager, reported to the Executive Director quarterly.',
       'Short delivery-team debrief after every event.',
-      'Formal checkpoints: Quarter 1 (14–18 Dec 2026), Quarter 2 (22–26 Mar 2027), six-month review (26–30 Apr 2027), Quarter 3 (28 Jun – 2 Jul 2027), final review (27 Sep – 1 Oct 2027) — see the schedule.',
+      'Formal checkpoints: Quarter 1 (14–18 Dec 2026), Quarter 2 (22–26 Mar 2027), six-month review (26–30 Apr 2027), Quarter 3 (28 Jun – 2 Jul 2027), final review (27 Sep – 1 Oct 2027); see the schedule.',
       'Freelance role evaluated through monthly check-ins, a formal six-month review, and a twelve-month close-out.',
     ],
   },
@@ -37,28 +41,28 @@ const sections = [
       'BSL interpretation available on request via a dedicated accessibility contact.',
       'Plain-English pre-event access information published for every event and distributed through community partners and Sonic Boom’s own channels.',
       'Discretionary access fund covers costs that would otherwise be a barrier, including travel and caring support.',
-      'Tickets for Good partner — free/discounted tickets for NHS staff, charity workers and people on cost-of-living support.',
+      'Tickets for Good partner: free/discounted tickets for NHS staff, charity workers and people on cost-of-living support.',
     ],
   },
   {
     heading: 'Fair pay',
     items: [
-      'Artist and musician fees benchmarked to Musicians’ Union rates — minimum £167.16 per musician for an engagement up to three hours.',
+      'Artist and musician fees benchmarked to Musicians’ Union rates: minimum £167.16 per musician for an engagement up to three hours.',
       'All paid roles meet or exceed the National Living Wage (National Minimum Wage for anyone under 23).',
       'No performance is unpaid.',
-      'Volunteer time is recognised and valued as in-kind support at a fair rate — never treated as free labour.',
+      'Volunteer time is recognised and valued as in-kind support at a fair rate, never treated as free labour.',
     ],
   },
 ];
 ---
-<BaseLayout title="Ops procedures — The Space Between" nav="internal">
+<BaseLayout title="Ops procedures · Between Ops" nav="internal" authEmail={authEmail}>
   <main id="main">
     <section class="ops-section">
       <div class="container">
         <h1 class="ops-heading">Ops procedures</h1>
         <p class="ops-intro">
-          Standing procedures for The Space Between, sourced from the Arts Council England
-          application. Edit this page directly and redeploy to keep it current.
+          Standing procedures, sourced from the ACE application. Edit this page directly to
+          keep it current.
         </p>
 
         {sections.map(section => (
@@ -78,28 +82,42 @@ const sections = [
 
 <style>
   .ops-section {
-    background: var(--paper);
-    padding-block: clamp(var(--space-10), 7vw, var(--space-16));
+    background: var(--ink);
+    padding-block: clamp(var(--space-8), 6vw, var(--space-12));
     min-height: calc(100svh - var(--nav-h));
   }
 
-  .ops-heading { color: var(--ink); margin-bottom: var(--space-3); }
+  .ops-heading {
+    font-family: var(--font-body);
+    color: var(--paper);
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-3);
+  }
 
   .ops-intro {
-    color: var(--ink-soft);
+    color: var(--body);
+    font-size: var(--text-sm);
     max-width: 65ch;
-    margin-bottom: var(--space-10);
+    margin-bottom: var(--space-8);
   }
 
   .ops-group {
-    margin-bottom: var(--space-10);
+    margin-bottom: var(--space-8);
     max-width: 72ch;
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--space-5);
   }
   .ops-group:last-child { margin-bottom: 0; }
 
   .ops-group__heading {
-    color: var(--ink);
-    font-size: var(--text-xl);
+    font-family: var(--font-body);
+    color: var(--ember);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     margin-bottom: var(--space-3);
   }
 
@@ -114,8 +132,8 @@ const sections = [
     position: relative;
     padding-left: var(--space-5);
     font-size: var(--text-sm);
-    color: var(--ink-soft);
-    line-height: 1.65;
+    color: var(--body);
+    line-height: 1.6;
     max-width: none;
   }
   .ops-item::before {

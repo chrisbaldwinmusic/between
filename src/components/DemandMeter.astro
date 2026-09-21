@@ -24,7 +24,7 @@
       </button>
     </div>
     <p class="dm-intro-note">
-      One tap — no sign-up required. Your answer is added to the
+      One tap, no sign-up required. Your answer is added to the
       demand count immediately.
     </p>
   </div>
@@ -65,7 +65,7 @@
 
     <!-- Thanks line -->
     <p class="dm-thanks">
-      Your voice — <span class="dm-chosen"></span> — has been added. Thank you.
+      Your voice, <span class="dm-chosen"></span>, has been added. Thank you.
     </p>
 
     <!-- Postcode (optional) -->
@@ -74,7 +74,7 @@
         <div class="dm-postcode__field">
           <label for="dm-postcode-input" class="dm-postcode__label">
             Add your postcode
-            <span class="dm-postcode__opt">(optional — helps show demand is local)</span>
+            <span class="dm-postcode__opt">(optional, helps show demand is local)</span>
           </label>
           <div class="dm-postcode__row">
             <input
@@ -95,7 +95,7 @@
           </p>
         </div>
       </form>
-      <p class="dm-postcode__done" hidden>Postcode added — thanks.</p>
+      <p class="dm-postcode__done" hidden>Postcode added. Thanks!</p>
     </div>
 
     <!-- Signup nudge -->
@@ -109,7 +109,7 @@
   <!-- ── Error ──────────────────────────────────────────────────────────── -->
   <div class="dm-pane dm-pane--error">
     <p class="dm-error-text">
-      Something went wrong — your vote wasn't recorded. Please try again.
+      Something went wrong. Your vote wasn't recorded. Please try again.
     </p>
     <button class="dm-retry" type="button">Try again</button>
   </div>
@@ -537,7 +537,7 @@
 
     pcForm.hidden = true;
     if (pcDone) pcDone.hidden = false;
-    announce('Postcode added — thank you.');
+    announce('Postcode added. Thank you.');
   });
 
   // ─── Retry ────────────────────────────────────────────────────────────────

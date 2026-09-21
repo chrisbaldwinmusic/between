@@ -9,13 +9,15 @@ interface Props {
   description?: string;
   ogImage?: string;
   nav?: 'public' | 'internal';
+  authEmail?: string | null;
 }
 
 const {
-  title = 'The Space Between — Sonic Boom Music CIC',
+  title = 'The Space Between · Sonic Boom Music CIC',
   description = 'The year-round home of music in Burton upon Trent. One free or low-cost event a month, all year. Join the community.',
   ogImage = '/img/og.jpg',
   nav = 'public',
+  authEmail = null,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -68,7 +70,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to content</a>
-    {nav === 'internal' ? <TeamNav /> : <SiteNav />}
+    {nav === 'internal' ? <TeamNav authEmail={authEmail} /> : <SiteNav />}
     <slot />
     <Footer />
   </body>

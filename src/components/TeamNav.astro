@@ -1,20 +1,39 @@
 ---
+interface Props {
+  authEmail?: string | null;
+}
+const { authEmail = null } = Astro.props;
+
 const links = [
-  { href: '/team',          label: 'People'   },
-  { href: '/team/schedule', label: 'Schedule' },
-  { href: '/team/todos',    label: 'To-dos'   },
-  { href: '/team/ops',      label: 'Ops'      },
+  { href: '/team',          label: 'Dashboard' },
+  { href: '/team/schedule', label: 'Schedule'  },
+  { href: '/team/todos',    label: 'To-dos'    },
+  { href: '/team/ops',      label: 'Ops'       },
 ];
 
 const current = Astro.url.pathname.replace(/\/$/, '') || '/team';
 ---
 
 <header class="team-nav" role="banner">
+  <div class="team-nav__bar container">
+    <span class="team-nav__badge">Team only</span>
+    {authEmail ? (
+      <p class="team-nav__who">
+        Signed in as <strong>{authEmail}</strong>
+        <a href="/cdn-cgi/access/logout" class="team-nav__logout">Log out</a>
+      </p>
+    ) : (
+      <p class="team-nav__who team-nav__who--unverified">
+        Access identity unavailable in this environment
+      </p>
+    )}
+  </div>
+
   <div class="team-nav__inner container">
 
-    <a href="/" class="team-nav__brand" aria-label="The Space Between — public site">
-      <span class="team-nav__brand-name">The Space Between</span>
-      <span class="team-nav__brand-by" aria-hidden="true">Team &amp; ops</span>
+    <a href="/" class="team-nav__brand" aria-label="Back to the public site">
+      <span class="team-nav__brand-name">Between Ops</span>
+      <span class="team-nav__brand-by" aria-hidden="true">Sonic Boom internal</span>
     </a>
 
     <nav class="team-nav__links" aria-label="Team navigation">
@@ -45,6 +64,59 @@ const current = Astro.url.pathname.replace(/\/$/, '') || '/team';
     border-bottom: 1px solid var(--line);
   }
 
+  /* ── Identity bar ─────────────────────────────────────────────────────── */
+  .team-nav__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    padding-block: 0.4rem;
+    background: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-body);
+  }
+
+  .team-nav__badge {
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--ember);
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .team-nav__who {
+    font-size: 0.7rem;
+    color: var(--body);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
+  .team-nav__who strong {
+    color: var(--paper);
+    font-weight: 600;
+  }
+  .team-nav__who--unverified {
+    color: #ff8080;
+  }
+
+  .team-nav__logout {
+    color: var(--ember);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .team-nav__logout:hover { color: var(--paper); }
+  .team-nav__logout:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 2px;
+  }
+
+  /* ── Section nav bar ──────────────────────────────────────────────────── */
   .team-nav__inner {
     display: flex;
     align-items: center;
@@ -60,7 +132,7 @@ const current = Astro.url.pathname.replace(/\/$/, '') || '/team';
     flex-shrink: 0;
   }
   .team-nav__brand-name {
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     font-size: var(--text-sm);
     font-weight: 700;
     color: var(--paper);
@@ -70,8 +142,8 @@ const current = Astro.url.pathname.replace(/\/$/, '') || '/team';
     font-family: var(--font-body);
     font-size: 0.65rem;
     font-weight: 500;
-    color: var(--ember);
-    letter-spacing: 0.08em;
+    color: var(--body);
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
   .team-nav__brand:hover .team-nav__brand-name { color: var(--ember); }
