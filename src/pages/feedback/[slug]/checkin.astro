@@ -1,0 +1,74 @@
+---
+// Public QR check-in for free events: counts who came (attendance is an ACE measure). Plain HTML
+// form post, open to everyone with no PIN. Saved to D1 via /api/feedback/checkin.
+import events from '../../../data/events.json';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import '../../../styles/feedback.css';
+
+export function getStaticPaths() {
+  return events
+    .filter(event => event.ticketing === 'free')
+    .map(event => ({ params: { slug: event.slug }, props: { event } }));
+}
+
+const { event } = Astro.props;
+---
+<BaseLayout
+  title={`Check in: ${event.name} · The Space Between`}
+  description={`Welcome to ${event.name}. Check in so we can count you in.`}
+  nav="minimal"
+>
+  <main id="main">
+    <div class="fb-hero">
+      <div class="container fb-hero__inner">
+        <p class="fb-hero__eyebrow">{event.name} · {event.venue}</p>
+        <h1 class="fb-hero__title">Welcome in</h1>
+        <p class="fb-hero__sub">
+          Thanks for coming. A ten-second check-in helps us show how many people turn up for live
+          music in Burton.
+        </p>
+      </div>
+    </div>
+
+    <div class="fb-body">
+      <div class="container fb-body__inner">
+        <form class="fb-form" method="post" action="/api/feedback/checkin">
+          <input type="hidden" name="event" value={event.slug} />
+          <div class="fb-hp" aria-hidden="true">
+            <label for="website">Leave this empty</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="party_size">How many of you are there?</label>
+            <p class="fb-q__hint" id="party-hint">Including you. One check-in per group is fine.</p>
+            <select class="fb-select fb-input--short" id="party_size" name="party_size" required aria-describedby="party-hint">
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                <option value={n} selected={n === 1}>{n}</option>
+              ))}
+            </select>
+          </div>
+
+          <fieldset class="fb-q">
+            <legend class="fb-q__legend">Is this your first Sonic Boom Music CIC event? <span class="fb-q__opt-tag">(optional)</span></legend>
+            <div class="fb-choices fb-choices--row">
+              <label class="fb-choice"><input type="radio" name="first_time" value="yes" />Yes, first time</label>
+              <label class="fb-choice"><input type="radio" name="first_time" value="no" />Been before</label>
+            </div>
+          </fieldset>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="postcode">First half of your postcode <span class="fb-q__opt-tag">(optional)</span></label>
+            <p class="fb-q__hint" id="postcode-hint">Just the first part, like DE14, so we can see how local our audience is.</p>
+            <input class="fb-input fb-input--short" id="postcode" name="postcode" type="text" autocomplete="off" maxlength="4" aria-describedby="postcode-hint" />
+          </div>
+
+          <button class="btn btn-primary fb-submit" type="submit">Check in</button>
+          <p class="fb-note">
+            Anonymous: no names or contact details. See our <a href="/privacy">privacy notice</a>.
+          </p>
+        </form>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

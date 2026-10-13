@@ -1,0 +1,36 @@
+// GET /api/team/evaluation/export?type=survey|checkins — CSV of raw (anonymous) responses for
+// reporting. Leads only (src/middleware.js).
+
+import { getDb, jsonErr } from '../../../../lib/ops-db.js';
+
+export const prerender = false;
+
+const QUERIES = {
+  survey: 'SELECT id, event_slug, created_at, heard_from, prior_events, outward_postcode, venue_use, venue_wants FROM feedback_responses ORDER BY created_at',
+  checkins: 'SELECT id, event_slug, created_at, party_size, first_time, outward_postcode FROM checkins ORDER BY created_at',
+};
+
+const cell = v => {
+  if (v == null) return '';
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+export async function GET(context) {
+  const db = getDb(context);
+  if (!db) return jsonErr('Database unavailable', 503);
+
+  const type = new URL(context.request.url).searchParams.get('type');
+  if (!QUERIES[type]) return jsonErr('type must be survey or checkins', 400);
+
+  const { results } = await db.prepare(QUERIES[type]).all();
+  const cols = QUERIES[type].match(/SELECT (.*) FROM/)[1].split(', ');
+  const csv = [cols.join(','), ...results.map(r => cols.map(c => cell(r[c])).join(','))].join('\r\n');
+
+  return new Response(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="between-${type}-${new Date().toISOString().slice(0, 10)}.csv"`,
+    },
+  });
+}

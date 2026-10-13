@@ -1,0 +1,526 @@
+---
+// The evaluation cadence from the ACE application, run live: per-event checklist (survey within
+// 48 hours, attendance, debrief), monthly community growth, review checkpoints and live results
+// from the public /feedback survey and check-in. Leads only (src/middleware.js).
+export const prerender = false;
+
+import events from '../../../data/events.json';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import {
+  HEARD_FROM, PRIOR_EVENTS, VENUE_USE, VENUE_QUESTION, LOCAL_OUTWARD, label, surveyDue,
+} from '../../../lib/feedback.js';
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const env = Astro.locals.runtime?.env ?? {};
+const db = env.OPS_DB;
+
+let responses: any[] = [];
+let checkins: any[] = [];
+let evalRows: any[] = [];
+let community: any[] = [];
+let reviews: any[] = [];
+if (db) {
+  const [r, c, e, m, s] = await Promise.all([
+    db.prepare('SELECT * FROM feedback_responses ORDER BY created_at DESC').all(),
+    db.prepare('SELECT * FROM checkins').all(),
+    db.prepare('SELECT * FROM eval_events').all(),
+    db.prepare('SELECT * FROM community_counts ORDER BY month').all(),
+    db.prepare(`SELECT * FROM schedule_items WHERE task LIKE '%review%' ORDER BY start_date`).all(),
+  ]);
+  responses = r.results; checkins = c.results; evalRows = e.results; community = m.results; reviews = s.results;
+}
+
+// Site venue poll (KV), same question as survey Q4.
+let poll = { total: 0, yes: 0 };
+if (env.VENUE_KV) {
+  const [yes, total] = await Promise.all([env.VENUE_KV.get('yes'), env.VENUE_KV.get('total')]);
+  poll = { yes: parseInt(yes ?? '0', 10), total: parseInt(total ?? '0', 10) };
+}
+
+const today = new Date().toISOString().slice(0, 10);
+const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+const count = (rows: any[], key: string, value: string) => rows.filter(r => r[key] === value).length;
+
+// ── Headline measures ──────────────────────────────────────────────────────
+const peopleCheckedIn = checkins.reduce((s, c) => s + c.party_size, 0);
+const withPostcode = [...responses, ...checkins].filter(r => r.outward_postcode);
+const local = withPostcode.filter(r => LOCAL_OUTWARD.includes(r.outward_postcode)).length;
+const repeat = responses.filter(r => r.prior_events !== 'first').length;
+const venueYes = count(responses, 'venue_use', 'yes');
+
+// ── Per event ──────────────────────────────────────────────────────────────
+const evalBySlug = new Map(evalRows.map(r => [r.event_slug, r]));
+function fmt(d: string | null) {
+  if (!d) return '';
+  const [y, m, day] = d.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, day)).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+}
+function status(e: any, row: any) {
+  if (e.date > today) return { key: 'upcoming', text: 'Upcoming' };
+  const due = surveyDue(e);
+  if (!row?.survey_sent_on) {
+    return today > due ? { key: 'overdue', text: `Survey overdue (was due ${fmt(due)})` } : { key: 'due', text: `Send survey by ${fmt(due)}` };
+  }
+  if (!row.debrief_on) return { key: 'due', text: 'Debrief to do' };
+  if (row.attendance == null) return { key: 'due', text: 'Add attendance' };
+  return { key: 'done', text: 'Complete' };
+}
+const allRows = events.map(e => {
+  const row = evalBySlug.get(e.slug) ?? {};
+  return {
+    e,
+    row,
+    status: status(e, row),
+    responses: count(responses, 'event_slug', e.slug),
+    checkedIn: checkins.filter(c => c.event_slug === e.slug).reduce((s, c) => s + c.party_size, 0),
+  };
+});
+// Full checklist cards once an event has happened; upcoming ones get a compact list (their QR
+// posters can still be printed in advance).
+const eventRows = allRows.filter(r => r.e.date <= today).reverse();
+const upcomingRows = allRows.filter(r => r.e.date > today);
+
+// ── Monthly community counts, Sep 2026 to Sep 2027 ─────────────────────────
+const CHANNELS = [['whatsapp', 'WhatsApp'], ['email', 'Email'], ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']];
+const months: string[] = [];
+for (let d = new Date(Date.UTC(2026, 8, 1)); d <= new Date(Date.UTC(2027, 8, 1)); d.setUTCMonth(d.getUTCMonth() + 1)) {
+  months.push(d.toISOString().slice(0, 7));
+}
+const communityByMonth = new Map(community.map(c => [c.month, c]));
+const monthLabel = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+const thisMonth = today.slice(0, 7);
+
+// ── Breakdown helper ───────────────────────────────────────────────────────
+const breakdown = (options: string[][], key: string) => {
+  const rows = options.map(([v, text]) => ({ text, n: count(responses, key, v) }));
+  const max = Math.max(1, ...rows.map(r => r.n));
+  return rows.map(r => ({ ...r, pct: pct(r.n, responses.length), width: Math.round((r.n / max) * 100) }));
+};
+const wants = responses.filter(r => r.venue_wants).slice(0, 20);
+const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? slug;
+---
+<BaseLayout title="Evaluation · Between Ops" nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <section class="ev-section">
+      <div class="container">
+        <div class="page-head">
+          <div>
+            <h1 class="ev-heading">Evaluation</h1>
+            <p class="ev-intro">
+              The evaluation plan from the ACE application, run live: a five-question survey within
+              48 hours of every event, attendance at every event, a debrief after each one, monthly
+              community numbers and the formal reviews. The public links live at
+              {' '}<a href="/feedback">/feedback</a>, open to everyone with no PIN.
+            </p>
+          </div>
+          <div class="head-links">
+            <a class="ev-btn" href="/api/team/evaluation/export?type=survey">Survey CSV</a>
+            <a class="ev-btn" href="/api/team/evaluation/export?type=checkins">Check-ins CSV</a>
+          </div>
+        </div>
+
+        <!-- Headline measures -->
+        <ul class="stat-row" role="list">
+          <li class="stat">
+            <span class="stat__n">{responses.length}</span>
+            <span class="stat__label">survey responses</span>
+          </li>
+          <li class="stat">
+            <span class="stat__n">{peopleCheckedIn}</span>
+            <span class="stat__label">people checked in by QR</span>
+          </li>
+          <li class="stat">
+            <span class="stat__n">{responses.length ? `${pct(venueYes, responses.length)}%` : '–'}</span>
+            <span class="stat__label">say yes to a venue (survey)</span>
+          </li>
+          <li class="stat">
+            <span class="stat__n">{poll.total ? `${pct(poll.yes, poll.total)}%` : '–'}</span>
+            <span class="stat__label">say yes on the site poll ({poll.total})</span>
+          </li>
+          <li class="stat">
+            <span class="stat__n">{withPostcode.length ? `${pct(local, withPostcode.length)}%` : '–'}</span>
+            <span class="stat__label">local ({LOCAL_OUTWARD.join('/')}) of {withPostcode.length} postcodes</span>
+          </li>
+          <li class="stat">
+            <span class="stat__n">{responses.length ? `${pct(repeat, responses.length)}%` : '–'}</span>
+            <span class="stat__label">had been to a Sonic Boom Music CIC event before</span>
+          </li>
+        </ul>
+
+        <!-- Per-event checklist -->
+        <section class="block" aria-labelledby="h-events">
+          <h2 class="block__title" id="h-events">After every event</h2>
+          {eventRows.length === 0 && (
+            <p class="ev-empty">Checklists appear here from the day of each event. First up: {upcomingRows[0]?.e.name}, {upcomingRows[0] && fmt(upcomingRows[0].e.date)}.</p>
+          )}
+          <ul class="ev-list" role="list">
+            {eventRows.map(({ e, row, status, responses: n, checkedIn }) => (
+              <li class={`ev ev--${status.key}`} style={`--accent:${e.accent}`}>
+                <div class="ev__head">
+                  <div>
+                    <p class="ev__name">{e.name}</p>
+                    <p class="ev__meta">{fmt(e.date)} {e.date.slice(0, 4)} · {e.venue} · {e.ticketing === 'free' ? 'Free' : 'Ticketed'}</p>
+                  </div>
+                  <span class={`chip chip--${status.key}`}>{status.text}</span>
+                </div>
+
+                <p class="ev__counts">
+                  <strong>{n}</strong> survey response{n === 1 ? '' : 's'}
+                  {e.ticketing === 'free' && <> · <strong>{checkedIn}</strong> checked in</>}
+                </p>
+
+                <form class="ev__form" data-event={e.slug}>
+                  <div class="f">
+                    <label for={`sent-${e.slug}`}>Survey sent</label>
+                    <input id={`sent-${e.slug}`} name="survey_sent_on" type="date" value={row.survey_sent_on ?? ''} />
+                  </div>
+                  <div class="f">
+                    <label for={`att-${e.slug}`}>Attendance ({e.ticketing === 'free' ? 'headcount' : 'box office'})</label>
+                    <input id={`att-${e.slug}`} name="attendance" type="number" min="0" inputmode="numeric" value={row.attendance ?? ''} />
+                  </div>
+                  <div class="f">
+                    <label for={`deb-${e.slug}`}>Debrief done</label>
+                    <input id={`deb-${e.slug}`} name="debrief_on" type="date" value={row.debrief_on ?? ''} />
+                  </div>
+                  <div class="f f--wide">
+                    <label for={`notes-${e.slug}`}>Notes</label>
+                    <input id={`notes-${e.slug}`} name="notes" type="text" value={row.notes ?? ''} />
+                  </div>
+                  <button class="ev-btn ev-btn--primary" type="submit">Save<span class="visually-hidden"> {e.name}</span></button>
+                  <span class="ev__msg" role="status"></span>
+                </form>
+
+                <div class="ev__links">
+                  <a href={`/feedback/${e.slug}`}>Survey page</a>
+                  <a href={`/team/evaluation/qr?e=${e.slug}&t=survey`}>Survey QR</a>
+                  {e.ticketing === 'free' && <a href={`/feedback/${e.slug}/checkin`}>Check-in page</a>}
+                  {e.ticketing === 'free' && <a href={`/team/evaluation/qr?e=${e.slug}&t=checkin`}>Check-in QR</a>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {upcomingRows.length > 0 && (
+          <section class="block" aria-labelledby="h-upcoming">
+            <h2 class="block__title" id="h-upcoming">Coming up <span class="block__total">print QR posters in advance</span></h2>
+            <ul class="up-list" role="list">
+              {upcomingRows.map(({ e }) => (
+                <li style={`--accent:${e.accent}`}>
+                  <span class="up-list__name">{e.name}</span>
+                  <span class="up-list__date">{fmt(e.date)} {e.date.slice(0, 4)} · {e.ticketing === 'free' ? 'Free' : 'Ticketed'}</span>
+                  <span class="up-list__links">
+                    <a href={`/feedback/${e.slug}`}>Survey<span class="visually-hidden"> page for {e.name}</span></a>
+                    <a href={`/team/evaluation/qr?e=${e.slug}&t=survey`}>Survey QR<span class="visually-hidden"> for {e.name}</span></a>
+                    {e.ticketing === 'free' && <a href={`/team/evaluation/qr?e=${e.slug}&t=checkin`}>Check-in QR<span class="visually-hidden"> for {e.name}</span></a>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <!-- Community growth -->
+        <section class="block" aria-labelledby="h-community">
+          <h2 class="block__title" id="h-community">
+            Community growth
+            <span class="block__total">monthly, reported quarterly</span>
+          </h2>
+          <div class="table-wrap">
+            <table class="cg">
+              <caption class="visually-hidden">Community members by month and channel</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Month</th>
+                  {CHANNELS.map(([, text]) => <th scope="col">{text}</th>)}
+                  <th scope="col"><span class="visually-hidden">Save</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {months.map(m => {
+                  const row = communityByMonth.get(m) ?? {};
+                  return (
+                    <tr class={m === thisMonth ? 'is-now' : m > thisMonth ? 'is-future' : ''} data-month={m}>
+                      <th scope="row">{monthLabel(m)}</th>
+                      {CHANNELS.map(([key, text]) => (
+                        <td>
+                          <input
+                            name={key}
+                            type="number"
+                            min="0"
+                            inputmode="numeric"
+                            value={row[key] ?? ''}
+                            aria-label={`${text}, ${monthLabel(m)}`}
+                          />
+                        </td>
+                      ))}
+                      <td><button class="ev-btn" type="button" data-role="save-month">Save<span class="visually-hidden"> {monthLabel(m)}</span></button></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p class="cg__msg" id="cg-msg" role="status"></p>
+        </section>
+
+        <!-- Reviews -->
+        <section class="block" aria-labelledby="h-reviews">
+          <h2 class="block__title" id="h-reviews">Reviews</h2>
+          <ul class="reviews" role="list">
+            {reviews.map(r => (
+              <li class={r.end_date < today ? 'is-past' : ''}>
+                <span>{r.task}</span>
+                <span>{fmt(r.start_date)} – {fmt(r.end_date)} {r.end_date.slice(0, 4)}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="ev-note">From the <a href="/team/schedule">schedule</a>. The end-of-programme report is due to Arts Council England by 30 Nov 2027.</p>
+        </section>
+
+        <!-- Results -->
+        <section class="block" aria-labelledby="h-results">
+          <h2 class="block__title" id="h-results">
+            Survey results
+            <span class="block__total">{responses.length} response{responses.length === 1 ? '' : 's'}, all events</span>
+          </h2>
+          {responses.length === 0 ? (
+            <p class="ev-empty">No responses yet. The first survey opens for Firelight on 23 Oct.</p>
+          ) : (
+            <div class="results">
+              {[
+                ['How they heard', breakdown(HEARD_FROM, 'heard_from')],
+                ['Sonic Boom Music CIC events before', breakdown(PRIOR_EVENTS, 'prior_events')],
+                [VENUE_QUESTION, breakdown(VENUE_USE, 'venue_use')],
+              ].map(([title, rows]: any) => (
+                <div class="result">
+                  <h3 class="result__title">{title}</h3>
+                  <ul class="bars" role="list">
+                    {rows.map((r: any) => (
+                      <li>
+                        <span class="bars__label">{r.text}</span>
+                        <span class="bars__track" aria-hidden="true"><span style={`width:${r.width}%`}></span></span>
+                        <span class="bars__n">{r.n} <span>({r.pct}%)</span></span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              <div class="result result--wide">
+                <h3 class="result__title">What people want from a venue</h3>
+                {wants.length === 0 ? <p class="ev-note">Nothing written yet.</p> : (
+                  <ul class="quotes" role="list">
+                    {wants.map(w => (
+                      <li>
+                        <p>{w.venue_wants}</p>
+                        <span>{eventName(w.event_slug)} · {label(VENUE_USE, w.venue_use)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  async function post(path: string, body: unknown) {
+    const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+  }
+
+  document.querySelectorAll<HTMLFormElement>('.ev__form').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector('.ev__msg')!;
+      const btn = form.querySelector('button')!;
+      btn.disabled = true;
+      msg.textContent = 'Saving…';
+      try {
+        await post('/api/team/evaluation/event', { event_slug: form.dataset.event, ...Object.fromEntries(new FormData(form)) });
+        location.reload();
+      } catch (err: any) {
+        msg.textContent = err.message;
+        btn.disabled = false;
+      }
+    });
+  });
+
+  const cgMsg = document.getElementById('cg-msg')!;
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest('[data-role="save-month"]') as HTMLButtonElement | null;
+    if (!btn) return;
+    const tr = btn.closest('tr') as HTMLTableRowElement;
+    const body: Record<string, string> = { month: tr.dataset.month! };
+    tr.querySelectorAll<HTMLInputElement>('input').forEach(i => { body[i.name] = i.value; });
+    btn.disabled = true;
+    try {
+      await post('/api/team/evaluation/community', body);
+      cgMsg.textContent = `Saved ${tr.querySelector('th')!.textContent}.`;
+    } catch (err: any) {
+      cgMsg.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .ev-section {
+    background: var(--ink);
+    padding-block: clamp(var(--space-8), 6vw, var(--space-12));
+    min-height: calc(100svh - var(--nav-h));
+  }
+  .visually-hidden {
+    position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  a { color: var(--ember); }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+
+  .page-head { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-6); }
+  @media (min-width: 860px) { .page-head { flex-direction: row; justify-content: space-between; align-items: flex-end; } }
+  .ev-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin-bottom: var(--space-2); }
+  .ev-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; }
+  .head-links { display: flex; gap: var(--space-2); flex-shrink: 0; }
+
+  .ev-btn {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.8rem;
+    text-decoration: none;
+    white-space: nowrap;
+    background: transparent;
+  }
+  .ev-btn:hover { border-color: var(--ember); color: var(--ember); }
+  .ev-btn--primary { background: var(--red); border-color: var(--red); color: #fff; }
+  .ev-btn--primary:hover { color: #fff; background: #a50d26; }
+  .ev-btn:disabled { opacity: 0.5; }
+
+  /* Stats */
+  .stat-row {
+    list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+    background: var(--line); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; margin-bottom: var(--space-8);
+  }
+  @media (min-width: 900px) { .stat-row { grid-template-columns: repeat(6, 1fr); } }
+  .stat { background: var(--ink-soft); padding: var(--space-4); display: flex; flex-direction: column; gap: 0.3rem; }
+  .stat__n { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 800; color: var(--ember); line-height: 1; }
+  .stat__label { font-size: var(--text-xs); color: var(--body); line-height: 1.35; }
+
+  .block { margin-bottom: var(--space-10); }
+  .block__title {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2);
+    font-family: var(--font-body); font-size: var(--text-xs); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--body); margin: 0 0 var(--space-3);
+  }
+  .block__total { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ember); }
+
+  /* Events */
+  .ev-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+  @media (min-width: 1100px) { .ev-list { grid-template-columns: 1fr 1fr; } }
+  .ev {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .ev--upcoming { opacity: 0.85; }
+  .ev__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+  .ev__name { font-weight: 700; color: var(--paper); font-size: var(--text-base); }
+  .ev__meta { font-size: var(--text-xs); color: var(--body); margin-top: 0.15rem; }
+  .ev__counts { font-size: var(--text-xs); color: var(--body); }
+  .ev__counts strong { color: var(--paper); }
+
+  .chip {
+    flex-shrink: 0;
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0.2rem 0.5rem; border: 1px solid currentColor; border-radius: var(--radius-sm);
+    color: var(--body); text-align: right; max-width: 12rem;
+  }
+  .chip--due { color: var(--ember); }
+  .chip--overdue { color: #ff8080; }
+  .chip--done { color: #4caf50; }
+
+  .ev__form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2) var(--space-3); align-items: end; }
+  @media (min-width: 560px) { .ev__form { grid-template-columns: repeat(3, 1fr); } }
+  .f { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+  .f--wide { grid-column: 1 / -1; }
+  .f label { font-size: 0.7rem; font-weight: 600; color: var(--body); }
+  .f input, .cg input {
+    font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper);
+    background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 0.45rem 0.6rem; width: 100%; min-width: 0;
+  }
+  .ev__msg { font-size: var(--text-xs); color: var(--body); align-self: center; }
+  .ev__links { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; font-size: var(--text-xs); font-weight: 600; }
+
+  /* Upcoming */
+  .up-list { list-style: none; margin: 0; padding: 0; background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .up-list li {
+    display: grid; grid-template-columns: 1fr auto; gap: 0.2rem var(--space-3);
+    padding: var(--space-3) var(--space-4); border-left: 4px solid var(--accent); font-size: var(--text-sm);
+  }
+  .up-list li + li { border-top: 1px solid var(--line); }
+  .up-list__name { color: var(--paper); font-weight: 600; }
+  .up-list__date { color: var(--body); font-size: var(--text-xs); grid-column: 1; }
+  .up-list__links { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; font-size: var(--text-xs); font-weight: 600; }
+  @media (min-width: 720px) {
+    .up-list li { grid-template-columns: 14rem 12rem 1fr; align-items: center; }
+    .up-list__date { grid-column: auto; }
+    .up-list__links { grid-column: auto; justify-content: flex-end; }
+  }
+
+  /* Community table */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--ink-soft); }
+  .cg { width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 40rem; }
+  .cg th, .cg td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); text-align: left; }
+  .cg thead th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--body); }
+  .cg tbody th { color: var(--paper); font-weight: 600; white-space: nowrap; }
+  .cg input { width: 6rem; }
+  .cg tr.is-now { background: rgba(232, 162, 61, 0.08); }
+  .cg tr.is-future th { color: var(--body); font-weight: 400; }
+  .cg__msg { font-size: var(--text-xs); color: var(--body); min-height: 1.2em; margin-top: var(--space-2); }
+
+  /* Reviews */
+  .reviews { list-style: none; margin: 0 0 var(--space-2); padding: 0; background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); }
+  .reviews li { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--paper); }
+  .reviews li + li { border-top: 1px solid var(--line); }
+  .reviews li span:last-child { color: var(--body); white-space: nowrap; font-size: var(--text-xs); }
+  .reviews li.is-past { opacity: 0.55; }
+  .ev-note, .ev-empty { font-size: var(--text-xs); color: var(--body); }
+  .ev-empty { background: var(--ink-soft); border: 1px dashed var(--line); border-radius: var(--radius); padding: var(--space-4); font-size: var(--text-sm); }
+
+  /* Results */
+  .results { display: grid; gap: var(--space-4); }
+  @media (min-width: 900px) { .results { grid-template-columns: 1fr 1fr; } }
+  .result { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); }
+  .result--wide { grid-column: 1 / -1; }
+  .result__title { font-size: var(--text-sm); font-weight: 700; color: var(--paper); margin-bottom: var(--space-3); }
+  .bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+  .bars li { display: grid; grid-template-columns: minmax(0, 11rem) 1fr auto; gap: var(--space-3); align-items: center; font-size: var(--text-xs); }
+  .bars__label { color: var(--paper); }
+  .bars__track { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+  .bars__track span { display: block; height: 100%; background: var(--ember); }
+  .bars__n { color: var(--paper); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bars__n span { color: var(--body); }
+  .quotes { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+  @media (min-width: 900px) { .quotes { grid-template-columns: 1fr 1fr; } }
+  .quotes li { border-left: 3px solid var(--ember); padding-left: var(--space-3); }
+  .quotes p { color: var(--paper); font-size: var(--text-sm); line-height: 1.5; max-width: none; }
+  .quotes span { font-size: 0.7rem; color: var(--body); }
+</style>

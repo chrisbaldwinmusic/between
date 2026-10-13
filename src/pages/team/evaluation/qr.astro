@@ -1,0 +1,108 @@
+---
+// Printable QR poster for an event's survey or check-in (/team/evaluation/qr?e=slug&t=survey|checkin).
+// Leads only (src/middleware.js). The QR code points at the public, PIN-free /feedback page.
+export const prerender = false;
+
+import qrcode from 'qrcode-generator';
+import { eventBySlug } from '../../../lib/feedback.js';
+
+const params = Astro.url.searchParams;
+const event = eventBySlug(params.get('e'));
+const type = params.get('t') === 'checkin' ? 'checkin' : 'survey';
+if (!event || (type === 'checkin' && event.ticketing !== 'free')) return Astro.redirect('/team/evaluation');
+
+const medium = type === 'checkin' ? 'qr-checkin' : 'qr-survey';
+const path = type === 'checkin' ? `/feedback/${event.slug}/checkin` : `/feedback/${event.slug}`;
+const url = `https://between.sonicboom.org.uk${path}?utm_source=between&utm_medium=${medium}&utm_campaign=${event.slug}`;
+const shortUrl = `between.sonicboom.org.uk${path}`;
+
+const qr = qrcode(0, 'M');
+qr.addData(url);
+qr.make();
+const svg = qr.createSvgTag({ cellSize: 10, margin: 2, scalable: true, alt: `QR code linking to ${shortUrl}` });
+
+const heading = type === 'checkin' ? 'Check in' : 'How was it?';
+const sub = type === 'checkin'
+  ? 'Scan to check in. Ten seconds, no names or emails.'
+  : 'Scan to tell us. Five quick questions, about two minutes.';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>QR: {heading} · {event.name}</title>
+    <style>
+      @font-face { font-family: 'Fraunces'; src: url('/fonts/fraunces/fraunces-normal-latin.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+      @font-face { font-family: 'Fraunces'; font-style: italic; src: url('/fonts/fraunces/fraunces-italic-latin.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+      @font-face { font-family: 'Hanken Grotesk'; src: url('/fonts/hanken/hanken-400-latin.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+      @font-face { font-family: 'Hanken Grotesk'; src: url('/fonts/hanken/hanken-600-latin.woff2') format('woff2'); font-weight: 600 700; font-display: swap; }
+      @page { size: A4; margin: 12mm; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #F4EFEA;
+        color: #1A1212;
+        font-family: 'Hanken Grotesk', -apple-system, Arial, sans-serif;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        padding: 1rem;
+        background: #1A1212;
+      }
+      .toolbar a, .toolbar button {
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1;
+        padding: 0.7rem 1.1rem;
+        border-radius: 6px;
+        border: 0;
+        cursor: pointer;
+        text-decoration: none;
+        background: #C8102E;
+        color: #fff;
+      }
+      .toolbar a { background: transparent; color: #F4EFEA; border: 1px solid #3A2C2C; }
+      .toolbar :focus-visible { outline: 3px solid #E8A23D; outline-offset: 2px; }
+      .poster {
+        max-width: 160mm;
+        margin: 2rem auto;
+        padding: 2rem;
+        text-align: center;
+        background: #fff;
+        border-top: 10px solid var(--accent, #E8A23D);
+        border-radius: 8px;
+      }
+      .eyebrow { font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.9rem; color: #5a4848; margin: 0; }
+      h1 { font-family: 'Fraunces', Georgia, serif; font-size: 3.2rem; line-height: 1; margin: 0.6rem 0 0.4rem; }
+      .sub { font-size: 1.15rem; margin: 0 0 1.5rem; }
+      .qr { width: min(110mm, 80vw); margin: 0 auto; }
+      .qr svg { width: 100%; height: auto; display: block; }
+      .url { font-size: 0.95rem; color: #5a4848; margin: 1rem 0 0; word-break: break-all; }
+      .sign { font-family: 'Fraunces', Georgia, serif; font-style: italic; margin: 1.5rem 0 0; }
+      @media print {
+        body { background: #fff; }
+        .toolbar { display: none; }
+        .poster { margin: 0 auto; border-radius: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <a href="/team/evaluation">← Evaluation</a>
+      <button type="button" onclick="window.print()">Print</button>
+    </div>
+    <main class="poster" style={`--accent:${event.accent}`}>
+      <p class="eyebrow">The Space Between · {event.name}</p>
+      <h1>{heading}</h1>
+      <p class="sub">{sub}</p>
+      <div class="qr" set:html={svg} />
+      <p class="url">{shortUrl}</p>
+      <p class="sign">Believe in the Power of Music.</p>
+    </main>
+  </body>
+</html>

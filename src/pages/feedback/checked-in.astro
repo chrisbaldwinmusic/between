@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StayInLoop from '../../components/StayInLoop.astro';
+import '../../styles/feedback.css';
+---
+<BaseLayout title="You're checked in · The Space Between" description="You're counted in. Enjoy the music." nav="minimal">
+  <main id="main">
+    <div class="fb-hero">
+      <div class="container fb-hero__inner">
+        <p class="fb-hero__eyebrow">Checked in</p>
+        <h1 class="fb-hero__title">You're counted in</h1>
+        <p class="fb-hero__sub">Enjoy the music. We'll ask how it went afterwards.</p>
+      </div>
+    </div>
+    <div class="fb-body">
+      <div class="container fb-body__inner">
+        <StayInLoop medium="checkin-thanks" />
+        <p class="fb-note">Believe in the Power of Music.</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

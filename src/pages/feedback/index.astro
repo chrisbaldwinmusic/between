@@ -1,0 +1,95 @@
+---
+// Public hub for the evaluation links: every event's survey (from the day of the event), the QR
+// check-in on the day of free events, and ways to stay in touch. Rendered per request so it's
+// always current. Open to everyone with no PIN.
+export const prerender = false;
+
+import events from '../../data/events.json';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StayInLoop from '../../components/StayInLoop.astro';
+import '../../styles/feedback.css';
+
+const today = new Date().toISOString().slice(0, 10);
+const past = events.filter(e => e.date <= today).reverse();
+const upcoming = events.filter(e => e.date > today);
+
+function when(date: string) {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  });
+}
+
+const utm = (slug: string) => `utm_source=between&utm_medium=feedback-hub&utm_campaign=${slug}`;
+---
+<BaseLayout
+  title="Your say · The Space Between"
+  description="Been to one of our events? Tell us how it went. Two minutes, five questions."
+  nav="minimal"
+>
+  <main id="main">
+    <div class="fb-hero">
+      <div class="container fb-hero__inner">
+        <p class="fb-hero__eyebrow">Your say</p>
+        <h1 class="fb-hero__title">Tell us how it went</h1>
+        <p class="fb-hero__sub">
+          Been to one of our events? Five quick questions help us make the next one better, and
+          build the case for our ambition: a permanent home for grassroots music in Burton.
+        </p>
+      </div>
+    </div>
+
+    <div class="fb-body">
+      <div class="container fb-body__inner">
+
+        <section aria-labelledby="past-h">
+          <h2 class="fb-h2" id="past-h">Been to one of these?</h2>
+          {past.length === 0 ? (
+            <p class="fb-p">
+              Our first event is <strong>{upcoming[0]?.name}</strong> on {upcoming[0] && when(upcoming[0].date)}.
+              Its feedback form opens here on the day.
+            </p>
+          ) : (
+            <ul class="fb-cards" role="list">
+              {past.map(e => (
+                <li class="fb-card" style={`--accent:${e.accent}`}>
+                  <p class="fb-card__meta">{when(e.date)} · {e.venue}</p>
+                  <p class="fb-card__name">{e.name}</p>
+                  <div class="fb-card__actions">
+                    <a class="btn btn-primary" href={`/feedback/${e.slug}?${utm(e.slug)}`}>
+                      Give feedback<span class="sr-only"> on {e.name}</span>
+                    </a>
+                    {e.ticketing === 'free' && e.date === today && (
+                      <a class="btn fb-btn-outline" href={`/feedback/${e.slug}/checkin?${utm(e.slug)}`}>
+                        Check in<span class="sr-only"> to {e.name}</span>
+                      </a>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {upcoming.length > 0 && (
+          <section aria-labelledby="next-h">
+            <h2 class="fb-h2" id="next-h">Coming up</h2>
+            <ul class="fb-upcoming" role="list">
+              {upcoming.map(e => (
+                <li><span>{e.name}</span><span>{when(e.date)}</span></li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <StayInLoop medium="feedback-hub" />
+
+        <p class="fb-note">
+          All answers are anonymous: no names, emails or full postcodes. We use them to plan events
+          and to report to Arts Council England, who fund this programme.
+          See our <a href="/privacy">privacy notice</a>.
+        </p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

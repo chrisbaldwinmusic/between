@@ -182,6 +182,25 @@ The `/team` section (people, schedule, to-dos, ops procedures — `src/pages/tea
 and marked `noindex`. It stays behind Access even after the public marketing pages go live, unless
 you split the Access application to scope it to `/team/*` only.
 
+## 5b. Preview PIN and the open /feedback pages
+
+The public pages sit behind a **preview PIN**, enforced by `worker/gate.js` (wrangler `main`,
+with `assets.run_worker_first = true` so static pages go through it too). The PIN is the Worker
+secret `PREVIEW_PIN` (`npx wrangler secret put PREVIEW_PIN`; locally `.dev.vars`, git-ignored).
+Entering it sets a strictly necessary 30-day cookie. **At launch, delete the secret**
+(`npx wrangler secret delete PREVIEW_PIN`) and the gate switches off.
+
+Always open, no PIN: `/feedback/*` (post-event survey, QR check-in, hub), `/api/feedback/*`,
+`/privacy`, `/accessibility`, and static files. `/team` and `/api/team` are left to Cloudflare
+Access.
+
+For this to work, the Cloudflare Access application must cover **only** `/team*` and
+`/api/team*` (on both `between.sonicboom.org.uk` and `between.sonic-boom.workers.dev`), not the
+whole hostname. If Access still covers the whole site, everything (including `/feedback`) stays
+behind the sonicboom.org.uk login.
+
+Evaluation tables: `d1/evaluation.sql` (applied to production). Internal view: `/team/evaluation`.
+
 ## 6. Custom domain + DNS
 
 Already attached: `between.sonicboom.org.uk` → the `between` Worker, via a **Workers Custom

@@ -1,0 +1,26 @@
+---
+// "Stay in the loop" links for the /feedback pages. Outbound links carry UTMs (hard rule 6).
+interface Props { medium: string; }
+const { medium } = Astro.props;
+const utm = (campaign: string) => `utm_source=between&utm_medium=${medium}&utm_campaign=${campaign}`;
+const links = [
+  { href: `https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm?${utm('whatsapp')}`, label: 'Join us on WhatsApp', primary: true },
+  { href: `https://www.instagram.com/sonicboom.org.uk?${utm('instagram')}`, label: 'Instagram' },
+  { href: `https://www.facebook.com/sonicboom.org.uk?${utm('facebook')}`, label: 'Facebook' },
+  { href: `https://www.tiktok.com/@sonicboom.org.uk?${utm('tiktok')}`, label: 'TikTok' },
+];
+---
+<section aria-labelledby="loop-h">
+  <h2 class="fb-h2" id="loop-h">Stay in the loop</h2>
+  <p class="fb-p">
+    Hear about the next one first. Our WhatsApp community gets news, presales and the odd
+    behind-the-scenes moment. Free to join, leave any time.
+  </p>
+  <div class="fb-links">
+    {links.map(l => (
+      <a class={`btn ${l.primary ? 'btn-primary' : 'fb-btn-outline'}`} href={l.href} target="_blank" rel="noopener noreferrer">
+        {l.label}<span class="sr-only"> (opens in new tab)</span>
+      </a>
+    ))}
+  </div>
+</section>

@@ -1,0 +1,211 @@
+/* Shared styles for the public /feedback pages (hub, survey, check-in, thank-you). Warm brand
+   system, mobile-first: these get opened from a QR code on a phone at an event. */
+
+.fb-hero {
+  background: var(--ink);
+  padding-block: clamp(var(--space-8), 7vw, var(--space-14, 3.5rem));
+  border-bottom: 3px solid var(--line);
+}
+.fb-hero__inner { display: flex; flex-direction: column; gap: var(--space-4); }
+.fb-hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ember);
+  margin: 0;
+}
+.fb-hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.1rem, 7vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--paper);
+  line-height: 1.02;
+  margin: 0;
+}
+.fb-hero__sub {
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 2.5vw, 1.15rem);
+  line-height: 1.65;
+  color: var(--body);
+  max-width: 54ch;
+  margin: 0;
+}
+
+.fb-body {
+  background: var(--paper);
+  color: var(--ink);
+  padding-block: clamp(var(--space-8), 7vw, var(--space-12));
+}
+.fb-body__inner { display: flex; flex-direction: column; gap: var(--space-10); max-width: 40rem; }
+
+.fb-h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0 0 var(--space-4);
+}
+.fb-p {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  margin: 0 0 var(--space-3);
+}
+.fb-p a, .fb-note a { color: var(--red); text-decoration: underline; text-underline-offset: 2px; }
+.fb-note {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #5a4848;
+  margin: 0;
+}
+
+/* ── Form ─────────────────────────────────────────────────────────────────── */
+.fb-form { display: flex; flex-direction: column; gap: var(--space-8); }
+
+.fb-q { border: 0; margin: 0; padding: 0; min-width: 0; }
+.fb-q__legend, .fb-q__label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: var(--space-1);
+  padding: 0;
+}
+.fb-q__num {
+  display: inline-block;
+  min-width: 1.6rem;
+  color: var(--red);
+}
+.fb-q__hint {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #5a4848;
+  margin: 0 0 var(--space-3);
+}
+.fb-q__opt-tag { font-weight: 500; color: #5a4848; }
+
+.fb-choices { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
+.fb-choices--row { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+
+.fb-choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3rem;
+  padding: 0.65rem 0.9rem;
+  background: #fff;
+  border: 2px solid #d9cfc8;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.fb-choice input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--red);
+  flex-shrink: 0;
+}
+.fb-choice:hover { border-color: var(--ember); }
+.fb-choice:has(input:checked) { border-color: var(--red); background: #fff5f3; }
+.fb-choice:has(input:focus-visible) { outline: 3px solid var(--ember); outline-offset: 2px; }
+
+.fb-input, .fb-textarea, .fb-select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid #d9cfc8;
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+  margin-top: var(--space-2);
+}
+.fb-input--short { max-width: 10rem; text-transform: uppercase; }
+.fb-textarea { min-height: 6.5rem; resize: vertical; line-height: 1.5; }
+.fb-input:focus-visible, .fb-textarea:focus-visible, .fb-select:focus-visible {
+  outline: 3px solid var(--ember);
+  outline-offset: 2px;
+  border-color: var(--red);
+}
+
+/* Honeypot: hidden from people and assistive tech, still in the DOM for bots. */
+.fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.fb-submit {
+  align-self: flex-start;
+  font-size: 1.05rem;
+  padding: 0.9rem 1.75rem;
+}
+
+/* ── Cards (hub) ──────────────────────────────────────────────────────────── */
+.fb-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.fb-card {
+  background: #fff;
+  border: 1px solid #e3d9d2;
+  border-left: 4px solid var(--accent, var(--ember));
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.fb-card__meta {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5a4848;
+  margin: 0;
+}
+.fb-card__name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0;
+}
+.fb-card__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.fb-card__actions .btn { font-size: 0.95rem; padding: 0.65rem 1.1rem; }
+
+.fb-btn-outline {
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  background: transparent;
+}
+.fb-btn-outline:hover { background: var(--ink); color: var(--paper); }
+
+.fb-upcoming { list-style: none; margin: 0; padding: 0; border-top: 1px solid #e3d9d2; }
+.fb-upcoming li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #e3d9d2;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+.fb-upcoming li span:last-child { white-space: nowrap; color: #5a4848; }
+
+.fb-links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.btn:focus-visible, .fb-card a:focus-visible, .fb-links a:focus-visible {
+  outline: 3px solid var(--ember);
+  outline-offset: 3px;
+}

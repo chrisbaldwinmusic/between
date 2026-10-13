@@ -8,7 +8,8 @@ interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
-  nav?: 'public' | 'internal';
+  // 'minimal' is for the open /feedback pages: brand only, no links into the PIN-gated site.
+  nav?: 'public' | 'internal' | 'minimal';
   authEmail?: string | null;
 }
 
@@ -70,8 +71,45 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to content</a>
-    {nav === 'internal' ? <TeamNav authEmail={authEmail} /> : <SiteNav />}
+    {nav === 'internal' && <TeamNav authEmail={authEmail} />}
+    {nav === 'public' && <SiteNav />}
+    {nav === 'minimal' && (
+      <header class="mini-nav" role="banner">
+        <div class="container mini-nav__inner">
+          <span class="mini-nav__name">The Space Between</span>
+          <span class="mini-nav__by">Sonic Boom Music CIC</span>
+        </div>
+      </header>
+    )}
     <slot />
     <Footer />
   </body>
 </html>
+
+<style>
+  .mini-nav {
+    background: var(--ink);
+    border-bottom: 1px solid var(--line);
+  }
+  .mini-nav__inner {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--nav-h);
+    line-height: 1.15;
+  }
+  .mini-nav__name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-base);
+    color: var(--paper);
+  }
+  .mini-nav__by {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ember);
+  }
+</style>

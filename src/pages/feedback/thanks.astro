@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StayInLoop from '../../components/StayInLoop.astro';
+import '../../styles/feedback.css';
+---
+<BaseLayout title="Thank you · The Space Between" description="Thanks for telling us how it went." nav="minimal">
+  <main id="main">
+    <div class="fb-hero">
+      <div class="container fb-hero__inner">
+        <p class="fb-hero__eyebrow">Answers received</p>
+        <h1 class="fb-hero__title">Thank you</h1>
+        <p class="fb-hero__sub">
+          That's genuinely useful. Every answer goes into how we plan the next night, and into the
+          evidence for a permanent home for grassroots music in Burton.
+        </p>
+      </div>
+    </div>
+    <div class="fb-body">
+      <div class="container fb-body__inner">
+        <StayInLoop medium="feedback-thanks" />
+        <p class="fb-note">Believe in the Power of Music.</p>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

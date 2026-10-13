@@ -39,6 +39,10 @@ const [y, m, d] = event.date.split('-').map(Number);
 const dateObj = new Date(Date.UTC(y, m - 1, d));
 const weekday = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dateObj.getUTCDay()];
 const longDate = `${weekday} ${d} ${event.month}`;
+
+// Feedback link shows from the day of the event. Pages are static, so a tiny script reveals it
+// on the day if the page was built beforehand.
+const happened = event.status === 'past' || event.date <= new Date().toISOString().slice(0, 10);
 ---
 
 <BaseLayout
@@ -85,6 +89,12 @@ const longDate = `${weekday} ${d} ${event.month}`;
               )}
             </div>
           )}
+
+          <p class="event-detail__feedback" data-from={event.date} hidden={!happened}>
+            Were you there?
+            <a href={`/feedback/${event.slug}?utm_source=between&utm_medium=eventpage&utm_campaign=${event.slug}`}>Tell us how it went</a>
+            (two minutes, five questions).
+          </p>
         </div>
 
         <!-- Sidebar: date, venue, access -->
@@ -139,7 +149,22 @@ const longDate = `${weekday} ${d} ${event.month}`;
   </main>
 </BaseLayout>
 
+<script is:inline>
+  document.querySelectorAll('.event-detail__feedback[hidden]').forEach(function (el) {
+    if (new Date().toISOString().slice(0, 10) >= el.dataset.from) el.hidden = false;
+  });
+</script>
+
 <style>
+  .event-detail__feedback {
+    margin-top: var(--space-6);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .event-detail__feedback a { color: var(--red); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+
   /* ── Event hero ───────────────────────────────────────────────────────── */
   .event-hero {
     background: var(--ink);
