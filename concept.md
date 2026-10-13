@@ -87,8 +87,8 @@ Drive everything from one file.
 // src/data/events.json
 [
   {
-    "slug": "folk-stories-firelight",
-    "name": "Folk, Stories & Firelight",
+    "slug": "firelight",
+    "name": "Firelight",
     "month": "Oct 2026",
     "date": "2026-10-23",
     "format": "Intergenerational folk & storytelling",
@@ -105,7 +105,7 @@ Drive everything from one file.
 ]
 ```
 
-Ten events in order: Folk, Stories & Firelight (Oct) · Winter Sounds (Dec) · New Year Community Sing (Jan) · Love Your Local (Feb) · Family Music Discovery Day (Mar) · Global Sounds (Apr) · Music in the Market (May) · Summer Park Sessions (Jun) · Youth Takeover (Jul) · Community Music Trail (Sep). Use indicative Saturdays until confirmed.
+Ten events in order: Firelight (Oct) · Winter Sounds (Dec) · New Year Community Sing (Jan) · Love Your Local (Feb) · Family Music Discovery Day (Mar) · Global Sounds (Apr) · Music in the Market (May) · Summer Park Sessions (Jun) · Youth Takeover (Jul) · Community Music Trail (Sep). Use indicative Saturdays until confirmed.
 
 ## 8. Data capture & integrations (Cloudflare edition)
 

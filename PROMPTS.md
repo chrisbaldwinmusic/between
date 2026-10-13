@@ -64,8 +64,7 @@ I'll connect to /api/results in step 8.
 ## 4 · The year (events)
 
 ```
-Populate src/data/events.json with all ten events (concept.md §7 schema): Folk Stories &
-Firelight (Oct) → Winter Sounds (Dec) → New Year Community Sing (Jan) → Love Your Local
+Populate src/data/events.json with all ten events (concept.md §7 schema): Firelight (Oct) → Winter Sounds (Dec) → New Year Community Sing (Jan) → Love Your Local
 (Feb) → Family Music Discovery Day (Mar) → Global Sounds (Apr) → Music in the Market (May)
 → Summer Park Sessions (Jun) → Youth Takeover (Jul) → Community Music Trail (Sep). Use the
 indicative Saturday dates as placeholders; ticketUrl/registerUrl null for now. Build
