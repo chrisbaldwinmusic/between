@@ -55,3 +55,28 @@ CREATE TABLE activity_log (
 CREATE INDEX idx_todos_done ON todos(done);
 CREATE INDEX idx_schedule_dates ON schedule_items(start_date, end_date);
 CREATE INDEX idx_activity_created ON activity_log(created_at);
+
+-- Budget tracker (/team/budget, leads only). Lines are the ACE application budget; entries are
+-- actual spend or income logged against them. Money is stored in pence. Seed: d1/budget.sql.
+CREATE TABLE budget_lines (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind TEXT NOT NULL,              -- 'income' | 'expenditure'
+  heading TEXT NOT NULL,           -- ACE budget heading, e.g. 'Artistic spending'
+  description TEXT NOT NULL,
+  budget_pence INTEGER NOT NULL,
+  in_kind INTEGER NOT NULL DEFAULT 0,
+  status TEXT,                     -- income only: 'expected' | 'confirmed'
+  sort INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE budget_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  line_id INTEGER NOT NULL REFERENCES budget_lines(id),
+  entry_date TEXT NOT NULL,        -- YYYY-MM-DD
+  description TEXT NOT NULL,
+  amount_pence INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by TEXT
+);
+
+CREATE INDEX idx_budget_entries_line ON budget_entries(line_id);

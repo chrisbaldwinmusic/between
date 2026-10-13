@@ -2,8 +2,11 @@
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import WipNotice from '../../components/WipNotice.astro';
+import { getEmail, isLead, activityWhere } from '../../lib/team-access.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const lead = isLead(getEmail(Astro.request));
 const db = Astro.locals.runtime?.env?.OPS_DB;
 
 let team = [];
@@ -14,7 +17,7 @@ let activeSchedule = 0;
 if (db) {
   const [teamRes, activityRes, todosRes, scheduleRes] = await Promise.all([
     db.prepare('SELECT * FROM team_members ORDER BY id ASC').all(),
-    db.prepare('SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 10').all(),
+    db.prepare(`SELECT * FROM activity_log ${activityWhere(getEmail(Astro.request))} ORDER BY created_at DESC LIMIT 10`).all(),
     db.prepare('SELECT COUNT(*) AS n FROM todos WHERE done = 0').first(),
     db.prepare(`SELECT COUNT(*) AS n FROM schedule_items
                 WHERE (status_override = 'blocked')
@@ -49,15 +52,19 @@ function timeAgo(iso: string) {
       <div class="container">
         <h1 class="team-heading">Dashboard</h1>
 
+        {!lead && <WipNotice />}
+
         <ul class="stat-row" role="list">
           <li class="stat">
             <span class="stat__n">{activeSchedule}</span>
             <span class="stat__label">in progress now</span>
           </li>
-          <li class="stat">
-            <span class="stat__n">{openTodos}</span>
-            <span class="stat__label">open to-dos</span>
-          </li>
+          {lead && (
+            <li class="stat">
+              <span class="stat__n">{openTodos}</span>
+              <span class="stat__label">open to-dos</span>
+            </li>
+          )}
           <li class="stat">
             <span class="stat__n">{team.length}</span>
             <span class="stat__label">people on the roster</span>
@@ -83,15 +90,19 @@ function timeAgo(iso: string) {
                   </div>
                   <p class="person-row__remit" data-role="remit-text">{person.remit}</p>
                   <div class="person-row__meta">
-                    <button class="person-row__status" type="button" data-role="cycle-status">
-                      {statusLabel[person.status] ?? person.status}
-                    </button>
+                    {lead ? (
+                      <button class="person-row__status" type="button" data-role="cycle-status">
+                        {statusLabel[person.status] ?? person.status}
+                      </button>
+                    ) : (
+                      <span class="person-row__status">{statusLabel[person.status] ?? person.status}</span>
+                    )}
                     <a class="person-row__email" href={`mailto:${person.email}`}>{person.email}</a>
                   </div>
                 </li>
               ))}
             </ul>
-            <p class="team-footnote">Click a status pill to cycle it. Confirmed → Expected → Unconfirmed.</p>
+            {lead && <p class="team-footnote">Click a status pill to cycle it. Confirmed → Expected → Unconfirmed.</p>}
           </div>
 
           <div class="dash-col">
@@ -301,7 +312,7 @@ function timeAgo(iso: string) {
   .person-row--confirmed .person-row__status { color: #4caf50; border-color: #4caf50; }
   .person-row--expected .person-row__status  { color: var(--ember); border-color: var(--ember); }
   .person-row--unconfirmed .person-row__status { color: var(--red); border-color: var(--red); }
-  .person-row__status:hover { background: rgba(255,255,255,0.06); }
+  button.person-row__status:hover { background: rgba(255,255,255,0.06); }
   .person-row__status:focus-visible {
     outline: 3px solid var(--ember);
     outline-offset: 1px;

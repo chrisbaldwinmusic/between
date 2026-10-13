@@ -1,0 +1,539 @@
+---
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const db = Astro.locals.runtime?.env?.OPS_DB;
+
+let lines = [];
+let entries = [];
+if (db) {
+  const [linesRes, entriesRes] = await Promise.all([
+    db.prepare('SELECT * FROM budget_lines ORDER BY sort ASC, id ASC').all(),
+    db.prepare('SELECT * FROM budget_entries ORDER BY entry_date DESC, id DESC').all(),
+  ]);
+  lines = linesRes.results;
+  entries = entriesRes.results;
+}
+
+const entriesFor = (id: number) => entries.filter(e => e.line_id === id);
+const actual = (id: number) => entriesFor(id).reduce((sum, e) => sum + e.amount_pence, 0);
+const sum = (rows: any[], f: (r: any) => number) => rows.reduce((s, r) => s + f(r), 0);
+
+// In-kind support appears on both sides of the ACE budget; it's tracked once, from the income side.
+const spendLines = lines.filter(l => l.kind === 'expenditure' && !l.in_kind);
+const incomeLines = lines.filter(l => l.kind === 'income' && !l.in_kind);
+const inKindLines = lines.filter(l => l.kind === 'income' && l.in_kind);
+
+function groupByHeading(rows: any[]) {
+  const groups = new Map<string, any[]>();
+  for (const r of rows) {
+    if (!groups.has(r.heading)) groups.set(r.heading, []);
+    groups.get(r.heading)!.push(r);
+  }
+  return [...groups.entries()];
+}
+
+const spendBudget = sum(spendLines, l => l.budget_pence);
+const spent = sum(spendLines, l => actual(l.id));
+const incomeBudget = sum(incomeLines, l => l.budget_pence);
+const received = sum(incomeLines, l => actual(l.id));
+const aceGrant = incomeLines.find(l => l.heading === 'Arts Council England')?.budget_pence ?? 0;
+
+function money(pence: number) {
+  const opts = pence % 100 === 0
+    ? { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }
+    : { style: 'currency', currency: 'GBP' };
+  return (pence / 100).toLocaleString('en-GB', opts as Intl.NumberFormatOptions);
+}
+
+function pct(part: number, whole: number) {
+  return whole ? Math.round((part / whole) * 100) : 0;
+}
+
+function fmtDate(d: string) {
+  const [y, m, day] = d.split('-').map(Number);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${day} ${months[m - 1]} ${y}`;
+}
+
+const today = new Date().toISOString().slice(0, 10);
+
+const sections = [
+  { id: 'spend', title: 'Spending (cash)', verb: 'spent', rows: spendLines },
+  { id: 'income', title: 'Income (cash)', verb: 'received', rows: incomeLines },
+  { id: 'inkind', title: 'Support in kind', verb: 'logged', rows: inKindLines },
+];
+---
+<BaseLayout title="Budget · Between Ops" nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <section class="budget-section">
+      <div class="container">
+        <h1 class="budget-heading">Budget</h1>
+        <p class="budget-intro">
+          Live tracker against the budget in our Arts Council England application (Supporting
+          Grassroots Music, SGRM-00869135-R11). Log spending and income as it happens. Chris and
+          Dan only.
+        </p>
+
+        <ul class="stat-row" role="list">
+          <li class="stat">
+            <span class="stat__n">{money(aceGrant)}</span>
+            <span class="stat__label">ACE grant</span>
+          </li>
+          <li class="stat">
+            <span class="stat__n">{money(spent)}</span>
+            <span class="stat__label">spent of {money(spendBudget)} ({pct(spent, spendBudget)}%)</span>
+          </li>
+          <li class={`stat${spent > spendBudget ? ' stat--warn' : ''}`}>
+            <span class="stat__n">{money(spendBudget - spent)}</span>
+            <span class="stat__label">{spent > spendBudget ? 'over budget' : 'left to spend'}</span>
+          </li>
+          <li class="stat">
+            <span class="stat__n">{money(received)}</span>
+            <span class="stat__label">received of {money(incomeBudget)} cash income</span>
+          </li>
+        </ul>
+
+        <h2 class="budget-subheading">Log an entry</h2>
+        <form class="add-form" id="add-entry-form">
+          <div class="field field--line">
+            <label for="entry-line">Budget line</label>
+            <select id="entry-line" name="line_id" required>
+              <option value="">Choose…</option>
+              {sections.map(s => (
+                <optgroup label={s.title}>
+                  {s.rows.map(l => <option value={l.id}>{l.heading}: {l.description}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div class="field field--desc">
+            <label for="entry-desc">What for</label>
+            <input id="entry-desc" name="description" type="text" required autocomplete="off" />
+          </div>
+          <div class="field field--date">
+            <label for="entry-date">Date</label>
+            <input id="entry-date" name="entry_date" type="date" value={today} required />
+          </div>
+          <div class="field field--amount">
+            <label for="entry-amount">Amount (£)</label>
+            <input id="entry-amount" name="amount" type="text" inputmode="decimal" pattern="-?[0-9,]*(\.[0-9]{1,2})?" required autocomplete="off" />
+          </div>
+          <button class="btn btn-primary add-form__submit" type="submit">Log</button>
+        </form>
+        <p class="add-form__msg" id="add-form-msg" role="status"></p>
+
+        {sections.map(s => {
+          const budget = sum(s.rows, l => l.budget_pence);
+          const done = sum(s.rows, l => actual(l.id));
+          return (
+            <section class="budget-block" aria-labelledby={`h-${s.id}`}>
+              <h2 class="budget-subheading" id={`h-${s.id}`}>
+                {s.title}
+                <span class="budget-subheading__total">{money(done)} {s.verb} of {money(budget)}</span>
+              </h2>
+
+              {groupByHeading(s.rows).map(([heading, rows]) => (
+                <div class="budget-group">
+                  {heading !== s.title && <h3 class="budget-group__heading">{heading}</h3>}
+                  <ul class="line-list" role="list">
+                    {rows.map(l => {
+                      const a = actual(l.id);
+                      const over = s.id === 'spend' && a > l.budget_pence;
+                      const lineEntries = entriesFor(l.id);
+                      return (
+                        <li class={`line${over ? ' line--over' : ''}`}>
+                          <div class="line__top">
+                            <p class="line__desc">
+                              {l.description}
+                              {l.status && <span class={`line__status line__status--${l.status}`}>{l.status}</span>}
+                            </p>
+                            <p class="line__figures">
+                              <strong>{money(a)}</strong> of {money(l.budget_pence)}
+                              {s.id === 'spend' && (
+                                <span class="line__left">
+                                  {over ? `${money(a - l.budget_pence)} over` : `${money(l.budget_pence - a)} left`}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div class="line__bar" aria-hidden="true">
+                            <span style={`width:${Math.min(pct(a, l.budget_pence), 100)}%`}></span>
+                          </div>
+                          {lineEntries.length > 0 && (
+                            <details class="line__entries">
+                              <summary>{lineEntries.length} entr{lineEntries.length === 1 ? 'y' : 'ies'}</summary>
+                              <ul role="list">
+                                {lineEntries.map(e => (
+                                  <li class="entry" data-id={e.id}>
+                                    <span class="entry__date">{fmtDate(e.entry_date)}</span>
+                                    <span class="entry__desc">{e.description}</span>
+                                    <span class="entry__amount">{money(e.amount_pence)}</span>
+                                    <button class="entry__delete" type="button" data-role="delete" aria-label={`Remove entry: ${e.description}, ${money(e.amount_pence)}`}>✕</button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          );
+        })}
+
+        <p class="budget-footnote">
+          Total project cost {money(sum(lines.filter(l => l.kind === 'expenditure'), l => l.budget_pence))}:
+          {' '}{money(spendBudget)} cash plus {money(sum(inKindLines, l => l.budget_pence))} support in kind.
+          Negative amounts record refunds or corrections.
+        </p>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('add-entry-form') as HTMLFormElement;
+  const msgEl = document.getElementById('add-form-msg')!;
+
+  function showMsg(text: string, isError = false) {
+    msgEl.textContent = text;
+    msgEl.classList.toggle('add-form__msg--error', isError);
+  }
+
+  async function api(path: string, options: RequestInit = {}) {
+    const res = await fetch(path, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showMsg('');
+    const fd = new FormData(form);
+    const pounds = Number(String(fd.get('amount') || '').replace(/,/g, ''));
+    if (!Number.isFinite(pounds) || pounds === 0) {
+      showMsg('Enter an amount in pounds, e.g. 167.16', true);
+      return;
+    }
+    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    submitBtn.disabled = true;
+    try {
+      await api('/api/team/budget', {
+        method: 'POST',
+        body: JSON.stringify({
+          line_id: Number(fd.get('line_id')),
+          entry_date: String(fd.get('entry_date') || ''),
+          description: String(fd.get('description') || '').trim(),
+          amount_pence: Math.round(pounds * 100),
+        }),
+      });
+      location.reload();
+    } catch (err: any) {
+      showMsg(err.message, true);
+      submitBtn.disabled = false;
+    }
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest('[data-role="delete"]') as HTMLButtonElement | null;
+    if (!btn) return;
+    const li = btn.closest('li.entry') as HTMLLIElement;
+    if (!confirm('Remove this entry?')) return;
+    li.classList.add('entry--busy');
+    try {
+      await api(`/api/team/budget/${li.dataset.id}`, { method: 'DELETE' });
+      location.reload();
+    } catch (err: any) {
+      li.classList.remove('entry--busy');
+      showMsg(err.message, true);
+    }
+  });
+</script>
+
+<style>
+  .budget-section {
+    background: var(--ink);
+    padding-block: clamp(var(--space-8), 6vw, var(--space-12));
+    min-height: calc(100svh - var(--nav-h));
+  }
+
+  .budget-heading {
+    font-family: var(--font-body);
+    color: var(--paper);
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-2);
+  }
+
+  .budget-intro {
+    color: var(--body);
+    font-size: var(--text-sm);
+    max-width: 65ch;
+    margin-bottom: var(--space-5);
+  }
+
+  .budget-subheading {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--body);
+    margin: 0 0 var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .budget-subheading__total {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+    color: var(--ember);
+  }
+
+  /* ── Stats ────────────────────────────────────────────────────────────── */
+  .stat-row {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: var(--space-8);
+  }
+  @media (min-width: 640px) {
+    .stat-row { grid-template-columns: repeat(4, 1fr); }
+  }
+  .stat {
+    background: var(--ink-soft);
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .stat__n {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 800;
+    color: var(--ember);
+    line-height: 1;
+  }
+  .stat--warn .stat__n { color: var(--red); }
+  .stat__label {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    color: var(--body);
+  }
+
+  /* ── Log form ─────────────────────────────────────────────────────────── */
+  .add-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+  .field label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--body);
+  }
+  .field input,
+  .field select {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--paper);
+    padding: 0.55rem 0.75rem;
+    width: 100%;
+  }
+  .field input:focus-visible,
+  .field select:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
+  }
+  .field--line { flex: 1 1 100%; }
+  .field--desc { flex: 1 1 220px; }
+  .field--date { flex: 0 1 160px; }
+  .field--amount { flex: 0 1 120px; }
+  .add-form__submit { flex-shrink: 0; padding: 0.55rem 1.25rem; font-size: var(--text-sm); }
+
+  .add-form__msg {
+    font-size: var(--text-xs);
+    color: var(--body);
+    min-height: 1.2em;
+    margin-bottom: var(--space-6);
+  }
+  .add-form__msg--error { color: var(--red); }
+
+  /* ── Lines ────────────────────────────────────────────────────────────── */
+  .budget-block { margin-bottom: var(--space-8); }
+
+  .budget-group { margin-bottom: var(--space-4); }
+  .budget-group__heading {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--paper);
+    margin-bottom: var(--space-2);
+  }
+
+  .line-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .line {
+    background: var(--ink-soft);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .line__top {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  @media (min-width: 640px) {
+    .line__top {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: var(--space-4);
+    }
+  }
+
+  .line__desc {
+    font-size: var(--text-sm);
+    color: var(--paper);
+    line-height: 1.45;
+    max-width: none;
+  }
+  .line__status {
+    display: inline-block;
+    margin-left: 0.4rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.05rem 0.4rem;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
+    vertical-align: 0.1em;
+  }
+  .line__status--confirmed { color: #4caf50; }
+  .line__status--expected { color: var(--ember); }
+
+  .line__figures {
+    font-size: var(--text-xs);
+    color: var(--body);
+    white-space: nowrap;
+    max-width: none;
+  }
+  .line__figures strong { color: var(--paper); }
+  .line__left {
+    margin-left: 0.5rem;
+    color: var(--ember);
+    font-weight: 600;
+  }
+  .line--over .line__left { color: #ff8080; }
+
+  .line__bar {
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .line__bar span {
+    display: block;
+    height: 100%;
+    background: var(--ember);
+  }
+  .line--over .line__bar span { background: var(--red); }
+
+  .line__entries summary {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ember);
+    cursor: pointer;
+    width: fit-content;
+  }
+  .line__entries summary:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 2px;
+  }
+  .line__entries ul {
+    list-style: none;
+    margin-top: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .entry {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas: 'date amount del' 'desc desc desc';
+    align-items: baseline;
+    column-gap: var(--space-3);
+    font-size: var(--text-xs);
+    color: var(--body);
+  }
+  @media (min-width: 640px) {
+    .entry {
+      grid-template-columns: 6.5rem 1fr auto auto;
+      grid-template-areas: 'date desc amount del';
+    }
+  }
+  .entry--busy { opacity: 0.5; pointer-events: none; }
+  .entry__date { grid-area: date; white-space: nowrap; }
+  .entry__desc { grid-area: desc; color: var(--paper); }
+  .entry__amount { grid-area: amount; font-weight: 600; color: var(--paper); white-space: nowrap; }
+  .entry__delete {
+    grid-area: del;
+    color: var(--body);
+    font-size: 0.8rem;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--radius-sm);
+  }
+  .entry__delete:hover { color: var(--red); background: rgba(255,255,255,0.06); }
+  .entry__delete:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 1px;
+  }
+
+  .budget-footnote {
+    font-size: var(--text-xs);
+    color: var(--body);
+    max-width: 65ch;
+  }
+</style>

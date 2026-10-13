@@ -136,7 +136,15 @@ production database) so `npm run dev` / `wrangler dev` has data to show:
 npx wrangler d1 execute between-ops --local --file=d1/schema.sql
 ```
 
-The API routes are under `src/pages/api/team/*` (`todos`, `schedule`, `roster`, `activity`),
+The budget tracker (`/team/budget`) uses two more tables, `budget_lines` and `budget_entries`,
+seeded from the ACE application budget by `d1/budget.sql` (already applied to production).
+
+**Who sees what** is set in `src/lib/team-access.js` and enforced by `src/middleware.js` for both
+pages and API routes. Leads (Chris, Dan) get everything. Everyone else signed in through Access
+gets a read-only dashboard and schedule with a work-in-progress notice; to-dos, budget and ops
+redirect them to `/team`, and lead-only API calls return 403. Add or remove leads in `LEADS`.
+
+The API routes are under `src/pages/api/team/*` (`todos`, `schedule`, `roster`, `activity`, `budget`),
 each `prerender = false`, reading/writing via `context.locals.runtime.env.OPS_DB`. Every write
 stamps the actor from `Cf-Access-Authenticated-User-Email` (the header Cloudflare Access injects)
 so changes are attributable — see §5a.

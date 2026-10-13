@@ -1,0 +1,37 @@
+---
+// Shown to non-leads on /team: sets expectations that the tool is still being built.
+---
+<aside class="wip" aria-label="About this workspace">
+  <p class="wip__title">Work in progress</p>
+  <p class="wip__body">
+    This is the live project workspace for The Space Between. It's still being built, and the
+    schedule and roster are updated live as plans firm up, so what you see here is always the
+    latest. Spot something wrong or missing? Tell Chris or Dan.
+  </p>
+</aside>
+
+<style>
+  .wip {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ember);
+    border-radius: var(--radius);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+  .wip__title {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ember);
+    margin-bottom: 0.25rem;
+  }
+  .wip__body {
+    font-size: var(--text-sm);
+    color: var(--paper);
+    line-height: 1.5;
+    max-width: 65ch;
+  }
+</style>

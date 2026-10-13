@@ -2,8 +2,11 @@
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import WipNotice from '../../components/WipNotice.astro';
+import { getEmail, isLead } from '../../lib/team-access.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const lead = isLead(getEmail(Astro.request));
 const db = Astro.locals.runtime?.env?.OPS_DB;
 
 let items = [];
@@ -46,11 +49,22 @@ const sorted = [...items].sort((a, b) => {
     <section class="sched-section">
       <div class="container">
         <h1 class="sched-heading">Schedule</h1>
-        <p class="sched-intro">
-          Status is automatic from today's date unless you override it. Click a status badge to
-          cycle it, or add notes inline.
-        </p>
+        {lead ? (
+          <p class="sched-intro">
+            Status is automatic from today's date unless you override it. Click a status badge to
+            cycle it, or add notes inline.
+          </p>
+        ) : (
+          <>
+            <p class="sched-intro">
+              The project plan from now to the end-of-programme report. Status follows today's date
+              unless something is marked as blocked or done.
+            </p>
+            <WipNotice />
+          </>
+        )}
 
+        {lead && (<>
         <form class="add-form" id="add-sched-form">
           <input class="add-form__input add-form__task" name="task" type="text" placeholder="New schedule item…" required />
           <input class="add-form__input add-form__owner" name="owner" type="text" placeholder="Owner" />
@@ -59,6 +73,7 @@ const sorted = [...items].sort((a, b) => {
           <button class="btn btn-primary add-form__submit" type="submit">Add</button>
         </form>
         <p class="add-form__msg" id="add-form-msg" role="status"></p>
+        </>)}
 
         <ol class="sched-list" id="sched-list" role="list">
           {sorted.map(item => {
@@ -67,19 +82,26 @@ const sorted = [...items].sort((a, b) => {
               <li class={`sched-item sched-item--${s}`} data-id={item.id} data-override={item.status_override ?? ''}>
                 <div class="sched-item__dates">
                   <span class="sched-item__range">{fmt(item.start_date)} – {fmt(item.end_date)}</span>
-                  <button class="sched-item__status" type="button" data-role="cycle-status">{statusLabel[s]}</button>
+                  {lead
+                    ? <button class="sched-item__status" type="button" data-role="cycle-status">{statusLabel[s]}</button>
+                    : <span class="sched-item__status">{statusLabel[s]}</span>}
                 </div>
                 <p class="sched-item__task">{item.task}</p>
                 <div class="sched-item__footer">
                   <span class="sched-item__owner">{item.owner || '—'}</span>
-                  <button class="sched-item__delete" type="button" data-role="delete" aria-label={`Remove: ${item.task}`}>Remove</button>
+                  {lead && <button class="sched-item__delete" type="button" data-role="delete" aria-label={`Remove: ${item.task}`}>Remove</button>}
                 </div>
-                <textarea
-                  class="sched-item__notes"
-                  data-role="notes"
-                  placeholder="Notes… (saves on blur)"
-                  rows="1"
-                >{item.notes}</textarea>
+                {lead ? (
+                  <textarea
+                    class="sched-item__notes"
+                    data-role="notes"
+                    placeholder="Notes… (saves on blur)"
+                    rows="1"
+                    aria-label={`Notes: ${item.task}`}
+                  >{item.notes}</textarea>
+                ) : item.notes && (
+                  <p class="sched-item__notes sched-item__notes--read">{item.notes}</p>
+                )}
               </li>
             );
           })}
@@ -96,10 +118,12 @@ const sorted = [...items].sort((a, b) => {
   const CYCLE = [null, 'blocked', 'done']; // null = automatic from dates
 
   const listEl = document.getElementById('sched-list')!;
-  const form = document.getElementById('add-sched-form') as HTMLFormElement;
-  const msgEl = document.getElementById('add-form-msg')!;
+  // The add form and message line only render for leads; everyone else gets a read-only list.
+  const form = document.getElementById('add-sched-form') as HTMLFormElement | null;
+  const msgEl = document.getElementById('add-form-msg');
 
   function showMsg(text: string, isError = false) {
+    if (!msgEl) return;
     msgEl.textContent = text;
     msgEl.classList.toggle('add-form__msg--error', isError);
   }
@@ -177,7 +201,7 @@ const sorted = [...items].sort((a, b) => {
     }
   }, true);
 
-  form.addEventListener('submit', async (e) => {
+  form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     showMsg('');
     const fd = new FormData(form);
@@ -313,7 +337,7 @@ const sorted = [...items].sort((a, b) => {
   .sched-item--upcoming .sched-item__status { color: var(--ember); border-color: var(--ember); }
   .sched-item--done .sched-item__status     { color: #4caf50; border-color: #4caf50; }
   .sched-item--blocked .sched-item__status  { color: #d9a6f0; border-color: #b46bd6; }
-  .sched-item__status:hover { background: rgba(255,255,255,0.06); }
+  button.sched-item__status:hover { background: rgba(255,255,255,0.06); }
   .sched-item__status:focus-visible {
     outline: 3px solid var(--ember);
     outline-offset: 1px;
@@ -366,6 +390,11 @@ const sorted = [...items].sort((a, b) => {
     padding: 0.4rem 0.6rem;
     resize: vertical;
     min-height: 2rem;
+  }
+  .sched-item__notes--read {
+    min-height: 0;
+    max-width: none;
+    line-height: 1.5;
   }
   .sched-item__notes:focus-visible {
     outline: 3px solid var(--ember);

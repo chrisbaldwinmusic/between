@@ -1,4 +1,6 @@
 ---
+import { canAccess } from '../lib/team-access.js';
+
 interface Props {
   authEmail?: string | null;
 }
@@ -8,8 +10,9 @@ const links = [
   { href: '/team',          label: 'Dashboard' },
   { href: '/team/schedule', label: 'Schedule'  },
   { href: '/team/todos',    label: 'To-dos'    },
+  { href: '/team/budget',   label: 'Budget'    },
   { href: '/team/ops',      label: 'Ops'       },
-];
+].filter(({ href }) => canAccess(authEmail?.toLowerCase() ?? null, href));
 
 const current = Astro.url.pathname.replace(/\/$/, '') || '/team';
 ---
