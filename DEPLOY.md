@@ -139,6 +139,18 @@ npx wrangler d1 execute between-ops --local --file=d1/schema.sql
 The budget tracker (`/team/budget`) uses two more tables, `budget_lines` and `budget_entries`,
 seeded from the ACE application budget by `d1/budget.sql` (already applied to production).
 
+**Identity is verified, not trusted.** `src/middleware.js` checks Cloudflare Access's signed
+`Cf-Access-Jwt-Assertion` (`src/lib/access-jwt.js`: team domain `soft-mud-54f8.cloudflareaccess.com`,
+the app's AUD tag) on every `/team` and `/api/team` request and refuses anything without a valid
+token, so a forged email header can't get in even if a path or hostname slips past Access. If the
+Access application is ever recreated, update the AUD tag there. For local `wrangler dev`, put
+`LOCAL_DEV_SKIP_ACCESS_CHECK=1` in `.dev.vars` (git-ignored; never set it in production).
+
+**Photos and reactions** (`/team/media`, all team members): uploads go to the private R2 bucket
+`between-evidence` (binding `EVIDENCE`), indexed in D1 `media` (`d1/media.sql`), served only via
+`/api/team/media/:id`. The browser resizes and re-encodes each image first, which strips location
+and camera data. Uploaders can edit/delete their own; leads can edit/delete any.
+
 **Who sees what** is set in `src/lib/team-access.js` and enforced by `src/middleware.js` for both
 pages and API routes. Leads (Chris, Dan) get everything. Everyone else signed in through Access
 gets a read-only dashboard and schedule with a work-in-progress notice; to-dos, budget and ops

@@ -9,8 +9,8 @@ export async function readForm(request) {
   try { return Object.fromEntries(await request.formData()); } catch { return null; }
 }
 
-// Generous per-network limit: a whole audience can share one venue Wi-Fi IP. The IP is hashed
-// and the key expires within a day.
+// Per-network limit (callers pass a generous one: a whole audience can share one venue Wi-Fi IP).
+// The IP is hashed and the key expires within a day.
 export async function rateLimited(kv, request, scope, limit = 60) {
   if (!kv) return false;
   const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';

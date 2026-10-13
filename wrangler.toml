@@ -27,3 +27,8 @@ database_id = "e7cc1aba-58a7-411d-8809-54b7d5f46baa"
 # 7am UK time instead. Uncomment once on Paid.
 # [triggers]
 # crons = ["0 7 * * *"]
+
+# Team photo / screenshot uploads (/team/media). Private: served only through /api/team/media.
+[[r2_buckets]]
+binding = "EVIDENCE"
+bucket_name = "between-evidence"

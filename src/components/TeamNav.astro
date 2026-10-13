@@ -13,6 +13,7 @@ const links = [
   { href: '/team/budget',     label: 'Budget'     },
   { href: '/team/evaluation', label: 'Evaluation' },
   { href: '/team/stories',    label: 'Stories'    },
+  { href: '/team/media',      label: 'Media'      },
   { href: '/team/ops',        label: 'Ops'        },
 ].filter(({ href }) => canAccess(authEmail?.toLowerCase() ?? null, href));
 

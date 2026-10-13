@@ -1,0 +1,281 @@
+---
+// Team photo and screenshot uploads: photos from events, and screenshots of social media
+// reactions, to tell the story of each event. Private (R2 bucket between-evidence), open to all
+// signed-in team members. Images are resized and re-encoded in the browser before upload, which
+// strips location and camera data.
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import events from '../../data/events.json';
+import { getEmail, isLead } from '../../lib/team-access.js';
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const me = getEmail(Astro.request);
+const lead = isLead(me);
+const db = Astro.locals.runtime?.env?.OPS_DB;
+const filterEvent = Astro.url.searchParams.get('event') ?? '';
+const filterKind = Astro.url.searchParams.get('kind') ?? '';
+
+let media: any[] = [];
+if (db) {
+  const where: string[] = [];
+  const binds: string[] = [];
+  if (filterEvent) { where.push('event_slug = ?'); binds.push(filterEvent); }
+  if (filterKind) { where.push('kind = ?'); binds.push(filterKind); }
+  const { results } = await db
+    .prepare(`SELECT * FROM media ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY created_at DESC LIMIT 300`)
+    .bind(...binds)
+    .all()
+    .catch(() => ({ results: [] }));
+  media = results;
+}
+const eventName = (slug: string | null) => events.find(e => e.slug === slug)?.name;
+const canEdit = (m: any) => lead || (me && m.uploaded_by?.toLowerCase() === me);
+const who = (email: string | null) => (email ? email.split('@')[0] : 'someone');
+const platforms = [['whatsapp', 'WhatsApp'], ['facebook', 'Facebook'], ['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['other', 'Somewhere else']];
+const platformName = (p: string | null) => platforms.find(([v]) => v === p)?.[1];
+---
+<BaseLayout title="Media · Between Ops" nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <section class="md-section">
+      <div class="container">
+        <h1 class="md-heading">Photos and reactions</h1>
+        <p class="md-intro">
+          Tell the story of each event: photos of the people and the room, and screenshots of what people said
+          about it on social media. Uploads are private to the team. Location and camera details are removed
+          from photos before they're uploaded.
+        </p>
+
+        <form class="up" id="upload-form">
+          <h2 class="up__title">Add photos or screenshots</h2>
+          <div class="up__grid">
+            <div class="f f--wide">
+              <label for="up-files">Images</label>
+              <input id="up-files" name="files" type="file" accept="image/*" multiple required aria-describedby="up-files-hint" />
+              <span class="f__hint" id="up-files-hint">Choose one or several. On a phone you can pick from your photos or take one now.</span>
+            </div>
+            <fieldset class="f">
+              <legend>What are they?</legend>
+              <label class="radio"><input type="radio" name="kind" value="event" checked /> Photos from an event</label>
+              <label class="radio"><input type="radio" name="kind" value="social" /> Social media reactions</label>
+            </fieldset>
+            <div class="f">
+              <label for="up-event">Event</label>
+              <select id="up-event" name="event">
+                <option value="">Not one event</option>
+                {events.map(e => <option value={e.slug} selected={e.slug === filterEvent}>{e.name} ({e.month})</option>)}
+              </select>
+            </div>
+            <div class="f" id="up-platform-wrap" hidden>
+              <label for="up-platform">Where was it posted?</label>
+              <select id="up-platform" name="platform">
+                {platforms.map(([v, t]) => <option value={v}>{t}</option>)}
+              </select>
+            </div>
+            <div class="f f--wide">
+              <label for="up-caption">The story <span class="opt">(optional)</span></label>
+              <textarea id="up-caption" name="caption" rows="2" maxlength="1000" aria-describedby="up-caption-hint"></textarea>
+              <span class="f__hint" id="up-caption-hint">Who, what, why it mattered. Applies to every image in this batch; you can edit each one after.</span>
+            </div>
+            <div class="f f--wide">
+              <label for="up-alt">Describe the image(s) for people who can't see them</label>
+              <input id="up-alt" name="alt" type="text" maxlength="300" required aria-describedby="up-alt-hint" />
+              <span class="f__hint" id="up-alt-hint">For example "Families singing along at the front of the library". Needed for accessibility.</span>
+            </div>
+            <div class="f">
+              <label for="up-credit">Credit <span class="opt">(optional)</span></label>
+              <input id="up-credit" name="credit" type="text" maxlength="120" placeholder="Photographer or account" />
+            </div>
+            <label class="consent f f--wide">
+              <input type="checkbox" name="ok" required />
+              <span>Anyone who can be identified was happy to be photographed (or it's a public post), and there are no children identifiable without a parent or carer's OK.</span>
+            </label>
+          </div>
+          <div class="up__actions">
+            <button class="md-btn md-btn--primary" type="submit">Upload</button>
+            <span class="up__msg" id="up-msg" role="status"></span>
+          </div>
+        </form>
+
+        <nav class="filters" aria-label="Filter uploads">
+          <a href="/team/media" aria-current={!filterEvent && !filterKind ? 'page' : undefined}>All</a>
+          <a href="/team/media?kind=event" aria-current={filterKind === 'event' ? 'page' : undefined}>Event photos</a>
+          <a href="/team/media?kind=social" aria-current={filterKind === 'social' ? 'page' : undefined}>Social reactions</a>
+          {events.filter(e => media.some(m => m.event_slug === e.slug) || e.slug === filterEvent).map(e => (
+            <a href={`/team/media?event=${e.slug}`} aria-current={filterEvent === e.slug ? 'page' : undefined}>{e.name}</a>
+          ))}
+        </nav>
+
+        {media.length === 0 ? (
+          <p class="md-empty">Nothing here yet. The first photos will come from Firelight on 23 October.</p>
+        ) : (
+          <ul class="gallery" role="list">
+            {media.map(m => (
+              <li class="tile" data-id={m.id}>
+                <a href={`/api/team/media/${m.id}`} target="_blank" rel="noopener" class="tile__img">
+                  <img src={`/api/team/media/${m.id}`} alt={m.alt} loading="lazy" decoding="async" width={m.width ?? undefined} height={m.height ?? undefined} />
+                </a>
+                <div class="tile__body">
+                  <p class="tile__meta">
+                    {m.kind === 'social' ? `Reaction${platformName(m.platform) ? ` on ${platformName(m.platform)}` : ''}` : 'Event photo'}
+                    {eventName(m.event_slug) && <> · {eventName(m.event_slug)}</>}
+                  </p>
+                  {canEdit(m) ? (
+                    <>
+                      <label class="visually-hidden" for={`cap-${m.id}`}>Story</label>
+                      <textarea id={`cap-${m.id}`} data-field="caption" rows="2" placeholder="The story…">{m.caption ?? ''}</textarea>
+                      <label class="visually-hidden" for={`alt-${m.id}`}>Alt text</label>
+                      <input id={`alt-${m.id}`} data-field="alt" value={m.alt} />
+                      <div class="tile__actions">
+                        <button class="md-btn" type="button" data-role="save">Save</button>
+                        <button class="md-btn md-btn--danger" type="button" data-role="delete">Delete</button>
+                        <span class="tile__msg" role="status"></span>
+                      </div>
+                    </>
+                  ) : (
+                    m.caption && <p class="tile__caption">{m.caption}</p>
+                  )}
+                  <p class="tile__who">{m.credit ? `${m.credit} · ` : ''}added by {who(m.uploaded_by)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  const form = document.getElementById('upload-form') as HTMLFormElement;
+  const msg = document.getElementById('up-msg')!;
+  const platformWrap = document.getElementById('up-platform-wrap')!;
+
+  form.addEventListener('change', () => {
+    platformWrap.hidden = (form.elements.namedItem('kind') as RadioNodeList).value !== 'social';
+  });
+
+  // Resize to at most 2000px and re-encode as JPEG. Drawing to a canvas drops EXIF metadata,
+  // including GPS location, and keeps uploads small on mobile data.
+  async function prepare(file: File): Promise<{ blob: Blob; width: number; height: number }> {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    const scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+    if (!blob) throw new Error('Could not process that image');
+    return { blob, width, height };
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const files = (form.elements.namedItem('files') as HTMLInputElement).files;
+    if (!files?.length) return;
+    const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    btn.disabled = true;
+    let done = 0;
+    const failed: string[] = [];
+    for (const file of Array.from(files)) {
+      msg.textContent = `Uploading ${done + 1} of ${files.length}…`;
+      try {
+        const { blob, width, height } = await prepare(file);
+        const body = new FormData();
+        body.set('file', blob, file.name.replace(/\.[^.]+$/, '') + '.jpg');
+        for (const k of ['kind', 'event', 'platform', 'caption', 'alt', 'credit']) body.set(k, String(fd.get(k) ?? ''));
+        body.set('width', String(width));
+        body.set('height', String(height));
+        const res = await fetch('/api/team/media', { method: 'POST', body });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Upload failed');
+        done++;
+      } catch (err: any) {
+        failed.push(`${file.name}: ${err.message === 'The source image could not be decoded.' ? "this browser can't read that format (try exporting as JPEG)" : err.message}`);
+      }
+    }
+    btn.disabled = false;
+    if (failed.length) {
+      msg.textContent = `Uploaded ${done} of ${files.length}. Not uploaded: ${failed.join('; ')}`;
+    } else {
+      msg.textContent = `Uploaded ✓ ${done} image${done === 1 ? '' : 's'}`;
+      setTimeout(() => location.reload(), 700);
+    }
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-role]');
+    const tile = btn?.closest<HTMLElement>('li.tile');
+    if (!btn || !tile) return;
+    const status = tile.querySelector('.tile__msg')!;
+    const id = tile.dataset.id;
+    if (btn.dataset.role === 'delete') {
+      if (!confirm('Delete this image?')) return;
+      const res = await fetch(`/api/team/media/${id}`, { method: 'DELETE' });
+      if (res.ok) tile.remove();
+      else status.textContent = (await res.json().catch(() => ({}))).error || 'Not deleted';
+      return;
+    }
+    if (btn.dataset.role === 'save') {
+      const body: Record<string, string> = {};
+      tile.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[data-field]').forEach(el => { body[el.dataset.field!] = el.value; });
+      btn.disabled = true;
+      status.textContent = 'Saving…';
+      const res = await fetch(`/api/team/media/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      status.textContent = res.ok ? 'Saved ✓' : (await res.json().catch(() => ({}))).error || 'Not saved';
+      btn.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .md-section { background: var(--ink); padding-block: clamp(var(--space-8), 6vw, var(--space-12)); min-height: calc(100svh - var(--nav-h)); }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .md-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin-bottom: var(--space-2); }
+  .md-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin-bottom: var(--space-6); }
+
+  .up { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-6); }
+  .up__title { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ember); margin: 0 0 var(--space-3); }
+  .up__grid { display: grid; gap: var(--space-3); }
+  @media (min-width: 760px) { .up__grid { grid-template-columns: 1fr 1fr; } }
+  .f { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; border: 0; padding: 0; margin: 0; }
+  .f--wide { grid-column: 1 / -1; }
+  .f label, .f legend { font-size: var(--text-xs); font-weight: 600; color: var(--paper); padding: 0; }
+  .f__hint, .opt { font-size: 0.7rem; color: var(--body); font-weight: 400; }
+  .f input[type="text"], .f select, .f textarea, .f input[type="file"], .tile textarea, .tile input {
+    font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink);
+    border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.65rem; width: 100%;
+  }
+  .f [hidden], #up-platform-wrap[hidden] { display: none !important; }
+  .radio { display: flex; align-items: center; gap: 0.4rem; font-weight: 400 !important; font-size: var(--text-sm) !important; color: var(--paper); }
+  .radio input, .consent input { accent-color: var(--red); }
+  .consent { flex-direction: row; align-items: flex-start; gap: 0.5rem; font-size: var(--text-xs); color: var(--body); }
+  .consent input { margin-top: 0.15rem; }
+  .up__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+  .up__msg { font-size: var(--text-xs); color: var(--paper); }
+  .md-btn { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 600; color: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; background: transparent; cursor: pointer; }
+  .md-btn:hover { border-color: var(--ember); color: var(--ember); }
+  .md-btn--primary { background: var(--red); border-color: var(--red); color: #fff; padding: 0.6rem 1.2rem; font-size: var(--text-sm); }
+  .md-btn--primary:hover { color: #fff; background: #a50d26; }
+  .md-btn--danger:hover { border-color: #ff8080; color: #ff8080; }
+  .md-btn:disabled { opacity: 0.5; }
+  .md-section :focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: var(--space-4); }
+  .filters a { font-size: var(--text-xs); font-weight: 600; color: var(--body); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 0.3rem 0.75rem; }
+  .filters a[aria-current='page'] { background: var(--ember); border-color: var(--ember); color: var(--ink); }
+  .md-empty { color: var(--body); font-size: var(--text-sm); background: var(--ink-soft); border: 1px dashed var(--line); border-radius: var(--radius); padding: var(--space-4); }
+
+  .gallery { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); }
+  .tile { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  .tile__img { display: block; background: #000; aspect-ratio: 4 / 3; }
+  .tile__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile__body { padding: var(--space-3); display: flex; flex-direction: column; gap: 0.4rem; }
+  .tile__meta { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ember); margin: 0; }
+  .tile__caption { font-size: var(--text-sm); color: var(--paper); margin: 0; }
+  .tile__who { font-size: 0.7rem; color: var(--body); margin: 0; }
+  .tile__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+  .tile__msg { font-size: 0.7rem; color: var(--body); }
+</style>

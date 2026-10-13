@@ -2,13 +2,16 @@
 // addresses; this narrows it further per person.
 //
 // Leads (Chris, Dan) see and edit everything: dashboard, schedule, to-dos, budget, ops.
-// Everyone else signed in gets a read-only view of the dashboard and schedule for now.
+// Everyone else signed in gets a read-only view of the dashboard and schedule, and can upload and
+// manage their own photos and screenshots in /team/media.
 
 export const LEADS = ['chris@sonicboom.org.uk', 'dan@sonicboom.org.uk'];
 
 // Pages and read-only API routes open to everyone signed in.
-const SHARED_PAGES = ['/team', '/team/schedule'];
+const SHARED_PAGES = ['/team', '/team/schedule', '/team/media'];
 const SHARED_API_READS = ['/api/team/schedule', '/api/team/roster'];
+// Any method; the routes themselves limit deleting to the uploader or a lead.
+const SHARED_API_PREFIXES = ['/api/team/media'];
 
 export function getEmail(request) {
   return (request.headers.get('Cf-Access-Authenticated-User-Email') || '').toLowerCase() || null;
@@ -29,6 +32,7 @@ export function canAccess(email, pathname, method = 'GET') {
   if (isLead(email)) return true;
   const path = strip(pathname);
   if (path.startsWith('/api/team')) {
+    if (SHARED_API_PREFIXES.some(p => path === p || path.startsWith(`${p}/`))) return true;
     return method === 'GET' && SHARED_API_READS.includes(path);
   }
   return SHARED_PAGES.includes(path);

@@ -4,6 +4,7 @@
 export const prerender = false;
 
 import ReportLayout from '../../../layouts/ReportLayout.astro';
+import ReportGallery from '../../../components/ReportGallery.astro';
 import events from '../../../data/events.json';
 import { eventBySlug, VENUE_QUESTION } from '../../../lib/feedback.js';
 import { loadAll, eventReport, surveySummary, fmtDate } from '../../../lib/metrics.js';
@@ -86,6 +87,12 @@ const title = event ? `Survey report: ${event.name}` : 'Survey report: all event
             {er.row.debrief_on && <> · debrief {fmtDate(er.row.debrief_on)}</>}
           </p>
           {er.row.notes && <p class="r-note">Notes: {er.row.notes}</p>}
+          {er.media.length > 0 && (
+            <>
+              <h2 class="r-h2">Photos and reactions</h2>
+              <ReportGallery media={er.media} />
+            </>
+          )}
         </>
       )}
     </>

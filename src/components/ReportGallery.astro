@@ -1,0 +1,27 @@
+---
+// Photos and social media reactions in a printable report (survey report, review page).
+interface Props { media: any[]; limit?: number }
+const { media, limit = 12 } = Astro.props;
+const shown = media.slice(0, limit);
+const platform = (p: string | null) => ({ whatsapp: 'WhatsApp', facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' } as Record<string, string>)[p ?? ''] ?? 'social media';
+---
+{shown.length > 0 && (
+  <>
+    <ul class="rg" role="list">
+      {shown.map(m => (
+        <li>
+          <img src={`/api/team/media/${m.id}`} alt={m.alt} loading="lazy" width={m.width ?? undefined} height={m.height ?? undefined} />
+          <p><small>{m.kind === 'social' ? `Reaction on ${platform(m.platform)}` : 'Photo'}{m.credit ? ` · ${m.credit}` : ''}</small>{m.caption && <><br />{m.caption}</>}</p>
+        </li>
+      ))}
+    </ul>
+    {media.length > shown.length && <p class="r-note">Showing {shown.length} of {media.length}. <a href="/team/media">See them all</a>.</p>}
+  </>
+)}
+<style>
+  .rg { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+  .rg li { break-inside: avoid; }
+  .rg img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 4px; display: block; background: #eee; }
+  .rg p { font-size: 0.82rem; margin: 0.3rem 0 0; }
+  .rg small { color: #5a4848; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; font-size: 0.68rem; }
+</style>

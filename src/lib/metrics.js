@@ -3,6 +3,7 @@
 
 import events from '../data/events.json';
 import { HEARD_FROM, PRIOR_EVENTS, VENUE_USE, LOCAL_OUTWARD, COMMUNITY_CHANNELS } from './feedback.js';
+import { addDays } from './dates.js';
 
 export const PROJECT_START = '2026-09-01';
 
@@ -63,7 +64,7 @@ export function surveySummary(responses, checkins = []) {
 /** Load the raw tables once; reports filter in memory (volumes are small). */
 export async function loadAll(db) {
   const q = sql => db.prepare(sql).all().then(r => r.results).catch(() => []);
-  const [responses, checkins, evalRows, community, stories, budgetLines, budgetEntries, schedule] = await Promise.all([
+  const [responses, checkins, evalRows, community, stories, budgetLines, budgetEntries, schedule, media] = await Promise.all([
     q('SELECT * FROM feedback_responses ORDER BY created_at'),
     q('SELECT * FROM checkins ORDER BY created_at'),
     q('SELECT * FROM eval_events'),
@@ -72,8 +73,9 @@ export async function loadAll(db) {
     q('SELECT * FROM budget_lines'),
     q('SELECT * FROM budget_entries'),
     q('SELECT * FROM schedule_items ORDER BY start_date'),
+    q('SELECT id, kind, event_slug, platform, caption, alt, credit, width, height, created_at FROM media ORDER BY created_at'),
   ]);
-  return { responses, checkins, evalRows, community, stories, budgetLines, budgetEntries, schedule };
+  return { responses, checkins, evalRows, community, stories, budgetLines, budgetEntries, schedule, media };
 }
 
 /** Per-event numbers. */
@@ -90,6 +92,7 @@ export function eventReport(data, event) {
     checkedIn,
     responseRate: attendance ? pct(responses.length, attendance) : null,
     survey: surveySummary(responses, checkins),
+    media: (data.media ?? []).filter(m => m.event_slug === event.slug),
   };
 }
 
@@ -156,6 +159,7 @@ export function periodReport(data, from, to) {
     survey: surveySummary(responses, checkins),
     community,
     latestCommunity: latestToDate,
+    media: (data.media ?? []).filter(m => (m.event_slug && evs.some(e => e.slug === m.event_slug)) || (!m.event_slug && inRange(m.created_at.slice(0, 10)))),
     stories: {
       received: data.stories.filter(s => inRange(s.created_at.slice(0, 10))).length,
       published: data.stories.filter(s => s.status === 'approved' && s.reviewed_at && inRange(s.reviewed_at.slice(0, 10))).length,
@@ -165,18 +169,15 @@ export function periodReport(data, from, to) {
   };
 }
 
-/** Review checkpoints from the schedule, each covering the time since the previous one. */
+/**
+ * Review checkpoints from the schedule. Periods are contiguous: each runs from the day after the
+ * previous review week ends to the end of its own review week, so nothing falls between reviews.
+ */
 export function reviewPeriods(schedule) {
   const reviews = schedule.filter(s => /review/i.test(s.task)).sort((a, b) => a.start_date.localeCompare(b.start_date));
-  return reviews.map((r, i) => {
-    const prevEnd = i === 0 ? null : reviews[i - 1].end_date;
-    const from = prevEnd ? addOneDay(prevEnd) : PROJECT_START;
-    return { review: r, from, to: r.start_date };
-  });
-}
-
-function addOneDay(d) {
-  const x = new Date(`${d}T00:00:00Z`);
-  x.setUTCDate(x.getUTCDate() + 1);
-  return x.toISOString().slice(0, 10);
+  return reviews.map((r, i) => ({
+    review: r,
+    from: i === 0 ? PROJECT_START : addDays(reviews[i - 1].end_date, 1),
+    to: r.end_date,
+  }));
 }

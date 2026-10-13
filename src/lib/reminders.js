@@ -26,10 +26,10 @@ const surveyLink = (slug, source) => `${SITE}/feedback/${slug}?utm_source=${sour
 
 // ── Leads ────────────────────────────────────────────────────────────────────
 
-export async function buildReminders(db, today = ukToday()) {
+export async function buildReminders(db, today = ukToday(), data = null) {
   const urgent = [];
   const outstanding = [];
-  const data = await loadAll(db);
+  data ??= await loadAll(db);
   const evalBySlug = new Map(data.evalRows.map(r => [r.event_slug, r]));
 
   for (const e of events) {
@@ -117,16 +117,19 @@ export async function buildReminders(db, today = ukToday()) {
 
 // ── Community managers ───────────────────────────────────────────────────────
 
-export async function buildCommunityReminders(db, today = ukToday()) {
+export async function buildCommunityReminders(db, today = ukToday(), data = null) {
   const urgent = [];
   const outstanding = [];
-  const data = await loadAll(db);
+  data ??= await loadAll(db);
   const [people, todos] = await Promise.all([
     db.prepare(`SELECT name, email FROM team_members WHERE role LIKE 'Community%'`).all().then(r => r.results),
     db.prepare('SELECT task, owner FROM todos WHERE done = 0').all().then(r => r.results),
   ]);
-  const firstNames = people.map(p => p.name.split(' ')[0]);
-  const mine = owner => Boolean(owner) && firstNames.some(n => owner.includes(n));
+  // Owners are written as full names ("Vikki Asker & Emma Buckley"); match whole names only, so a
+  // short name can't match inside someone else's.
+  const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const nameRes = people.map(p => new RegExp(`(^|[^A-Za-z])${escape(p.name)}($|[^A-Za-z])`, 'i'));
+  const mine = owner => Boolean(owner) && nameRes.some(re => re.test(owner));
 
   for (const e of events) {
     const where = `${e.name} (${longDate(e.date)}, ${e.venue})`;
@@ -241,40 +244,51 @@ async function sendEmail(env, to, { subject, html, text }) {
  * audience in reminder_log (sent_on = 'YYYY-MM-DD:audience') so repeated runs don't email twice.
  * force: ignore the once-a-day guard, and on a quiet day send a labelled test instead.
  */
-export async function runAudience(env, audience, { today = ukToday(), force = false } = {}) {
+export async function runAudience(env, audience, { today = ukToday(), force = false, data = null } = {}) {
   const db = env.OPS_DB;
   if (!db) return { sent: false, reason: 'no database' };
   const key = `${today}:${audience}`;
 
+  // Claim today's slot before doing anything, so two runs at once (several isolates, or cron plus
+  // the first-request fallback) can't both send. Released again if the send fails.
   if (!force) {
-    const already = await db.prepare('SELECT 1 FROM reminder_log WHERE sent_on = ?').bind(key).first();
-    if (already) return { sent: false, reason: 'already checked today' };
+    const claim = await db.prepare('INSERT OR IGNORE INTO reminder_log (sent_on, subject, items) VALUES (?, NULL, 0)').bind(key).run();
+    if (!claim.meta?.changes) return { sent: false, reason: 'already checked today' };
   }
+  const release = () => (force ? null : db.prepare('DELETE FROM reminder_log WHERE sent_on = ?').bind(key).run());
 
-  const built = audience === 'community' ? await buildCommunityReminders(db, today) : await buildReminders(db, today);
+  const built = audience === 'community' ? await buildCommunityReminders(db, today, data) : await buildReminders(db, today, data);
   const to = audience === 'community' ? built.recipients : LEADS;
   if (force && !built.urgent.length) {
     built.urgent.push({ text: 'This is a test from "Send it now". Nothing is time-critical today, so the daily email would stay quiet.' });
   }
   if (!built.urgent.length || !to?.length) {
-    if (!force) await db.prepare('INSERT OR IGNORE INTO reminder_log (sent_on, subject, items) VALUES (?, NULL, 0)').bind(key).run();
     return { sent: false, reason: !to?.length ? 'no recipients' : 'nothing due today', ...built };
   }
-  if (!env.RESEND_API_KEY) return { sent: false, reason: 'RESEND_API_KEY not set', ...built };
+  if (!env.RESEND_API_KEY) {
+    await release();
+    return { sent: false, reason: 'RESEND_API_KEY not set', ...built };
+  }
 
   const email = renderDigest(built, today, audience);
   const error = await sendEmail(env, to, email);
-  if (error) return { sent: false, reason: error, ...built };
+  if (error) {
+    await release();
+    return { sent: false, reason: error, ...built };
+  }
 
   await db.prepare('INSERT OR REPLACE INTO reminder_log (sent_on, subject, items) VALUES (?, ?, ?)')
     .bind(key, email.subject, built.urgent.length).run();
   return { sent: true, subject: email.subject, to, ...built };
 }
 
-/** Both audiences: the daily run. */
+/** Both audiences: the daily run. Loads the data once and builds both emails in parallel. */
 export async function runReminders(env, opts = {}) {
-  const leads = await runAudience(env, 'leads', opts);
-  const community = await runAudience(env, 'community', opts);
+  const data = env.OPS_DB ? await loadAll(env.OPS_DB) : null;
+  const [leads, community] = await Promise.all([
+    runAudience(env, 'leads', { ...opts, data }),
+    runAudience(env, 'community', { ...opts, data }),
+  ]);
   return {
     sent: leads.sent || community.sent,
     reason: `leads: ${leads.reason ?? 'sent'}; community: ${community.reason ?? 'sent'}`,

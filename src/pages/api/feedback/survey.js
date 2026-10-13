@@ -25,7 +25,10 @@ export async function POST(context) {
   if (!valid(VENUE_USE, body.venue_use)) return errorPage('Please answer the question about a venue.', back);
   if (!db) return errorPage("Sorry, we couldn't save that just now. Please try again in a minute.", back);
 
-  if (await rateLimited(env.VENUE_KV, context.request, `survey:${slug}`)) return redirect('/feedback/thanks');
+  // Generous: a whole audience can share one venue Wi-Fi address. Never drop answers silently.
+  if (await rateLimited(env.VENUE_KV, context.request, `survey:${slug}`, 1000)) {
+    return errorPage("We've had an unusual number of answers from this network today. Please try again later, or on mobile data.", back);
+  }
 
   const wants = typeof body.venue_wants === 'string' ? body.venue_wants.trim().slice(0, 1000) || null : null;
 

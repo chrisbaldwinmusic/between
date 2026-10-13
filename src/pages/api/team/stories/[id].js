@@ -24,7 +24,8 @@ export async function PATCH(context) {
   const story = text(body?.story, 3000) ?? existing.story;
   const credit = body?.credit === undefined ? existing.credit : text(body.credit, 80);
   const about = body?.about === undefined ? existing.about : text(body.about, 160);
-  const reviewed = status !== 'new';
+  // Only a change of status counts as a review (a later copy edit mustn't re-date it).
+  const reviewed = status !== existing.status && status !== 'new';
   const actor = getActor(context.request);
 
   await db

@@ -13,7 +13,7 @@ export async function POST(context) {
   const slug = typeof body?.event === 'string' ? body.event : '';
   const event = eventBySlug(slug);
 
-  if (!event) return errorPage("We couldn't tell which event this was for.", '/feedback');
+  if (!event || event.ticketing !== 'free') return errorPage("We couldn't tell which event this was for.", '/feedback');
   const back = `/feedback/${event.slug}/checkin`;
   if (!checkinOpen(event)) return errorPage(`Check-in for ${event.name} is open on ${longDate(event.date)} only.`, `/feedback/${event.slug}`);
   if (body.website) return redirect('/feedback/checked-in');
@@ -23,7 +23,9 @@ export async function POST(context) {
   const firstTime = body.first_time === 'yes' ? 1 : body.first_time === 'no' ? 0 : null;
   if (!db) return errorPage("Sorry, we couldn't save that just now. Please try again in a minute.", back);
 
-  if (await rateLimited(env.VENUE_KV, context.request, `checkin:${slug}`, 200)) return redirect('/feedback/checked-in');
+  if (await rateLimited(env.VENUE_KV, context.request, `checkin:${slug}`, 1000)) {
+    return errorPage("We've had an unusual number of check-ins from this network today. Please try again on mobile data.", back);
+  }
 
   await db
     .prepare('INSERT INTO checkins (event_slug, party_size, first_time, outward_postcode) VALUES (?, ?, ?, ?)')

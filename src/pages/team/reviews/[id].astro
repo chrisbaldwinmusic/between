@@ -5,6 +5,7 @@
 export const prerender = false;
 
 import ReportLayout from '../../../layouts/ReportLayout.astro';
+import ReportGallery from '../../../components/ReportGallery.astro';
 import { COMMUNITY_CHANNELS } from '../../../lib/feedback.js';
 import { loadAll, periodReport, reviewPeriods, socialTotal, fmtDate, monthLabel, pct, TARGETS } from '../../../lib/metrics.js';
 import { ukToday } from '../../../lib/dates.js';
@@ -94,6 +95,13 @@ const prompts = [
         ))}
       </ul>
       <p class="r-note">{r.survey.postcodes ? `${r.survey.localPct}% local (DE13/14/15) of ${r.survey.postcodes} postcodes given.` : 'No postcodes given yet.'}</p>
+    </>
+  )}
+
+  {r.media.length > 0 && (
+    <>
+      <h2 class="r-h2">Photos and reactions</h2>
+      <ReportGallery media={r.media} />
     </>
   )}
 

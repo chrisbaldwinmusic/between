@@ -95,10 +95,11 @@ function readCookie(request, name) {
   return match ? match.slice(name.length + 1) : null;
 }
 
-// Only ever redirect back to a path on this site.
+// Only ever redirect back to a path on this site. Browsers treat "/\\host" like "//host", so reject
+// backslashes, control characters and protocol-relative paths outright.
 function safeNext(value) {
   const s = typeof value === 'string' ? value : '/';
-  return s.startsWith('/') && !s.startsWith('//') && s !== PIN_PATH ? s : '/';
+  return /^\/(?![\/\\])[^\\\s\u0000-\u001f]*$/.test(s) && s !== PIN_PATH ? s : '/';
 }
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
