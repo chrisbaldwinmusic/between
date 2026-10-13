@@ -1,5 +1,5 @@
 // Shared wiring for every `.signup-form` on the page (SignupSection + SignupStrip).
-// Posts to /api/subscribe — a same-origin proxy to Sonic Boom's shared mailer.
+// Posts to /api/subscribe — a same-origin proxy to Sonic Boom Music CIC's shared mailer.
 
 type TurnstileGlobal = {
   render: (el: string | HTMLElement, opts: { sitekey: string }) => string;

@@ -1,4 +1,4 @@
-// POST /api/subscribe — proxies to Sonic Boom's shared mailer
+// POST /api/subscribe — proxies to Sonic Boom Music CIC's shared mailer
 //
 // The upstream endpoint (mailer.sonicboom.org.uk/api/public/subscribe) has no
 // CORS headers, so a same-origin client can't call it directly from the

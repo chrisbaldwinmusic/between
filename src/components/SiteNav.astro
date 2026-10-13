@@ -1,12 +1,13 @@
 ---
+// Root-relative so they work from sub-pages (events, privacy) as well as the home page.
 const navLinks = [
-  { href: '#idea',          label: 'The idea'       },
-  { href: '#the-year',      label: 'The year'       },
-  { href: '#how-it-works',  label: 'How it works'   },
-  { href: '#membership',    label: 'Membership'     },
-  { href: '#the-ambition',  label: 'The ambition'   },
-  { href: '#get-involved',  label: 'Get involved'   },
-  { href: '#access',        label: 'Access'         },
+  { href: '/#idea',          label: 'The idea'       },
+  { href: '/#the-year',      label: 'The year'       },
+  { href: '/#how-it-works',  label: 'How it works'   },
+  { href: '/#membership',    label: 'Membership'     },
+  { href: '/#the-ambition',  label: 'The ambition'   },
+  { href: '/#get-involved',  label: 'Get involved'   },
+  { href: '/#access',        label: 'Access'         },
 ];
 ---
 
@@ -15,7 +16,22 @@ const navLinks = [
 
     <a href="/" class="site-nav__brand" aria-label="The Space Between homepage">
       <span class="site-nav__brand-name">The Space Between</span>
-      <span class="site-nav__brand-by" aria-hidden="true">Sonic Boom</span>
+      <span class="site-nav__brand-by" aria-hidden="true">Sonic Boom Music CIC</span>
+    </a>
+
+    <nav id="primary-nav" class="site-nav__links" aria-label="Primary navigation" hidden>
+      <ul role="list">
+        {navLinks.map(({ href, label }) => (
+          <li><a href={href} class="site-nav__link">{label}</a></li>
+        ))}
+        <li class="site-nav__menu-only"><a href="/team" class="site-nav__link site-nav__link--team">Team login</a></li>
+      </ul>
+    </nav>
+
+    <a href="/team" class="site-nav__team">Team<span class="sr-only"> login</span></a>
+
+    <a href="/#signup" class="btn btn-primary site-nav__cta">
+      <span>Join<span class="site-nav__cta-rest"> the community</span></span>
     </a>
 
     <button
@@ -28,22 +44,6 @@ const navLinks = [
         <span></span><span></span><span></span>
       </span>
     </button>
-
-    <nav id="primary-nav" class="site-nav__links" aria-label="Primary navigation" hidden>
-      <ul role="list">
-        {navLinks.map(({ href, label }) => (
-          <li><a href={href} class="site-nav__link">{label}</a></li>
-        ))}
-      </ul>
-    </nav>
-
-    <a href="/team" class="btn btn-ghost-dark site-nav__team">
-      <span aria-hidden="true">🔒</span> Team<span class="sr-only"> login</span>
-    </a>
-
-    <a href="#signup" class="btn btn-primary site-nav__cta">
-      Join the community
-    </a>
 
   </div>
 </header>
@@ -60,7 +60,7 @@ const navLinks = [
   .site-nav__inner {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-2);
     height: var(--nav-h);
   }
 
@@ -70,37 +70,58 @@ const navLinks = [
     flex-direction: column;
     line-height: 1.15;
     text-decoration: none;
-    flex-shrink: 0;
+    min-width: 0;
+    margin-right: auto;
   }
   .site-nav__brand-name {
     font-family: var(--font-display);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     font-weight: 700;
     color: var(--paper);
     letter-spacing: -0.01em;
+    white-space: nowrap;
   }
   .site-nav__brand-by {
     font-family: var(--font-body);
-    font-size: 0.65rem;
-    font-weight: 500;
-    color: var(--body);
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--ember);
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    white-space: nowrap;
   }
   .site-nav__brand:hover .site-nav__brand-name { color: var(--ember); }
+
+  /* ── CTA: "Join" on phones, "Join the community" when there's room ── */
+  .site-nav__cta {
+    flex-shrink: 0;
+    font-size: var(--text-sm);
+    padding: 0.55rem 1rem;
+  }
+  .site-nav__cta-rest {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Team: inside the menu on phones, a quiet text link on desktop. */
+  .site-nav__team { display: none; }
 
   /* ── Hamburger ──────────────────────────────────────── */
   .site-nav__toggle {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    margin-left: auto;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-right: -0.5rem;
     border-radius: var(--radius);
-    color: var(--body);
+    color: var(--paper);
+    flex-shrink: 0;
   }
-  .site-nav__toggle:hover { color: var(--paper); }
+  .site-nav__toggle:hover { color: var(--ember); }
 
   .site-nav__hamburger {
     display: flex;
@@ -115,8 +136,6 @@ const navLinks = [
     border-radius: 1px;
     transition: transform var(--duration) var(--ease), opacity var(--duration) var(--ease);
   }
-
-  /* Open state — cross */
   .site-nav__toggle[aria-expanded="true"] .site-nav__hamburger span:nth-child(1) {
     transform: translateY(7px) rotate(45deg);
   }
@@ -126,8 +145,11 @@ const navLinks = [
   .site-nav__toggle[aria-expanded="true"] .site-nav__hamburger span:nth-child(3) {
     transform: translateY(-7px) rotate(-45deg);
   }
+  @media (prefers-reduced-motion: reduce) {
+    .site-nav__hamburger span { transition: none; }
+  }
 
-  /* ── Mobile nav links ───────────────────────────────── */
+  /* ── Mobile menu panel ──────────────────────────────── */
   .site-nav__links {
     position: absolute;
     top: var(--nav-h);
@@ -135,7 +157,8 @@ const navLinks = [
     right: 0;
     background: var(--ink-soft);
     border-bottom: 1px solid var(--line);
-    padding: var(--space-4) 0;
+    padding: var(--space-2) 0 var(--space-4);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
   }
   .site-nav__links ul {
     display: flex;
@@ -145,65 +168,76 @@ const navLinks = [
     display: block;
     padding: var(--space-3) clamp(var(--space-4), 5vw, var(--space-10));
     font-family: var(--font-body);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     font-weight: 500;
-    color: var(--body);
+    color: var(--paper);
     text-decoration: none;
     transition: color var(--duration) var(--ease), background var(--duration) var(--ease);
   }
   .site-nav__link:hover {
-    color: var(--paper);
+    color: var(--ember);
     background: rgba(255,255,255,0.04);
   }
+  .site-nav__menu-only {
+    margin-top: var(--space-2);
+    border-top: 1px solid var(--line);
+    padding-top: var(--space-2);
+  }
+  .site-nav__link--team { font-size: var(--text-sm); color: var(--body); }
 
-  /* Keep CTA always visible in row with hamburger */
-  .site-nav__cta {
-    flex-shrink: 0;
-    font-size: var(--text-xs);
-    padding: 0.5rem 0.875rem;
+  .site-nav a:focus-visible,
+  .site-nav__toggle:focus-visible {
+    outline: 3px solid var(--ember);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
   }
 
-  /* Team login — compact, secondary to the primary CTA */
-  .site-nav__team {
-    flex-shrink: 0;
-    font-size: var(--text-xs);
-    padding: 0.5rem 0.7rem;
-    gap: 0.35em;
+  @media (min-width: 480px) {
+    .site-nav__cta-rest { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
   }
 
-  /* ── Desktop ────────────────────────────────────────── */
-  @media (min-width: 900px) {
+  /* ── Desktop: everything in one row ─────────────────── */
+  @media (min-width: 1240px) {
+    .site-nav__inner { gap: var(--space-3); }
+    .site-nav__brand { margin-right: 0; flex-shrink: 0; }
     .site-nav__toggle { display: none; }
 
     .site-nav__links {
       position: static;
       background: transparent;
       border: none;
+      box-shadow: none;
       padding: 0;
       flex: 1;
       display: block !important; /* override hidden attr */
     }
+    .site-nav__links { min-width: 0; }
     .site-nav__links ul {
       flex-direction: row;
-      gap: var(--space-1);
-      justify-content: center;
-      flex-wrap: wrap;
+      gap: 0;
+      justify-content: safe center;
     }
     .site-nav__link {
-      padding: var(--space-2) var(--space-3);
-      font-size: var(--text-xs);
-      border-radius: var(--radius-sm);
-    }
-
-    .site-nav__cta {
+      padding: var(--space-2) 0.6rem;
       font-size: var(--text-sm);
-      padding: 0.625rem 1.25rem;
+      color: var(--body);
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
     }
+    .site-nav__link:hover { color: var(--paper); }
+    .site-nav__menu-only { display: none; }
 
     .site-nav__team {
+      display: block;
+      font-family: var(--font-body);
       font-size: var(--text-xs);
-      padding: 0.625rem 1rem;
+      font-weight: 600;
+      color: var(--body);
+      text-decoration: none;
+      padding: var(--space-2);
+      white-space: nowrap;
     }
+    .site-nav__team:hover { color: var(--paper); }
   }
 </style>
 
@@ -216,6 +250,16 @@ const navLinks = [
       toggle.setAttribute('aria-expanded', String(!open));
       toggle.setAttribute('aria-label', open ? 'Open navigation menu' : 'Close navigation menu');
       nav.hidden = open;
+    });
+
+    /* Escape closes the menu and returns focus to the button */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Open navigation menu');
+        nav.hidden = true;
+        toggle.focus();
+      }
     });
 
     /* Close nav when any anchor link is clicked */
