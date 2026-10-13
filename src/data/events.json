@@ -9,14 +9,15 @@
     "people": "An intergenerational night with Burton Folk Club: regulars, families and first-timers sharing songs and stories. We'll be gathering Burton's music stories on the night.",
     "venue": "Burton Library",
     "ticketing": "ticketed",
-    "priceFrom": "£7.50",
+    "priceFrom": "£6",
     "ticketUrl": "https://www.tickettailor.com/events/sonicboommusiccic/2448772",
     "registerUrl": "https://events.sonicboom.org.uk",
     "accent": "#E8A23D",
     "access": "Step-free. BSL on request.",
     "status": "onsale",
     "timeOfDay": "evening",
-    "ticketNote": "Early bird tickets on sale now"
+    "ticketNote": "Early bird tickets on sale now",
+    "bookingFee": true
   },
   {
     "slug": "winter-sounds",

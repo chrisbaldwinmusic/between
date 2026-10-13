@@ -87,7 +87,7 @@ const happened = status === 'past' || status === 'today';
                 {actionExternal && <span class="sr-only"> (opens in new tab)</span>}
               </a>
               {event.ticketing === 'ticketed' && event.priceFrom && (
-                <p class="event-detail__price-note">{event.ticketNote ? `${event.ticketNote}. ` : ''}From {event.priceFrom} per person</p>
+                <p class="event-detail__price-note">{event.ticketNote ? `${event.ticketNote}. ` : ''}From {event.priceFrom} per person{event.bookingFee ? ', plus booking fee' : ''}</p>
               )}
               {event.ticketing === 'free' && (
                 <p class="event-detail__price-note">This event is free to attend</p>

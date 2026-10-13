@@ -17,6 +17,7 @@ interface Event {
   access: string;
   status: string;
   ticketNote?: string;
+  bookingFee?: boolean;
   timeOfDay: 'daytime' | 'evening';
 }
 
@@ -91,6 +92,7 @@ const longDate = `${weekday} ${d} ${event.month}`;
   <div class="event-card__footer">
     <span class={`event-card__price event-card__price--${event.ticketing}`}>
       {event.ticketing === 'free' ? 'Free' : event.priceFrom}
+      {event.ticketing !== 'free' && event.bookingFee && <span class="event-card__fee"> + booking fee</span>}
     </span>
 
     {actionLabel && actionHref && (
@@ -255,6 +257,7 @@ const longDate = `${weekday} ${d} ${event.month}`;
     border-top: 1px solid rgba(26, 18, 18, 0.08);
   }
 
+  .event-card__fee { font-size: 0.75em; font-weight: 500; }
   .event-card__note {
     margin: 0;
     font-family: var(--font-body);

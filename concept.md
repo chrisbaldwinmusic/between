@@ -102,7 +102,8 @@ Drive everything from one file.
     "accent": "#E8A23D",
     "access": "Step-free. BSL on request.",
     "status": "announced",          // "announced" | "onsale" | "soldout" | "past" (past is automatic after the date)
-    "ticketNote": "Early bird tickets on sale now"  // optional, shown on the card and event page
+    "ticketNote": "Early bird tickets on sale now", // optional, shown on the card and event page
+    "bookingFee": true              // optional: Ticket Tailor adds a booking fee on top of priceFrom
   }
 ]
 ```
