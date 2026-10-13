@@ -133,6 +133,10 @@ export async function runReminders(env, { today = ukToday(), force = false } = {
   }
 
   const reminders = await buildReminders(db, today);
+  // "Send it now" on a quiet day sends a clearly-labelled test, so the Resend setup can be checked.
+  if (force && !reminders.urgent.length) {
+    reminders.urgent.push({ text: 'This is a test from "Send it now". Nothing is time-critical today, so the daily reminder would stay quiet.' });
+  }
   if (!reminders.urgent.length) {
     // Record the quiet day too, so later checks today stop early.
     if (!force) await db.prepare('INSERT OR IGNORE INTO reminder_log (sent_on, subject, items) VALUES (?, NULL, 0)').bind(today).run();
