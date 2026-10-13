@@ -20,10 +20,11 @@ export async function buildReminders(db, today = ukToday()) {
   const urgent = [];
   const outstanding = [];
 
-  const [evalRes, schedRes, communityRes] = await Promise.all([
+  const [evalRes, schedRes, communityRes, storiesRes] = await Promise.all([
     db.prepare('SELECT * FROM eval_events').all(),
     db.prepare('SELECT * FROM schedule_items ORDER BY start_date').all(),
     db.prepare('SELECT month FROM community_counts').all(),
+    db.prepare(`SELECT created_at FROM stories WHERE status = 'new'`).all().catch(() => ({ results: [] })),
   ]);
   const evalBySlug = new Map(evalRes.results.map(r => [r.event_slug, r]));
 
@@ -84,6 +85,14 @@ export async function buildReminders(db, today = ukToday()) {
     const day = Number(today.slice(8));
     const item = { text: `Record ${monthName(lastMonth)}'s community numbers (WhatsApp, email, Instagram, Facebook, TikTok).`, link: `${SITE}/team/evaluation` };
     (day === 1 || day === 7 ? urgent : outstanding).push(item);
+  }
+
+  // ── Stories waiting for review ───────────────────────────────────────────
+  const waiting = storiesRes.results;
+  if (waiting.length) {
+    const fresh = waiting.some(s => s.created_at.slice(0, 10) >= addDays(today, -1));
+    const item = { text: `${waiting.length} ${waiting.length === 1 ? 'story is' : 'stories are'} waiting for review.`, link: `${SITE}/team/stories` };
+    (fresh ? urgent : outstanding).push(item);
   }
 
   return { urgent, outstanding };

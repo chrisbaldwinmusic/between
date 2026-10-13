@@ -1,0 +1,147 @@
+---
+// Review people's stories from /feedback/story. Approved stories appear in "Burton's stories" on
+// the home page straight away. Leads only (src/middleware.js).
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import events from '../../data/events.json';
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const db = Astro.locals.runtime?.env?.OPS_DB;
+let stories: any[] = [];
+if (db) {
+  const { results } = await db.prepare(`SELECT * FROM stories ORDER BY CASE status WHEN 'new' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, created_at DESC`).all();
+  stories = results;
+}
+const eventName = (slug: string | null) => events.find(e => e.slug === slug)?.name;
+const groups = [
+  { key: 'new', title: 'Waiting for review' },
+  { key: 'approved', title: 'On the website' },
+  { key: 'declined', title: 'Not used' },
+];
+const when = (iso: string) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+---
+<BaseLayout title="Stories · Between Ops" nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <section class="st-section">
+      <div class="container">
+        <h1 class="st-heading">Stories</h1>
+        <p class="st-intro">
+          People's stories from <a href="/feedback/story">/feedback/story</a>. Approve one and it
+          appears in Burton's stories on the home page straight away. You can tidy the wording first
+          (keep their voice). Approving or not using a story deletes the contributor's email, as
+          promised on the form. Social-media sharing is only OK where it says so.
+        </p>
+
+        {groups.map(g => {
+          const rows = stories.filter(s => s.status === g.key);
+          return (
+            <section class="st-group" aria-labelledby={`h-${g.key}`}>
+              <h2 class="st-group__title" id={`h-${g.key}`}>{g.title} <span>{rows.length}</span></h2>
+              {rows.length === 0 && <p class="st-empty">{g.key === 'new' ? 'Nothing waiting.' : 'None yet.'}</p>}
+              <ul class="st-list" role="list">
+                {rows.map(s => (
+                  <li class={`st st--${s.status}`} data-id={s.id}>
+                    <form class="st__form">
+                      <label class="visually-hidden" for={`story-${s.id}`}>Story</label>
+                      <textarea id={`story-${s.id}`} name="story" rows="4">{s.story}</textarea>
+                      <div class="st__fields">
+                        <div class="f">
+                          <label for={`credit-${s.id}`}>Credit</label>
+                          <input id={`credit-${s.id}`} name="credit" value={s.credit ?? ''} placeholder="Anonymous" />
+                        </div>
+                        <div class="f">
+                          <label for={`about-${s.id}`}>About them</label>
+                          <input id={`about-${s.id}`} name="about" value={s.about ?? ''} />
+                        </div>
+                      </div>
+                      <p class="st__meta">
+                        {when(s.created_at)}
+                        {eventName(s.event_slug) && <> · {eventName(s.event_slug)}</>}
+                        · {s.consent_social ? 'OK for social media' : 'Website only, not social'}
+                        {s.email && <> · <a href={`mailto:${s.email}?subject=Your%20story%20-%20The%20Space%20Between`}>{s.email}</a></>}
+                      </p>
+                      <div class="st__actions">
+                        {s.status !== 'approved' && <button class="ev-btn ev-btn--primary" type="button" data-status="approved">Approve</button>}
+                        {s.status === 'approved' && <button class="ev-btn" type="button" data-status="approved">Save changes</button>}
+                        {s.status !== 'declined' && <button class="ev-btn" type="button" data-status="declined">{s.status === 'approved' ? 'Take down' : "Don't use"}</button>}
+                        {s.status === 'declined' && <button class="ev-btn" type="button" data-status="new">Reconsider</button>}
+                        <button class="ev-btn ev-btn--danger" type="button" data-role="delete">Delete</button>
+                        <span class="st__msg" role="status"></span>
+                      </div>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest('button') as HTMLButtonElement | null;
+    const li = btn?.closest('li.st') as HTMLLIElement | null;
+    if (!btn || !li) return;
+    const msg = li.querySelector('.st__msg')!;
+    const id = li.dataset.id;
+
+    if (btn.dataset.role === 'delete') {
+      if (!confirm('Delete this story for good? Use this if someone withdraws their permission.')) return;
+      const res = await fetch(`/api/team/stories/${id}`, { method: 'DELETE' });
+      if (res.ok) li.remove(); else msg.textContent = 'Could not delete';
+      return;
+    }
+    if (!btn.dataset.status) return;
+    const form = li.querySelector('form') as HTMLFormElement;
+    const fd = new FormData(form);
+    btn.disabled = true;
+    msg.textContent = 'Saving…';
+    const res = await fetch(`/api/team/stories/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: btn.dataset.status, story: fd.get('story'), credit: fd.get('credit'), about: fd.get('about') }),
+    });
+    if (res.ok) location.reload();
+    else { msg.textContent = 'Could not save'; btn.disabled = false; }
+  });
+</script>
+
+<style>
+  .st-section { background: var(--ink); padding-block: clamp(var(--space-8), 6vw, var(--space-12)); min-height: calc(100svh - var(--nav-h)); }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .st-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin-bottom: var(--space-2); }
+  .st-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin-bottom: var(--space-8); }
+  .st-intro a, .st__meta a { color: var(--ember); }
+  .st-group { margin-bottom: var(--space-8); }
+  .st-group__title { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--body); margin: 0 0 var(--space-3); }
+  .st-group__title span { color: var(--ember); margin-left: 0.3rem; }
+  .st-empty { font-size: var(--text-sm); color: var(--body); }
+  .st-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+  @media (min-width: 1000px) { .st-list { grid-template-columns: 1fr 1fr; } }
+  .st { background: var(--ink-soft); border: 1px solid var(--line); border-left: 4px solid var(--ember); border-radius: var(--radius); padding: var(--space-4); }
+  .st--approved { border-left-color: #4caf50; }
+  .st--declined { border-left-color: var(--line); opacity: 0.75; }
+  .st__form { display: flex; flex-direction: column; gap: var(--space-3); }
+  .st textarea, .f input {
+    font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink);
+    border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.65rem; width: 100%;
+  }
+  .st textarea { line-height: 1.5; resize: vertical; }
+  .st textarea:focus-visible, .f input:focus-visible, .ev-btn:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .st__fields { display: grid; grid-template-columns: 1fr; gap: var(--space-2); }
+  @media (min-width: 560px) { .st__fields { grid-template-columns: 1fr 2fr; } }
+  .f { display: flex; flex-direction: column; gap: 0.2rem; }
+  .f label { font-size: 0.7rem; font-weight: 600; color: var(--body); }
+  .st__meta { font-size: var(--text-xs); color: var(--body); margin: 0; }
+  .st__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .st__msg { font-size: var(--text-xs); color: var(--body); }
+  .ev-btn { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 600; color: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; background: transparent; }
+  .ev-btn:hover { border-color: var(--ember); color: var(--ember); }
+  .ev-btn--primary { background: var(--red); border-color: var(--red); color: #fff; }
+  .ev-btn--primary:hover { color: #fff; background: #a50d26; }
+  .ev-btn--danger:hover { border-color: #ff8080; color: #ff8080; }
+</style>

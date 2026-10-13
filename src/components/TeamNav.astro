@@ -12,6 +12,7 @@ const links = [
   { href: '/team/todos',      label: 'To-dos'     },
   { href: '/team/budget',     label: 'Budget'     },
   { href: '/team/evaluation', label: 'Evaluation' },
+  { href: '/team/stories',    label: 'Stories'    },
   { href: '/team/ops',        label: 'Ops'        },
 ].filter(({ href }) => canAccess(authEmail?.toLowerCase() ?? null, href));
 
@@ -184,9 +185,12 @@ const initials = authEmail
   @media (min-width: 480px) {
     .tnav__email { display: inline; max-width: 14rem; }
   }
+  @media (min-width: 640px) {
+    .tnav__links ul { grid-template-columns: repeat(4, 1fr); }
+  }
 
-  /* Desktop: one row. Brand · links · account. */
-  @media (min-width: 960px) {
+  /* Desktop: one row. Brand · links · account (initials only until there's room for the email). */
+  @media (min-width: 1100px) {
     .tnav__inner {
       grid-template-columns: auto 1fr auto;
       grid-template-areas: 'brand links account';
@@ -204,7 +208,10 @@ const initials = authEmail
       font-size: var(--text-sm);
       padding: 0.5rem 0.75rem;
     }
-    .tnav__email { max-width: 16rem; }
+    .tnav__email { display: none; }
+  }
+  @media (min-width: 1240px) {
+    .tnav__email { display: inline; max-width: 16rem; }
   }
 
   .visually-hidden {

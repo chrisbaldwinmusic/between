@@ -29,7 +29,7 @@ events are how we bring people in; the point is building a community around live
 widening who comes (families, young people, people who wouldn't call themselves music fans), and
 telling the story as it happens. Make that clear throughout: content is about **people and their
 stories** first, then the music, then the logistics. Every event says who it's for (`people` in
-`events.json`). Never invent stories, quotes or people; real stories go in `src/data/stories.json`.
+`events.json`). Never invent stories, quotes or people; real stories come in through `/feedback/story` and are approved in `/team/stories` (D1 `stories`).
 Always write the organisation's name in full: **Sonic Boom Music CIC**.
 
 ## Tone

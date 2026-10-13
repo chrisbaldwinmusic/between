@@ -209,3 +209,8 @@
   outline: 3px solid var(--ember);
   outline-offset: 3px;
 }
+
+.fb-textarea--tall { min-height: 11rem; }
+.fb-q__hint--after { margin-top: var(--space-3); }
+.fb-choice:has(input[type="checkbox"]) { align-items: flex-start; }
+.fb-choice input[type="checkbox"] { margin-top: 0.15rem; }

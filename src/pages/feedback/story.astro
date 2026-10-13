@@ -1,0 +1,99 @@
+---
+// Public "share your story" form. Plain HTML form post, open to everyone with no PIN. Stories wait
+// for a lead to approve them in /team/stories before they appear on the home page.
+import events from '../../data/events.json';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/feedback.css';
+---
+<BaseLayout
+  title="Share your story · The Space Between"
+  description="The first gig you went to, the song your family always sang, the friend you made in the queue. Tell us your Burton music story."
+  nav="minimal"
+>
+  <main id="main">
+    <div class="fb-hero">
+      <div class="container fb-hero__inner">
+        <p class="fb-hero__eyebrow">Burton's stories</p>
+        <h1 class="fb-hero__title">Share your story</h1>
+        <p class="fb-hero__sub">
+          The first gig you went to. The song your family always sang. The band that got you
+          through, or the friend you made in the queue. Big or small, we'd love to hear it.
+        </p>
+      </div>
+    </div>
+
+    <div class="fb-body">
+      <div class="container fb-body__inner">
+        <form class="fb-form" method="post" action="/api/feedback/story">
+          <div class="fb-hp" aria-hidden="true">
+            <label for="website">Leave this empty</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="story">Your story</label>
+            <p class="fb-q__hint" id="story-hint">
+              A few sentences is perfect. Please don't include other people's full names or anyone's
+              contact details.
+            </p>
+            <textarea class="fb-textarea fb-textarea--tall" id="story" name="story" required minlength="10" maxlength="3000" aria-describedby="story-hint"></textarea>
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="event">Is it about one of our events? <span class="fb-q__opt-tag">(optional)</span></label>
+            <select class="fb-select" id="event" name="event">
+              <option value="">Not one event in particular</option>
+              {events.map(e => <option value={e.slug}>{e.name} ({e.month})</option>)}
+            </select>
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="credit">How should we credit you? <span class="fb-q__opt-tag">(optional)</span></label>
+            <p class="fb-q__hint" id="credit-hint">Your first name, initials or a nickname. Leave it blank to stay anonymous.</p>
+            <input class="fb-input" id="credit" name="credit" type="text" maxlength="80" autocomplete="off" aria-describedby="credit-hint" />
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="about">A line about you <span class="fb-q__opt-tag">(optional)</span></label>
+            <p class="fb-q__hint" id="about-hint">For example "came to Firelight with my gran" or "plays in a Burton band".</p>
+            <input class="fb-input" id="about" name="about" type="text" maxlength="160" autocomplete="off" aria-describedby="about-hint" />
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="email">Your email <span class="fb-q__opt-tag">(optional)</span></label>
+            <p class="fb-q__hint" id="email-hint">
+              Only so we can check details with you before we share it. We never publish it, never
+              add it to a mailing list, and delete it once your story is reviewed.
+            </p>
+            <input class="fb-input" id="email" name="email" type="email" maxlength="200" autocomplete="email" aria-describedby="email-hint" />
+          </div>
+
+          <fieldset class="fb-q">
+            <legend class="fb-q__legend">Permission</legend>
+            <div class="fb-choices">
+              <label class="fb-choice">
+                <input type="checkbox" name="consent_web" value="1" required />
+                You can share my story on The Space Between website
+              </label>
+              <label class="fb-choice">
+                <input type="checkbox" name="consent_social" value="1" />
+                You can also share it on Sonic Boom Music CIC's social media (optional)
+              </label>
+              <label class="fb-choice">
+                <input type="checkbox" name="age_ok" value="1" required />
+                I'm 16 or over, or a parent or carer has said it's OK
+              </label>
+            </div>
+            <p class="fb-q__hint fb-q__hint--after">
+              We read every story before it goes up, and we may trim it for length. Changed your
+              mind later? Email hello@sonicboom.org.uk and we'll take it down.
+            </p>
+          </fieldset>
+
+          <button class="btn btn-primary fb-submit" type="submit">Send my story</button>
+          <p class="fb-note">See our <a href="/privacy">privacy notice</a> for how we look after what you send.</p>
+        </form>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

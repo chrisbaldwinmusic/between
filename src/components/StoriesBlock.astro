@@ -1,17 +1,25 @@
 ---
-// Burton's stories: the people behind The Space Between, in their own words. Stories live in
-// src/data/stories.json and are only ever real, shared with permission. Never invent them.
-//
-// Each story: { "quote": "...", "name": "First name or how they'd like to be credited",
-//   "about": "e.g. came to Firelight with her gran", "event": "firelight" (optional slug),
-//   "image": "/img/stories/....jpg" (optional), "imageAlt": "..." (required if image) }
-import stories from '../data/stories.json';
+// Burton's stories: the people behind The Space Between, in their own words. People share them at
+// /feedback/story; a lead approves them in /team/stories and they show here straight away (the
+// home page renders per request). Only ever real stories, shared with permission.
 import events from '../data/events.json';
 import { ukToday } from '../lib/dates.js';
 
+const db = Astro.locals.runtime?.env?.OPS_DB;
+let stories: any[] = [];
+if (db) {
+  try {
+    const { results } = await db
+      .prepare(`SELECT story, credit, about, event_slug FROM stories
+                WHERE status = 'approved' AND consent_web = 1 ORDER BY reviewed_at DESC LIMIT 6`)
+      .all();
+    stories = results;
+  } catch { /* table missing locally: show the invitation instead */ }
+}
+
 const nextEvent = events.find(e => e.date >= ukToday()) ?? events[0];
 const eventName = (slug?: string) => events.find(e => e.slug === slug)?.name;
-const shareHref = 'mailto:hello@sonicboom.org.uk?subject=My%20story%20-%20The%20Space%20Between';
+const shareHref = '/feedback/story?utm_source=between&utm_medium=home&utm_campaign=stories';
 ---
 
 <section id="stories" class="stories-section" aria-labelledby="stories-heading">
@@ -28,11 +36,10 @@ const shareHref = 'mailto:hello@sonicboom.org.uk?subject=My%20story%20-%20The%20
       <ul class="stories-list" role="list">
         {stories.map((s: any) => (
           <li class="story">
-            {s.image && <img class="story__img" src={s.image} alt={s.imageAlt} loading="lazy" decoding="async" />}
-            <blockquote class="story__quote"><p>{s.quote}</p></blockquote>
+            <blockquote class="story__quote"><p>{s.story}</p></blockquote>
             <p class="story__who">
-              <strong>{s.name}</strong>{s.about && <>, {s.about}</>}
-              {eventName(s.event) && <span class="story__event"> · {eventName(s.event)}</span>}
+              <strong>{s.credit || 'Anonymous'}</strong>{s.about && <>, {s.about}</>}
+              {eventName(s.event_slug) && <span class="story__event"> · {eventName(s.event_slug)}</span>}
             </p>
           </li>
         ))}
@@ -112,7 +119,6 @@ const shareHref = 'mailto:hello@sonicboom.org.uk?subject=My%20story%20-%20The%20
     display: flex;
     flex-direction: column;
   }
-  .story__img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
   .story__quote { margin: 0; padding: var(--space-5) var(--space-5) var(--space-3); }
   .story__quote p {
     font-family: var(--font-display);
