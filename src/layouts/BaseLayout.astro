@@ -22,6 +22,11 @@ const {
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
+
+// Cloudflare Web Analytics (cookieless). The token is public, not a secret: Cloudflare dashboard →
+// Analytics & Logs → Web Analytics → between.sonicboom.org.uk → Manage site → JS snippet.
+// TODO: paste the token here. Empty = no analytics script on the page.
+const WEB_ANALYTICS_TOKEN = '';
 ---
 <!doctype html>
 <html lang="en">
@@ -64,10 +69,10 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
       crossorigin
     />
 
-    <!-- TODO: Cloudflare Web Analytics
-    <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
-      data-cf-beacon='{"token": "REPLACE_WITH_TOKEN"}'></script>
-    -->
+    {WEB_ANALYTICS_TOKEN && (
+      <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon={JSON.stringify({ token: WEB_ANALYTICS_TOKEN })}></script>
+    )}
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to content</a>
