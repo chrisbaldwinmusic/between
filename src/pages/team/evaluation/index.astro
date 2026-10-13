@@ -126,10 +126,14 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
             </p>
           </div>
           <div class="head-links">
+            <a class="ev-btn" href="/team/evaluation/community-report">Community growth report</a>
+            <a class="ev-btn" href="/team/evaluation/survey-report">Survey report</a>
+            <a class="ev-btn" href="/team/reviews">Reviews</a>
             <a class="ev-btn" href="/api/team/evaluation/export?type=survey">Survey CSV</a>
             <a class="ev-btn" href="/api/team/evaluation/export?type=checkins">Check-ins CSV</a>
-            <a class="ev-btn" href="/api/team/reminders" target="_blank" rel="noopener">Preview today's reminder<span class="visually-hidden"> (opens in new tab)</span></a>
-            <button class="ev-btn" type="button" id="send-reminder">Send it now</button>
+            <a class="ev-btn" href="/api/team/reminders" target="_blank" rel="noopener">Preview today's emails<span class="visually-hidden"> (opens in new tab)</span></a>
+            <button class="ev-btn" type="button" id="send-reminder" data-audience="leads">Send ours now</button>
+            <button class="ev-btn" type="button" id="send-community" data-audience="community">Send Vikki and Emma's now</button>
             <span class="ev__msg" id="send-reminder-msg" role="status"></span>
           </div>
         </div>
@@ -209,6 +213,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
                 </form>
 
                 <div class="ev__links">
+                  <a href={`/team/evaluation/survey-report?e=${e.slug}`}>Survey report</a>
                   <a href={`/feedback/${e.slug}`}>Survey page</a>
                   <a href={`/team/evaluation/qr?e=${e.slug}&t=survey`}>Survey QR</a>
                   {e.ticketing === 'free' && <a href={`/feedback/${e.slug}/checkin`}>Check-in page</a>}
@@ -293,12 +298,12 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
           <ul class="reviews" role="list">
             {reviews.map(r => (
               <li class={r.end_date < today ? 'is-past' : ''}>
-                <span>{r.task}</span>
+                <a href={`/team/reviews/${r.id}`}>{r.task}</a>
                 <span>{fmt(r.start_date)} – {fmt(r.end_date)} {r.end_date.slice(0, 4)}</span>
               </li>
             ))}
           </ul>
-          <p class="ev-note">From the <a href="/team/schedule">schedule</a>. The end-of-programme report is due to Arts Council England by 30 Nov 2027.</p>
+          <p class="ev-note">Each review pulls its period together live, with space for reflections and a sign-off: see <a href="/team/reviews">Reviews</a>. Dates come from the <a href="/team/schedule">schedule</a>. The end-of-programme report is due to Arts Council England by 30 Nov 2027.</p>
         </section>
 
         <!-- Results -->
@@ -456,20 +461,23 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
     }
   });
 
-  const sendBtn = document.getElementById('send-reminder') as HTMLButtonElement | null;
-  sendBtn?.addEventListener('click', async () => {
-    const msg = document.getElementById('send-reminder-msg')!;
-    sendBtn.disabled = true;
-    msg.textContent = 'Sending…';
-    try {
-      const res = await fetch('/api/team/reminders', { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
-      msg.textContent = res.ok ? `Sent: ${data.subject}` : (data.error || 'Not sent');
-    } catch {
-      msg.textContent = 'Not sent';
-    } finally {
-      sendBtn.disabled = false;
-    }
+  document.querySelectorAll<HTMLButtonElement>('#send-reminder, #send-community').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const msg = document.getElementById('send-reminder-msg')!;
+      const audience = btn.dataset.audience;
+      if (audience === 'community' && !confirm("Send today's community email to Vikki and Emma now?")) return;
+      btn.disabled = true;
+      msg.textContent = 'Sending…';
+      try {
+        const res = await fetch(`/api/team/reminders?audience=${audience}`, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+        msg.textContent = res.ok ? `Sent ✓ "${data.subject}" to ${(data.to || []).join(', ')}` : (data.error || 'Not sent');
+      } catch {
+        msg.textContent = 'Not sent';
+      } finally {
+        btn.disabled = false;
+      }
+    });
   });
 
 </script>

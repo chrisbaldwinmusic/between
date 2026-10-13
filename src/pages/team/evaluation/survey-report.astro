@@ -1,0 +1,93 @@
+---
+// Post-event survey report: one event (?e=slug) or the whole programme so far. Printable. The daily
+// reminder emails a summary and a link seven days after each event. Leads only (src/middleware.js).
+export const prerender = false;
+
+import ReportLayout from '../../../layouts/ReportLayout.astro';
+import events from '../../../data/events.json';
+import { eventBySlug, VENUE_QUESTION } from '../../../lib/feedback.js';
+import { loadAll, eventReport, surveySummary, fmtDate } from '../../../lib/metrics.js';
+import { ukToday } from '../../../lib/dates.js';
+
+const db = Astro.locals.runtime?.env?.OPS_DB;
+const data = db ? await loadAll(db) : null;
+const event = eventBySlug(Astro.url.searchParams.get('e'));
+const today = ukToday();
+
+const er = data && event ? eventReport(data, event) : null;
+const all = data && !event ? surveySummary(data.responses, data.checkins) : null;
+const s = er ? er.survey : all;
+const pastEvents = events.filter(e => e.date <= today);
+const title = event ? `Survey report: ${event.name}` : 'Survey report: all events';
+---
+<ReportLayout title={title}>
+  <a slot="actions" href="/api/team/evaluation/export?type=survey">Download CSV</a>
+  <p class="r-eyebrow">The Space Between · Evaluation</p>
+  <h1 class="r-title">{event ? event.name : 'All events so far'}</h1>
+  <p class="r-sub">
+    {event
+      ? `${fmtDate(event.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${event.venue}. Five-question post-event survey.`
+      : `Every survey response from ${pastEvents.length} event${pastEvents.length === 1 ? '' : 's'} so far.`}
+  </p>
+
+  <nav class="no-print r-note" aria-label="Other survey reports">
+    Reports: <a href="/team/evaluation/survey-report">All events</a>
+    {pastEvents.map(e => <> · <a href={`/team/evaluation/survey-report?e=${e.slug}`}>{e.name}</a></>)}
+  </nav>
+
+  {!s || s.n === 0 ? (
+    <p style="margin-top:1.5rem">No survey responses yet{event && event.date > today ? `: the survey opens on ${fmtDate(event.date)}` : ''}.</p>
+  ) : (
+    <>
+      <h2 class="r-h2">Headlines</h2>
+      <ul class="r-stats" role="list">
+        <li><strong>{s.n}</strong><span>responses{er?.responseRate != null ? ` (${er.responseRate}% of ${er.attendance} attendees)` : ''}</span></li>
+        <li><strong>{s.venueYesPct}%</strong><span>would use a permanent venue ({s.venueYesMaybePct}% yes or maybe)</span></li>
+        <li><strong>{s.n ? Math.round((s.firstTimers / s.n) * 100) : 0}%</strong><span>at their first Sonic Boom Music CIC event</span></li>
+        <li><strong>{s.postcodes ? `${s.localPct}%` : '–'}</strong><span>local (DE13/14/15) of {s.postcodes} postcodes</span></li>
+        {s.topChannel && <li><strong>{s.topChannel.pct}%</strong><span>heard via {s.topChannel.text.toLowerCase()}</span></li>}
+      </ul>
+
+      <div class="r-grid2">
+        {[
+          ['How they heard about it', s.heard],
+          ['Sonic Boom Music CIC events before (including this one)', s.prior],
+          [VENUE_QUESTION, s.venue],
+        ].map(([heading, rows]: any) => (
+          <section>
+            <h2 class="r-h2">{heading}</h2>
+            <ul class="r-bars" role="list">
+              {rows.filter((r: any) => r.n > 0 || rows.length <= 4).map((r: any) => (
+                <li>
+                  <span>{r.text}</span>
+                  <span class="track" aria-hidden="true"><span style={`width:${r.pct}%`}></span></span>
+                  <span class="n">{r.n} ({r.pct}%)</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+
+      <h2 class="r-h2">What people want from a venue</h2>
+      {s.wants.length === 0 ? <p class="r-note">No written answers.</p> : (
+        <ul class="r-quotes" role="list">
+          {s.wants.map((w: string) => <li>{w}</li>)}
+        </ul>
+      )}
+
+      {er && (
+        <>
+          <h2 class="r-h2">On the night</h2>
+          <p>
+            Attendance: <strong>{er.attendance ?? 'not recorded yet'}</strong>
+            {event?.ticketing === 'free' && <> · {er.checkedIn} checked in by QR</>}
+            {er.row.survey_sent_on && <> · survey sent {fmtDate(er.row.survey_sent_on)}</>}
+            {er.row.debrief_on && <> · debrief {fmtDate(er.row.debrief_on)}</>}
+          </p>
+          {er.row.notes && <p class="r-note">Notes: {er.row.notes}</p>}
+        </>
+      )}
+    </>
+  )}
+</ReportLayout>

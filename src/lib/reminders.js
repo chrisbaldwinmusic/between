@@ -1,48 +1,48 @@
-// Daily reminder digest for the project leads, sent by the Worker's cron trigger (worker/gate.js)
-// through Resend, the same provider and verified sonicboom.org.uk domain as the shared mailer.
-// It only sends when something is time-critical today; otherwise it stays quiet.
+// Daily reminder emails, sent through Resend (same provider and verified sonicboom.org.uk domain
+// as the shared mailer). Two audiences:
+//
+//  - leads (Chris, Dan): evaluation and delivery: events, surveys, debriefs, survey reports,
+//    reviews, schedule starts, monthly numbers, stories to approve.
+//  - community: the freelance community managers (roster roles starting "Community"): presales,
+//    content capture, stories, sharing the survey, monthly numbers, their own to-dos.
+//
+// Each email only sends when something is time-critical that day (the community email also goes
+// every Monday as a "this week" round-up). Run by the cron / first-request fallback in
+// worker/gate.js; previewed and sent by hand from /team/evaluation.
 
 import events from '../data/events.json';
 import { ukToday, addDays } from './dates.js';
 import { surveyDue, longDate } from './feedback.js';
 import { LEADS } from './team-access.js';
+import { loadAll, eventReport, reviewPeriods } from './metrics.js';
 
 const SITE = 'https://between.sonicboom.org.uk';
 const FROM = 'Between Ops <hello@sonicboom.org.uk>';
 
 const monthName = m => new Date(`${m}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const isMonday = d => new Date(`${d}T00:00:00Z`).getUTCDay() === 1;
+const shortDate = d => longDate(d).replace(/^\w+ /, '');
+const surveyLink = (slug, source) => `${SITE}/feedback/${slug}?utm_source=${source}&utm_medium=social&utm_campaign=${slug}-survey`;
 
-/**
- * Work out today's reminders. Returns { urgent: [], outstanding: [] }; each item is
- * { text, link? }. "urgent" items are what make the email worth sending today.
- */
+// ── Leads ────────────────────────────────────────────────────────────────────
+
 export async function buildReminders(db, today = ukToday()) {
   const urgent = [];
   const outstanding = [];
+  const data = await loadAll(db);
+  const evalBySlug = new Map(data.evalRows.map(r => [r.event_slug, r]));
 
-  const [evalRes, schedRes, communityRes, storiesRes] = await Promise.all([
-    db.prepare('SELECT * FROM eval_events').all(),
-    db.prepare('SELECT * FROM schedule_items ORDER BY start_date').all(),
-    db.prepare('SELECT month FROM community_counts').all(),
-    db.prepare(`SELECT created_at FROM stories WHERE status = 'new'`).all().catch(() => ({ results: [] })),
-  ]);
-  const evalBySlug = new Map(evalRes.results.map(r => [r.event_slug, r]));
-
-  // ── Events ───────────────────────────────────────────────────────────────
   for (const e of events) {
     const row = evalBySlug.get(e.slug) ?? {};
     const qr = e.ticketing === 'free'
-      ? `QR posters for the survey and check-in: ${SITE}/team/evaluation/qr?e=${e.slug}&t=checkin`
-      : `Survey QR poster: ${SITE}/team/evaluation/qr?e=${e.slug}&t=survey`;
+      ? `${SITE}/team/evaluation/qr?e=${e.slug}&t=checkin`
+      : `${SITE}/team/evaluation/qr?e=${e.slug}&t=survey`;
 
     if (e.date === addDays(today, 1)) {
       urgent.push({ text: `${e.name} is tomorrow at ${e.venue}. Print and pack the QR posters, and gather stories on the night (with permission).`, link: qr });
     }
     if (e.date === today) {
-      urgent.push({
-        text: `${e.name} is today. The survey${e.ticketing === 'free' ? ' and QR check-in are' : ' is'} now live.`,
-        link: `${SITE}/feedback/${e.slug}`,
-      });
+      urgent.push({ text: `${e.name} is today. The survey${e.ticketing === 'free' ? ' and QR check-in are' : ' is'} now live.`, link: `${SITE}/feedback/${e.slug}` });
     }
 
     if (e.date < today) {
@@ -54,7 +54,6 @@ export async function buildReminders(db, today = ukToday()) {
             : `The ${e.name} survey is overdue (was due ${longDate(due)}). Send it and mark it sent.`,
           link: `${SITE}/team/evaluation`,
         };
-        // Nag daily for the first week, then it sits in "still outstanding".
         (today <= addDays(due, 5) ? urgent : outstanding).push(item);
       }
       if (!row.debrief_on) {
@@ -65,30 +64,48 @@ export async function buildReminders(db, today = ukToday()) {
         outstanding.push({ text: `Add attendance for ${e.name} (${e.ticketing === 'free' ? 'headcount' : 'box-office export'}).`, link: `${SITE}/team/evaluation` });
       }
     }
-  }
 
-  // ── Schedule ─────────────────────────────────────────────────────────────
-  for (const s of schedRes.results) {
-    if (s.status_override === 'done') continue;
-    const isReview = /review/i.test(s.task);
-    if (isReview && s.start_date === addDays(today, 7)) {
-      urgent.push({ text: `${s.task} starts in a week (${longDate(s.start_date)}).`, link: `${SITE}/team/schedule` });
-    } else if (s.start_date === today) {
-      urgent.push({ text: `Starting today: ${s.task}${s.owner ? ` (${s.owner})` : ''}.`, link: `${SITE}/team/schedule` });
+    // Survey report, a week after the event once responses have come in.
+    if (today === addDays(e.date, 7)) {
+      const r = eventReport(data, e);
+      const s = r.survey;
+      urgent.push({
+        text: s.n
+          ? `${e.name} survey report: ${s.n} responses${r.responseRate != null ? ` (${r.responseRate}% of attendees)` : ''}, ${s.venueYesPct}% would use a permanent venue, ${Math.round((s.firstTimers / s.n) * 100)}% first-timers${s.topChannel ? `, most heard via ${s.topChannel.text.toLowerCase()}` : ''}.`
+          : `${e.name} survey report: no responses yet a week on. Worth another push from the community team.`,
+        link: `${SITE}/team/evaluation/survey-report?e=${e.slug}`,
+      });
     }
   }
 
-  // ── Monthly community numbers (Sep 2026 to Sep 2027) ─────────────────────
+  // Reviews: a week out and on the first day of review week.
+  for (const p of reviewPeriods(data.schedule)) {
+    const r = p.review;
+    if (r.status_override === 'done') continue;
+    if (r.start_date === addDays(today, 7)) {
+      urgent.push({ text: `${r.task} starts in a week (${longDate(r.start_date)}). The review page has the period's numbers ready: add your reflections.`, link: `${SITE}/team/reviews/${r.id}` });
+    } else if (r.start_date === today) {
+      urgent.push({ text: `${r.task} starts today. Write it up and sign it off by ${longDate(r.end_date)}.`, link: `${SITE}/team/reviews/${r.id}` });
+    }
+  }
+
+  // Other schedule items starting today.
+  for (const s of data.schedule) {
+    if (s.status_override === 'done' || /review/i.test(s.task)) continue;
+    if (s.start_date === today) urgent.push({ text: `Starting today: ${s.task}${s.owner ? ` (${s.owner})` : ''}.`, link: `${SITE}/team/schedule` });
+  }
+
+  // Monthly community numbers (Sep 2026 to Sep 2027).
   const lastMonth = addDays(`${today.slice(0, 7)}-01`, -1).slice(0, 7);
-  const recorded = new Set(communityRes.results.map(r => r.month));
+  const recorded = new Set(data.community.map(r => r.month));
   if (lastMonth >= '2026-09' && lastMonth <= '2027-09' && !recorded.has(lastMonth)) {
     const day = Number(today.slice(8));
     const item = { text: `Record ${monthName(lastMonth)}'s community numbers (WhatsApp, email, Facebook page and group, Instagram account and channel, TikTok).`, link: `${SITE}/team/evaluation` };
     (day === 1 || day === 7 ? urgent : outstanding).push(item);
   }
 
-  // ── Stories waiting for review ───────────────────────────────────────────
-  const waiting = storiesRes.results;
+  // Stories waiting for review.
+  const waiting = data.stories.filter(s => s.status === 'new');
   if (waiting.length) {
     const fresh = waiting.some(s => s.created_at.slice(0, 10) >= addDays(today, -1));
     const item = { text: `${waiting.length} ${waiting.length === 1 ? 'story is' : 'stories are'} waiting for review.`, link: `${SITE}/team/stories` };
@@ -98,61 +115,171 @@ export async function buildReminders(db, today = ukToday()) {
   return { urgent, outstanding };
 }
 
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// ── Community managers ───────────────────────────────────────────────────────
 
-export function renderDigest({ urgent, outstanding }, today = ukToday()) {
-  const subject = `Between: ${urgent.length} thing${urgent.length === 1 ? '' : 's'} for ${longDate(today)}`;
-  const li = i => `<li style="margin:0 0 10px">${esc(i.text)}${i.link ? `<br><a href="${esc(i.link)}" style="color:#C8102E">${esc(i.link.replace(SITE, 'between.sonicboom.org.uk'))}</a>` : ''}</li>`;
+export async function buildCommunityReminders(db, today = ukToday()) {
+  const urgent = [];
+  const outstanding = [];
+  const data = await loadAll(db);
+  const [people, todos] = await Promise.all([
+    db.prepare(`SELECT name, email FROM team_members WHERE role LIKE 'Community%'`).all().then(r => r.results),
+    db.prepare('SELECT task, owner FROM todos WHERE done = 0').all().then(r => r.results),
+  ]);
+  const firstNames = people.map(p => p.name.split(' ')[0]);
+  const mine = owner => Boolean(owner) && firstNames.some(n => owner.includes(n));
+
+  for (const e of events) {
+    const where = `${e.name} (${longDate(e.date)}, ${e.venue})`;
+    if (e.ticketing === 'ticketed' && e.date === addDays(today, 8)) {
+      urgent.push({ text: `Start the 8-day presale sequence for ${where} today: one post a day through to the night, leading with the people it's for.`, link: `${SITE}/events/${e.slug}` });
+    }
+    if (e.date === addDays(today, 7)) {
+      urgent.push({ text: `${where} is a week away. Share it into local Facebook groups and the WhatsApp community, and agree who's capturing content on the night.` });
+    }
+    if (e.date === addDays(today, 1)) {
+      urgent.push({
+        text: `${e.name} is tomorrow. Vikki: plan who's capturing photos, video, voice notes and people's stories (ask permission first; people can also share at the link). Emma: line up the night's posts and stories.`,
+        link: `${SITE}/feedback/story`,
+      });
+    }
+    if (e.date === today) {
+      urgent.push({
+        text: `${e.name} is today. Capture the room, not just the stage: who came, who with, why. ${e.ticketing === 'free' ? 'Point people to the check-in QR. ' : ''}Gather stories with permission.`,
+        link: e.ticketing === 'free' ? `${SITE}/feedback/${e.slug}/checkin` : undefined,
+      });
+    }
+    if (e.date === addDays(today, -1)) {
+      urgent.push({
+        text: `Share the ${e.name} survey today, using the link for each channel so we can see what works. Emma: post the highlights. Vikki: thank everyone in the WhatsApp community.`,
+        links: [
+          ['WhatsApp', surveyLink(e.slug, 'whatsapp')],
+          ['Facebook page', surveyLink(e.slug, 'facebook-page')],
+          ['Facebook groups', surveyLink(e.slug, 'facebook-group')],
+          ['Instagram', surveyLink(e.slug, 'instagram')],
+          ['Email', surveyLink(e.slug, 'email')],
+        ],
+      });
+    }
+    if (e.date === addDays(today, -3)) {
+      urgent.push({ text: `Last push for ${e.name} survey responses, and pass on any stories people shared on the night.`, link: `${SITE}/feedback/story` });
+    }
+  }
+
+  // Monthly numbers: on the 1st (and a nudge on the 5th) for last month.
+  const lastMonth = addDays(`${today.slice(0, 7)}-01`, -1).slice(0, 7);
+  const recorded = new Set(data.community.map(r => r.month));
+  const day = Number(today.slice(8));
+  if (lastMonth >= '2026-09' && lastMonth <= '2027-09' && !recorded.has(lastMonth) && (day === 1 || day === 5)) {
+    urgent.push({ text: `Send ${monthName(lastMonth)}'s community numbers to Chris and Dan: WhatsApp members, email subscribers, Facebook page followers, Facebook group members, Instagram followers, Instagram channel members, TikTok followers.` });
+  }
+
+  // Their schedule items starting today, and their open to-dos.
+  for (const s of data.schedule) {
+    if (s.status_override === 'done' || !mine(s.owner)) continue;
+    if (s.start_date === today) urgent.push({ text: `Starting today: ${s.task} (${s.owner}).`, link: `${SITE}/team/schedule` });
+  }
+  for (const t of todos.filter(t => mine(t.owner))) outstanding.push({ text: `${t.task} (${t.owner})` });
+
+  // Monday round-up: always goes, with the next fortnight's events.
+  if (isMonday(today)) {
+    const soon = events.filter(e => e.date >= today && e.date <= addDays(today, 14));
+    urgent.unshift({
+      text: soon.length
+        ? `This week and next: ${soon.map(e => `${e.name} on ${shortDate(e.date)}`).join(', ')}. Every post should be about people: who it's for, who came, what it meant.`
+        : 'No events in the next fortnight: a good week for stories, community posts and growing the WhatsApp community.',
+    });
+  }
+
+  return { urgent, outstanding, recipients: people.map(p => p.email) };
+}
+
+// ── Rendering and sending ────────────────────────────────────────────────────
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const shown = url => url.replace(SITE, 'between.sonicboom.org.uk').replace(/\?.*$/, '');
+
+export function renderDigest({ urgent, outstanding }, today = ukToday(), audience = 'leads') {
+  const community = audience === 'community';
+  const subject = community
+    ? `The Space Between: community to-dos for ${longDate(today)}`
+    : `Between: ${urgent.length} thing${urgent.length === 1 ? '' : 's'} for ${longDate(today)}`;
+  const linkHtml = i => [
+    i.link ? `<br><a href="${esc(i.link)}" style="color:#C8102E">${esc(shown(i.link))}</a>` : '',
+    i.links ? `<br>${i.links.map(([label, url]) => `<a href="${esc(url)}" style="color:#C8102E">${esc(label)}</a>`).join(' · ')}` : '',
+  ].join('');
+  const li = i => `<li style="margin:0 0 10px">${esc(i.text)}${linkHtml(i)}</li>`;
+  const why = community
+    ? 'Remember why: this is about people. Every post, every story, every survey shared helps Burton see itself.'
+    : 'Remember why: every event should leave people more connected, and every story is worth gathering.';
   const html = `<div style="font-family:-apple-system,Arial,sans-serif;font-size:15px;line-height:1.5;color:#1A1212;max-width:560px">
 <p style="font-size:13px;color:#5a4848;margin:0 0 4px">The Space Between · Sonic Boom Music CIC</p>
-<h1 style="font-family:Georgia,serif;font-size:22px;margin:0 0 16px">Today: ${esc(longDate(today))}</h1>
+<h1 style="font-family:Georgia,serif;font-size:22px;margin:0 0 16px">${community ? 'Community' : 'Today'}: ${esc(longDate(today))}</h1>
 <ul style="padding-left:20px;margin:0 0 20px">${urgent.map(li).join('')}</ul>
-${outstanding.length ? `<h2 style="font-size:15px;margin:0 0 8px">Still outstanding</h2><ul style="padding-left:20px;margin:0 0 20px;color:#5a4848">${outstanding.map(li).join('')}</ul>` : ''}
-<p style="font-size:13px;color:#5a4848">Remember why: every event should leave people more connected, and every story is worth gathering.<br>Sent daily by between.sonicboom.org.uk when something needs doing. Believe in the Power of Music.</p>
+${outstanding.length ? `<h2 style="font-size:15px;margin:0 0 8px">${community ? 'Your open to-dos' : 'Still outstanding'}</h2><ul style="padding-left:20px;margin:0 0 20px;color:#5a4848">${outstanding.map(li).join('')}</ul>` : ''}
+<p style="font-size:13px;color:#5a4848">${why}<br>Sent by between.sonicboom.org.uk when something needs doing. Believe in the Power of Music.</p>
 </div>`;
   const text = [
-    `Today: ${longDate(today)}`, '',
-    ...urgent.map(i => `- ${i.text}${i.link ? `\n  ${i.link}` : ''}`),
-    ...(outstanding.length ? ['', 'Still outstanding:', ...outstanding.map(i => `- ${i.text}`)] : []),
-    '', 'Sent daily by between.sonicboom.org.uk when something needs doing.',
+    `${community ? 'Community' : 'Today'}: ${longDate(today)}`, '',
+    ...urgent.map(i => `- ${i.text}${i.link ? `\n  ${i.link}` : ''}${i.links ? `\n  ${i.links.map(([l, u]) => `${l}: ${u}`).join('\n  ')}` : ''}`),
+    ...(outstanding.length ? ['', community ? 'Your open to-dos:' : 'Still outstanding:', ...outstanding.map(i => `- ${i.text}`)] : []),
+    '', why,
   ].join('\n');
   return { subject, html, text };
 }
 
-/**
- * Build and (if anything is urgent and Resend is configured) send today's digest. Records each
- * send in reminder_log so a repeated cron run on the same day doesn't email twice.
- */
-export async function runReminders(env, { today = ukToday(), force = false } = {}) {
-  const db = env.OPS_DB;
-  if (!db) return { sent: false, reason: 'no database' };
-
-  if (!force) {
-    const already = await db.prepare('SELECT 1 FROM reminder_log WHERE sent_on = ?').bind(today).first();
-    if (already) return { sent: false, reason: 'already checked today' };
-  }
-
-  const reminders = await buildReminders(db, today);
-  // "Send it now" on a quiet day sends a clearly-labelled test, so the Resend setup can be checked.
-  if (force && !reminders.urgent.length) {
-    reminders.urgent.push({ text: 'This is a test from "Send it now". Nothing is time-critical today, so the daily reminder would stay quiet.' });
-  }
-  if (!reminders.urgent.length) {
-    // Record the quiet day too, so later checks today stop early.
-    if (!force) await db.prepare('INSERT OR IGNORE INTO reminder_log (sent_on, subject, items) VALUES (?, NULL, 0)').bind(today).run();
-    return { sent: false, reason: 'nothing due today', ...reminders };
-  }
-  if (!env.RESEND_API_KEY) return { sent: false, reason: 'RESEND_API_KEY not set', ...reminders };
-
-  const { subject, html, text } = renderDigest(reminders, today);
+async function sendEmail(env, to, { subject, html, text }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to: LEADS, subject, html, text }),
+    body: JSON.stringify({ from: FROM, to, subject, html, text }),
   });
-  if (!res.ok) return { sent: false, reason: `Resend error ${res.status}: ${await res.text()}`, ...reminders };
+  return res.ok ? null : `Resend error ${res.status}: ${await res.text()}`;
+}
+
+/**
+ * Build and send today's email for one audience ('leads' | 'community'). Each day is logged per
+ * audience in reminder_log (sent_on = 'YYYY-MM-DD:audience') so repeated runs don't email twice.
+ * force: ignore the once-a-day guard, and on a quiet day send a labelled test instead.
+ */
+export async function runAudience(env, audience, { today = ukToday(), force = false } = {}) {
+  const db = env.OPS_DB;
+  if (!db) return { sent: false, reason: 'no database' };
+  const key = `${today}:${audience}`;
+
+  if (!force) {
+    const already = await db.prepare('SELECT 1 FROM reminder_log WHERE sent_on = ?').bind(key).first();
+    if (already) return { sent: false, reason: 'already checked today' };
+  }
+
+  const built = audience === 'community' ? await buildCommunityReminders(db, today) : await buildReminders(db, today);
+  const to = audience === 'community' ? built.recipients : LEADS;
+  if (force && !built.urgent.length) {
+    built.urgent.push({ text: 'This is a test from "Send it now". Nothing is time-critical today, so the daily email would stay quiet.' });
+  }
+  if (!built.urgent.length || !to?.length) {
+    if (!force) await db.prepare('INSERT OR IGNORE INTO reminder_log (sent_on, subject, items) VALUES (?, NULL, 0)').bind(key).run();
+    return { sent: false, reason: !to?.length ? 'no recipients' : 'nothing due today', ...built };
+  }
+  if (!env.RESEND_API_KEY) return { sent: false, reason: 'RESEND_API_KEY not set', ...built };
+
+  const email = renderDigest(built, today, audience);
+  const error = await sendEmail(env, to, email);
+  if (error) return { sent: false, reason: error, ...built };
 
   await db.prepare('INSERT OR REPLACE INTO reminder_log (sent_on, subject, items) VALUES (?, ?, ?)')
-    .bind(today, subject, reminders.urgent.length).run();
-  return { sent: true, subject, ...reminders };
+    .bind(key, email.subject, built.urgent.length).run();
+  return { sent: true, subject: email.subject, to, ...built };
+}
+
+/** Both audiences: the daily run. */
+export async function runReminders(env, opts = {}) {
+  const leads = await runAudience(env, 'leads', opts);
+  const community = await runAudience(env, 'community', opts);
+  return {
+    sent: leads.sent || community.sent,
+    reason: `leads: ${leads.reason ?? 'sent'}; community: ${community.reason ?? 'sent'}`,
+    subject: leads.subject ?? community.subject,
+    leads,
+    community,
+  };
 }

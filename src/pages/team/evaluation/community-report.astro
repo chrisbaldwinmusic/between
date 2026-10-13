@@ -1,0 +1,117 @@
+---
+// Community growth report: every month by channel, change on the month before, quarter
+// subtotals and growth since the start. Printable; CSV via /api/team/evaluation/export?type=community.
+// Leads only (src/middleware.js).
+export const prerender = false;
+
+import ReportLayout from '../../../layouts/ReportLayout.astro';
+import { COMMUNITY_CHANNELS } from '../../../lib/feedback.js';
+import { loadAll, communityReport, socialTotal, monthLabel, TARGETS, pct, PROJECT_START } from '../../../lib/metrics.js';
+import { ukToday } from '../../../lib/dates.js';
+
+const db = Astro.locals.runtime?.env?.OPS_DB;
+const data = db ? await loadAll(db) : { community: [] } as any;
+const today = ukToday();
+const toMonth = today.slice(0, 7) > '2027-09' ? '2027-09' : today.slice(0, 7);
+const report = communityReport(data, PROJECT_START.slice(0, 7), toMonth);
+const latest = report.last;
+const fmt = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('en-GB'));
+const signed = (n: number | null) => (n == null ? '' : n > 0 ? `+${n.toLocaleString('en-GB')}` : n < 0 ? n.toLocaleString('en-GB') : '±0');
+
+// Quarters of the programme year (Sep–Nov, Dec–Feb, Mar–May, Jun–Aug, Sep).
+const quarterOf = (m: string) => {
+  const idx = (Number(m.slice(0, 4)) - 2026) * 12 + Number(m.slice(5)) - 9;
+  return Math.floor(idx / 3) + 1;
+};
+const social = socialTotal(latest);
+// Group months into programme quarters for the table.
+const quarters: { n: number; rows: typeof report.rows }[] = [];
+for (const r of report.rows) {
+  const n = quarterOf(r.month);
+  if (!quarters.length || quarters[quarters.length - 1].n !== n) quarters.push({ n, rows: [] });
+  quarters[quarters.length - 1].rows.push(r);
+}
+const recordedMonths = report.rows.filter(r => r.row).map(r => r.month);
+const firstMonth = recordedMonths[0] ?? '';
+const lastMonth = recordedMonths[recordedMonths.length - 1] ?? '';
+// Targets are measured as growth since the first recorded month (see note in the page).
+const emailGrowth = report.growth.email ?? 0;
+const socialGrowth = report.first && latest ? (socialTotal(latest) ?? 0) - (socialTotal(report.first) ?? 0) : 0;
+---
+<ReportLayout title="Community growth report">
+  <a slot="actions" href="/api/team/evaluation/export?type=community">Download CSV</a>
+  <p class="r-eyebrow">The Space Between · Evaluation</p>
+  <h1 class="r-title">Community growth</h1>
+  <p class="r-sub">
+    Monthly community numbers from {monthLabel(PROJECT_START.slice(0, 7))} to {monthLabel(toMonth)}, tracked by the
+    community managers and reported quarterly. Pages (followers) and groups (members) are counted separately.
+  </p>
+
+  {!latest ? (
+    <p>No monthly numbers recorded yet. Add them on the <a href="/team/evaluation">Evaluation</a> page.</p>
+  ) : (
+    <>
+      <ul class="r-stats" role="list">
+        <li><strong>{fmt(social)}</strong><span>across WhatsApp and social ({lastMonth && monthLabel(lastMonth)})</span></li>
+        <li><strong>{fmt(latest.email)}</strong><span>email subscribers</span></li>
+        <li><strong>{fmt(latest.whatsapp)}</strong><span>in the WhatsApp community</span></li>
+        <li><strong>{report.first ? signed(socialGrowth) : '–'}</strong><span>social growth since {firstMonth && monthLabel(firstMonth)}</span></li>
+      </ul>
+
+      <h2 class="r-h2">Month by month</h2>
+      <div class="r-table-wrap">
+        <table class="r-table">
+          <thead>
+            <tr>
+              <th scope="col">Month</th>
+              {COMMUNITY_CHANNELS.map(([, text, unit]) => <th scope="col">{text}<br /><small>{unit}</small></th>)}
+              <th scope="col">Social total</th>
+            </tr>
+          </thead>
+          {quarters.map(q => (
+            <tbody>
+              <tr><th scope="rowgroup" colspan={COMMUNITY_CHANNELS.length + 2} style="text-align:left;background:#F4EFEA">Quarter {q.n}</th></tr>
+              {q.rows.map(r => (
+                <tr>
+                  <th scope="row" style="text-align:left">{monthLabel(r.month)}{r.row?.locked_at ? ' 🔒' : ''}</th>
+                  {COMMUNITY_CHANNELS.map(([key]) => (
+                    <td>
+                      {fmt(r.row?.[key])}
+                      {r.change[key] ? <small class={(r.change[key] ?? 0) > 0 ? 'change up' : 'change down'}>{signed(r.change[key])}</small> : ''}
+                    </td>
+                  ))}
+                  <td><strong>{fmt(socialTotal(r.row))}</strong></td>
+                </tr>
+              ))}
+            </tbody>
+          ))}
+          <tfoot>
+            <tr>
+              <td>Growth since first month</td>
+              {COMMUNITY_CHANNELS.map(([key]) => <td>{signed(report.growth[key]) || '–'}</td>)}
+              <td>{report.first ? signed(socialGrowth) : '–'}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="r-note">🔒 = numbers locked as final. Small figures under each number are the change on the previous recorded month.</p>
+
+      <h2 class="r-h2">Against the ACE targets</h2>
+          <>
+            <div class="r-target">
+              <strong>New email subscribers:</strong> {signed(emailGrowth)} towards {TARGETS.email}+ ({pct(Math.max(0, emailGrowth), TARGETS.email)}%)
+              <div class="track"><span style={`width:${Math.min(100, pct(Math.max(0, emailGrowth), TARGETS.email))}%`}></span></div>
+            </div>
+            <div class="r-target">
+              <strong>New social media community members:</strong> {signed(socialGrowth)} towards {TARGETS.social}+ ({pct(Math.max(0, socialGrowth), TARGETS.social)}%)
+              <div class="track"><span style={`width:${Math.min(100, pct(Math.max(0, socialGrowth), TARGETS.social))}%`}></span></div>
+            </div>
+          </>
+      <p class="r-note">
+        Measured as growth since the first recorded month ({firstMonth && monthLabel(firstMonth)}), because the
+        application's targets (500+ social media community members and 500+ email subscribers by September 2027) are about
+        what this programme adds, not existing audiences.
+      </p>
+    </>
+  )}
+</ReportLayout>

@@ -1,0 +1,225 @@
+---
+// One review checkpoint (Q1, Q2, six-month, Q3, final): everything that happened in its period,
+// pulled live from the evaluation data, plus the team's write-up and sign-off. Printable for the
+// board or Arts Council England. :id is the review's schedule_items id. Leads only.
+export const prerender = false;
+
+import ReportLayout from '../../../layouts/ReportLayout.astro';
+import { COMMUNITY_CHANNELS } from '../../../lib/feedback.js';
+import { loadAll, periodReport, reviewPeriods, socialTotal, fmtDate, monthLabel, pct, TARGETS } from '../../../lib/metrics.js';
+import { ukToday } from '../../../lib/dates.js';
+
+const db = Astro.locals.runtime?.env?.OPS_DB;
+if (!db) return new Response('Database unavailable', { status: 503 });
+const data = await loadAll(db);
+const id = Number(Astro.params.id);
+const period = reviewPeriods(data.schedule).find(p => p.review.id === id);
+if (!period) return Astro.redirect('/team/reviews');
+
+const { review, from, to } = period;
+const r = periodReport(data, from, to);
+const writeUp: any = (await db.prepare('SELECT * FROM reviews WHERE schedule_id = ?').bind(id).first()) ?? {};
+const signed = Boolean(writeUp.signed_off_at);
+const today = ukToday();
+const asOf = today < to ? today : to;
+
+const money = (p: number) => (p / 100).toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
+const fmt = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('en-GB'));
+const signedN = (n: number | null) => (n == null ? '–' : n > 0 ? `+${fmt(n)}` : n < 0 ? fmt(n) : '±0');
+const who = (email: string | null) => (email ? email.split('@')[0] : 'someone');
+const stamp = (sql: string) => new Date(sql.replace(' ', 'T') + 'Z').toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+const startRow = r.community.first;
+const endRow = r.community.last;
+const socialGrowth = startRow && endRow ? socialTotal(endRow)! - socialTotal(startRow)! : null;
+
+const prompts = [
+  ['worked', 'What worked?', 'Which events, partnerships and posts brought people in, or brought them back?'],
+  ['didnt', "What didn't?", 'Where did we miss people, lose momentum, or fall short of the plan?'],
+  ['learned', 'What did we learn about our audiences and community?', 'Who came, who didn\'t, what people told us, the stories we heard.'],
+  ['actions', 'What will we change next?', 'Concrete actions, owners and dates for the next period.'],
+];
+---
+<ReportLayout title={review.task} back={{ href: '/team/reviews', label: 'Reviews' }}>
+  <p class="r-eyebrow">The Space Between · Review</p>
+  <h1 class="r-title">{review.task}</h1>
+  <p class="r-sub">
+    Covering {fmtDate(from)} to {fmtDate(to)} · review week {fmtDate(review.start_date)} to {fmtDate(review.end_date)}
+    {to > today && <> · <strong>figures so far, as of {fmtDate(asOf)}</strong></>}
+  </p>
+
+  <h2 class="r-h2">At a glance</h2>
+  <ul class="r-stats" role="list">
+    <li><strong>{r.events.length}</strong><span>event{r.events.length === 1 ? '' : 's'} in this period</span></li>
+    <li><strong>{fmt(r.attendance)}</strong><span>attendance this period</span></li>
+    <li><strong>{fmt(r.attendanceToDate)}</strong><span>attendance to date, towards {fmt(TARGETS.attenders)}+ ({pct(r.attendanceToDate, TARGETS.attenders)}%)</span></li>
+    <li><strong>{r.survey.n}</strong><span>survey responses</span></li>
+    <li><strong>{r.survey.n ? `${r.survey.venueYesPct}%` : '–'}</strong><span>would use a permanent venue</span></li>
+    <li><strong>{r.survey.n ? `${pct(r.survey.firstTimers, r.survey.n)}%` : '–'}</strong><span>first-timers</span></li>
+    <li><strong>{signedN(socialGrowth)}</strong><span>social community growth</span></li>
+    <li><strong>{signedN(startRow && endRow && endRow.email != null && startRow.email != null ? endRow.email - startRow.email : null)}</strong><span>new email subscribers</span></li>
+    <li><strong>{r.stories.received}</strong><span>stories shared ({r.stories.published} published)</span></li>
+  </ul>
+  <p class="r-note">Attendance counts visits, not unique people: the 1,500 target is unique attenders, so treat the to-date figure as an upper bound.</p>
+
+  <h2 class="r-h2">Events</h2>
+  {r.events.length === 0 ? <p>No events in this period.</p> : (
+    <div class="r-table-wrap">
+      <table class="r-table">
+        <thead><tr><th scope="col">Event</th><th scope="col">Date</th><th scope="col">Attendance</th><th scope="col">Responses</th><th scope="col">Response rate</th><th scope="col">Venue yes</th><th scope="col">Survey sent</th><th scope="col">Debrief</th></tr></thead>
+        <tbody>
+          {r.events.map(e => (
+            <tr>
+              <td><a href={`/team/evaluation/survey-report?e=${e.event.slug}`}>{e.event.name}</a></td>
+              <td>{fmtDate(e.event.date, { day: 'numeric', month: 'short' })}</td>
+              <td>{fmt(e.attendance)}</td>
+              <td>{e.survey.n}</td>
+              <td>{e.responseRate != null ? `${e.responseRate}%` : '–'}</td>
+              <td>{e.survey.n ? `${e.survey.venueYesPct}%` : '–'}</td>
+              <td>{e.row.survey_sent_on ? fmtDate(e.row.survey_sent_on, { day: 'numeric', month: 'short' }) : today >= e.event.date ? 'Not yet' : '–'}</td>
+              <td>{e.row.debrief_on ? '✓' : today >= e.event.date ? 'Not yet' : '–'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+
+  {r.survey.n > 0 && (
+    <>
+      <h2 class="r-h2">How people heard about us</h2>
+      <ul class="r-bars" role="list">
+        {r.survey.heard.filter(h => h.n > 0).sort((a, b) => b.n - a.n).map(h => (
+          <li><span>{h.text}</span><span class="track" aria-hidden="true"><span style={`width:${h.pct}%`}></span></span><span class="n">{h.n} ({h.pct}%)</span></li>
+        ))}
+      </ul>
+      <p class="r-note">{r.survey.postcodes ? `${r.survey.localPct}% local (DE13/14/15) of ${r.survey.postcodes} postcodes given.` : 'No postcodes given yet.'}</p>
+    </>
+  )}
+
+  <h2 class="r-h2">Community</h2>
+  {!endRow ? <p>No monthly community numbers recorded for this period yet.</p> : (
+    <div class="r-table-wrap">
+      <table class="r-table">
+        <thead><tr><th scope="col">Channel</th><th scope="col">{startRow ? monthLabel(r.community.rows.find(x => x.row)?.month ?? '') : 'Start'}</th><th scope="col">{monthLabel([...r.community.rows].reverse().find(x => x.row)?.month ?? '')}</th><th scope="col">Change</th></tr></thead>
+        <tbody>
+          {COMMUNITY_CHANNELS.map(([key, text, unit]) => (
+            <tr><td>{text} <small>({unit})</small></td><td>{fmt(startRow?.[key])}</td><td>{fmt(endRow[key])}</td><td>{signedN(r.community.growth[key])}</td></tr>
+          ))}
+        </tbody>
+        <tfoot><tr><td>WhatsApp and social total</td><td>{fmt(socialTotal(startRow))}</td><td>{fmt(socialTotal(endRow))}</td><td>{signedN(socialGrowth)}</td></tr></tfoot>
+      </table>
+    </div>
+  )}
+
+  <h2 class="r-h2">Budget</h2>
+  <p>
+    Spent this period: <strong>{money(r.budget.spentInPeriod)}</strong> · spent to date: <strong>{money(r.budget.spentToDate)}</strong>
+    of {money(r.budget.spendBudget)} cash budget ({pct(r.budget.spentToDate, r.budget.spendBudget)}%).
+    <a class="no-print" href="/team/budget">Budget tracker</a>
+  </p>
+
+  <h2 class="r-h2">Schedule</h2>
+  {r.schedule.items.length === 0 ? <p>Nothing scheduled in this period.</p> : (
+    <ul>
+      {r.schedule.items.map(s => (
+        <li>
+          {s.task} <span class="r-note">({fmtDate(s.start_date, { day: 'numeric', month: 'short' })}–{fmtDate(s.end_date)}, {s.owner || 'no owner'})</span>
+          {s.status_override === 'blocked' && <strong style="color:#C8102E"> · blocked</strong>}
+          {s.status_override === 'done' && <span> · done</span>}
+          {s.notes && <div class="r-note">{s.notes}</div>}
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <h2 class="r-h2">Reflection</h2>
+  <p class="r-note no-print">
+    Remember the point: this is a community and audience development programme. Judge the period by the people
+    it brought in and kept, not just the gigs.
+  </p>
+  <form class={`rv-form${signed ? ' is-signed' : ''}`} id="rv-form" data-id={id}>
+    {prompts.map(([key, label, hint]) => (
+      <div class="rv-field">
+        <label class="r-h3" for={`rv-${key}`}>{label}</label>
+        <p class="r-note no-print" id={`rv-${key}-hint`}>{hint}</p>
+        <textarea class="no-print" id={`rv-${key}`} name={key} rows="5" disabled={signed} aria-describedby={`rv-${key}-hint`}>{writeUp[key] ?? ''}</textarea>
+        <div class="rv-print">{writeUp[key] || '(not written yet)'}</div>
+      </div>
+    ))}
+    <div class="rv-actions no-print">
+      <button type="submit" class="rv-btn rv-btn--primary" hidden={signed}>Save</button>
+      <button type="button" class="rv-btn" id="rv-signoff" hidden={!writeUp.updated_at}>{signed ? 'Reopen' : 'Sign off'}</button>
+      <span class="rv-state" id="rv-state" role="status">
+        {signed ? `🔒 Signed off ${stamp(writeUp.signed_off_at)} by ${who(writeUp.signed_off_by)}` : writeUp.updated_at ? `Saved ${stamp(writeUp.updated_at)} by ${who(writeUp.updated_by)}` : 'Not saved yet'}
+      </span>
+    </div>
+    {signed && <p class="r-note">Signed off {stamp(writeUp.signed_off_at)} by {who(writeUp.signed_off_by)}.</p>}
+  </form>
+
+  <style>
+    .rv-field { margin-bottom: 1rem; }
+    .rv-field textarea { width: 100%; font: inherit; padding: 0.6rem 0.7rem; border: 1px solid #d9cfc8; border-radius: 6px; resize: vertical; }
+    .rv-field textarea:disabled { background: #faf7f4; color: #1A1212; }
+    .rv-print { display: none; white-space: pre-wrap; }
+    .rv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+    .rv-actions [hidden] { display: none !important; }
+    .rv-btn { font: 600 0.9rem/1 'Hanken Grotesk', Arial, sans-serif; padding: 0.65rem 1rem; border-radius: 6px; border: 1px solid #1A1212; background: #fff; cursor: pointer; }
+    .rv-btn--primary { background: #C8102E; border-color: #C8102E; color: #fff; }
+    .rv-state { font-size: 0.85rem; color: #5a4848; }
+    .rv-state.is-dirty { color: #b26a00; font-weight: 600; }
+    .rv-state.is-saved { color: #2e7d32; font-weight: 700; }
+    .rv-state.is-error { color: #C8102E; font-weight: 600; }
+    @media print { .rv-print { display: block; } }
+  </style>
+</ReportLayout>
+
+<script>
+  const form = document.getElementById('rv-form') as HTMLFormElement;
+  const state = document.getElementById('rv-state')!;
+  const signBtn = document.getElementById('rv-signoff') as HTMLButtonElement;
+  const saveBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+  let dirty = false;
+
+  const who = (email: string | null) => (email ? email.split('@')[0] : 'someone');
+  const stamp = (sql: string) => new Date(sql.replace(' ', 'T') + 'Z').toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const show = (cls: string, text: string) => { state.className = `rv-state ${cls}`; state.textContent = text; };
+
+  async function post(body: unknown) {
+    const res = await fetch(`/api/team/reviews/${form.dataset.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Not saved. Please try again.');
+    return data.row;
+  }
+
+  form.addEventListener('input', () => { dirty = true; show('is-dirty', 'Unsaved changes'); });
+  window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    saveBtn.disabled = true;
+    show('', 'Saving…');
+    try {
+      const row = await post(Object.fromEntries(new FormData(form)));
+      dirty = false;
+      signBtn.hidden = false;
+      show('is-saved', `Saved ✓ ${stamp(row.updated_at)} by ${who(row.updated_by)}`);
+    } catch (err: any) {
+      show('is-error', err.message);
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  signBtn.addEventListener('click', async () => {
+    const signing = !form.classList.contains('is-signed');
+    if (signing && dirty) { show('is-error', 'Save your changes before signing off.'); return; }
+    if (signing && !confirm('Sign off this review? It will be locked until someone reopens it.')) return;
+    try {
+      await post({ signoff: signing });
+      location.reload();
+    } catch (err: any) {
+      show('is-error', err.message);
+    }
+  });
+</script>

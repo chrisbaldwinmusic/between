@@ -1,5 +1,5 @@
-// GET /api/team/evaluation/export?type=survey|checkins — CSV of raw (anonymous) responses for
-// reporting. Leads only (src/middleware.js).
+// GET /api/team/evaluation/export?type=survey|checkins|community — CSV of raw (anonymous) responses
+// and monthly community numbers for reporting. Leads only (src/middleware.js).
 
 import { getDb, jsonErr } from '../../../../lib/ops-db.js';
 
@@ -8,6 +8,7 @@ export const prerender = false;
 const QUERIES = {
   survey: 'SELECT id, event_slug, created_at, heard_from, prior_events, outward_postcode, venue_use, venue_wants FROM feedback_responses ORDER BY created_at',
   checkins: 'SELECT id, event_slug, created_at, party_size, first_time, outward_postcode FROM checkins ORDER BY created_at',
+  community: 'SELECT month, whatsapp, email, facebook_page, facebook_group, instagram, instagram_channel, tiktok, locked_at, locked_by FROM community_counts ORDER BY month',
 };
 
 const cell = v => {
@@ -21,7 +22,7 @@ export async function GET(context) {
   if (!db) return jsonErr('Database unavailable', 503);
 
   const type = new URL(context.request.url).searchParams.get('type');
-  if (!QUERIES[type]) return jsonErr('type must be survey or checkins', 400);
+  if (!QUERIES[type]) return jsonErr('type must be survey, checkins or community', 400);
 
   const { results } = await db.prepare(QUERIES[type]).all();
   const cols = QUERIES[type].match(/SELECT (.*) FROM/)[1].split(', ');

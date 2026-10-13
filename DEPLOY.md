@@ -213,7 +213,14 @@ something is time-critical and logs each send in `reminder_log`. Needs the secre
 npx wrangler secret put RESEND_API_KEY   # a sending-only Resend key for sonicboom.org.uk
 ```
 
-Preview or send by hand from `/team/evaluation` (or `/api/team/reminders?date=YYYY-MM-DD`).
+There are two emails: one for the leads, and one for the community managers (roster roles starting
+"Community"), covering presales, content capture, stories, sharing the survey (with per-channel
+tracked links), monthly numbers and their to-dos, plus a Monday round-up. Preview or send either by
+hand from `/team/evaluation` (or `/api/team/reminders?audience=leads|community&date=YYYY-MM-DD`).
+
+Reports (leads): `/team/evaluation/community-report`, `/team/evaluation/survey-report[?e=slug]`, and
+`/team/reviews` (one page per review checkpoint in the schedule, with write-up and sign-off;
+`d1/reviews.sql`).
 
 ## 6. Custom domain + DNS
 
