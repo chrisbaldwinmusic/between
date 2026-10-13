@@ -46,7 +46,7 @@ Ten events, in order: Firelight (Oct) · Winter Sounds (Dec) · New Year Communi
 | Email signup | `src/scripts/signup-form.ts` posts straight to `mailer.sonicboom.org.uk/api/public/subscribe`, Turnstile sitekey `0x4AAAAAAE-sD2W4nkc17NQU` | Public | MVP | ✓ done — reuses Sonic Boom's shared mailer, not MailerLite |
 | WhatsApp Community invite link | `SignupSection` / `SignupStrip` | Public | MVP | https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm ✓ |
 | Ticket Tailor links | `events.json`, membership | Public | rolling | events.sonicboom.org.uk (general redirect) ✓ — swap for per-event deep links as they go live |
-| Cloudflare Web Analytics token | `BaseLayout` snippet | Public | MVP | |
+| Cloudflare Web Analytics token | `WEB_ANALYTICS_TOKEN` in `BaseLayout` (and the PIN page in `worker/gate.js`) | Public | MVP | ✓ done |
 | KV namespace `VENUE_KV` | `wrangler.toml` binding on the `between` Worker | Binding (not a secret) | step 8 | ✓ done |
 | Custom domain `between.sonicboom.org.uk` | Workers Custom Domain (not Pages) + DNS | — | launch | ✓ done |
 

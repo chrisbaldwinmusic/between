@@ -161,6 +161,7 @@ function pinPage(next, wrong) {
   </form>
   <p class="alt">Been to one of our events? <a href="/feedback">Tell us how it went</a>.</p>
 </main>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "691a25c25a2b4921a3554bee800e01ef"}'></script>
 </body>
 </html>`;
   return new Response(html, {
