@@ -54,4 +54,6 @@ Red = brand anchor + active/"yes". Ember = warmth, hover, the demand meter. Veri
 
 ## Workflow
 
+Deploy with `npm run deploy` (build, `wrangler deploy`, then `scripts/smoke.mjs` checks the live site's key routes). Never deploy without the smoke test: a broken `worker/gate.js` takes every page down.
+
 Build in the order set out in `docs/PROMPTS.md`. Do one step at a time and stop for review/commit between steps. Before building anything new, confirm it doesn't break a hard rule above.
