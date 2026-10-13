@@ -4,6 +4,7 @@
 // endpoints and /team/evaluation so the options only live in one place.
 
 import events from '../data/events.json';
+import { ukToday, addDays } from './dates.js';
 
 export const HEARD_FROM = [
   ['whatsapp', 'WhatsApp'],
@@ -49,14 +50,23 @@ export function outwardCode(postcode) {
   return m ? m[1] : null;
 }
 
-// Survey opens on the day of the event.
-export function surveyOpen(event, today = new Date().toISOString().slice(0, 10)) {
+// The survey opens on the day of the event (UK time) and stays open after it.
+export function surveyOpen(event, today = ukToday()) {
   return event.date <= today;
 }
 
-// Survey should go out within 48 hours of the event.
+// QR check-in only works on the day of the event (UK time).
+export function checkinOpen(event, today = ukToday()) {
+  return event.date === today;
+}
+
+// The survey should go out within 48 hours of the event.
 export function surveyDue(event) {
-  const d = new Date(`${event.date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 2);
-  return d.toISOString().slice(0, 10);
+  return addDays(event.date, 2);
+}
+
+// "Friday 23 October"
+export function longDate(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 }

@@ -1,16 +1,17 @@
 ---
 // Public post-event survey: the five questions from the ACE evaluation plan. Plain HTML form
 // post (works without JS), open to everyone with no PIN. Answers go to D1 via /api/feedback/survey.
-import events from '../../data/events.json';
+// Rendered per request so it opens by itself on the day of the event (UK time).
+export const prerender = false;
+
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { HEARD_FROM, PRIOR_EVENTS, VENUE_QUESTION, VENUE_USE } from '../../lib/feedback.js';
+import StayInLoop from '../../components/StayInLoop.astro';
+import { HEARD_FROM, PRIOR_EVENTS, VENUE_QUESTION, VENUE_USE, eventBySlug, surveyOpen, longDate } from '../../lib/feedback.js';
 import '../../styles/feedback.css';
 
-export function getStaticPaths() {
-  return events.map(event => ({ params: { slug: event.slug }, props: { event } }));
-}
-
-const { event } = Astro.props;
+const event = eventBySlug(Astro.params.slug);
+if (!event) return Astro.redirect('/feedback');
+const open = surveyOpen(event);
 const [y, m, d] = event.date.split('-').map(Number);
 const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' });
 ---
@@ -23,16 +24,19 @@ const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { we
     <div class="fb-hero" style={`--accent:${event.accent}`}>
       <div class="container fb-hero__inner">
         <p class="fb-hero__eyebrow">{event.name} · {weekday} {d} {event.month}</p>
-        <h1 class="fb-hero__title">How was it?</h1>
+        <h1 class="fb-hero__title">{open ? 'How was it?' : 'See you there'}</h1>
         <p class="fb-hero__sub">
-          Five quick questions, about two minutes. Every answer shapes the next night, and helps
-          build the case for our ambition: a permanent home for grassroots music in Burton.
+          {open
+            ? 'Five quick questions, about two minutes. Every answer shapes the next night, and helps build the case for our ambition: a permanent home for grassroots music in Burton.'
+            : `This is where you'll tell us how ${event.name} went. The questions open on ${longDate(event.date)}, the day of the event.`}
         </p>
       </div>
     </div>
 
     <div class="fb-body">
       <div class="container fb-body__inner">
+        {!open && <StayInLoop medium="feedback-early" />}
+        {open && (
         <form class="fb-form" method="post" action="/api/feedback/survey">
           <input type="hidden" name="event" value={event.slug} />
           <div class="fb-hp" aria-hidden="true">
@@ -115,6 +119,7 @@ const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { we
             England, who fund this programme. See our <a href="/privacy">privacy notice</a>.
           </p>
         </form>
+        )}
       </div>
     </div>
   </main>

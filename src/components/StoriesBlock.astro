@@ -7,8 +7,9 @@
 //   "image": "/img/stories/....jpg" (optional), "imageAlt": "..." (required if image) }
 import stories from '../data/stories.json';
 import events from '../data/events.json';
+import { ukToday } from '../lib/dates.js';
 
-const nextEvent = events.find(e => e.date >= new Date().toISOString().slice(0, 10)) ?? events[0];
+const nextEvent = events.find(e => e.date >= ukToday()) ?? events[0];
 const eventName = (slug?: string) => events.find(e => e.slug === slug)?.name;
 const shareHref = 'mailto:hello@sonicboom.org.uk?subject=My%20story%20-%20The%20Space%20Between';
 ---

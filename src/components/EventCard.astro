@@ -1,4 +1,6 @@
 ---
+import { liveStatus } from '../lib/dates.js';
+
 interface Event {
   slug: string;
   name: string;
@@ -19,18 +21,21 @@ interface Event {
 
 interface Props { event: Event }
 const { event } = Astro.props;
+// Worked out per request (pages render live), so cards turn into "Tell us how it went" the day
+// after an event without a redeploy.
+const status = liveStatus(event);
 
 // Determine action CTA
 let actionLabel: string;
 let actionHref: string;
 let actionExternal = false;
 
-if (event.status === 'soldout') {
+if (status === 'soldout') {
   actionLabel = 'Sold out';
   actionHref = '';
-} else if (event.status === 'past') {
-  actionLabel = '';
-  actionHref = '';
+} else if (status === 'past') {
+  actionLabel = 'Tell us how it went';
+  actionHref = `/feedback/${event.slug}?utm_source=between&utm_medium=events&utm_campaign=${event.slug}`;
 } else {
   const url = event.ticketing === 'free' ? event.registerUrl : event.ticketUrl;
   if (url) {
@@ -51,13 +56,17 @@ const longDate = `${weekday} ${d} ${event.month}`;
 ---
 
 <article
-  class="event-card"
+  class={`event-card event-card--${status}`}
   style={`--accent: ${event.accent}`}
   data-ticketing={event.ticketing}
   data-time={event.timeOfDay}
 >
   <div class="event-card__meta">
-    <span class="event-card__month">{event.month}</span>
+    <span class="event-card__month">
+      {event.month}
+      {status === 'today' && <span class="event-card__flag">Today</span>}
+      {status === 'past' && <span class="event-card__flag event-card__flag--past">Happened</span>}
+    </span>
     <span class="event-card__tod" aria-label={event.timeOfDay === 'daytime' ? 'Daytime event' : 'Evening event'}>
       {event.timeOfDay === 'daytime' ? '☀ Daytime' : '● Evening'}
     </span>
@@ -86,19 +95,34 @@ const longDate = `${weekday} ${d} ${event.month}`;
         href={actionHref}
         class="btn event-card__btn"
         {...(actionExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
-        {...(event.status === 'soldout' ? { 'aria-disabled': 'true' } : {})}
+        {...(status === 'soldout' ? { 'aria-disabled': 'true' } : {})}
       >
         {actionLabel}
         {actionExternal && <span class="sr-only"> (opens in new tab)</span>}
       </a>
     )}
-    {event.status === 'soldout' && (
+    {status === 'soldout' && (
       <span class="btn event-card__btn event-card__btn--soldout" aria-label="Sold out">Sold out</span>
     )}
   </div>
 </article>
 
 <style>
+  .event-card__flag {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: var(--radius-sm);
+    background: var(--red);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    vertical-align: 0.1em;
+  }
+  .event-card__flag--past { background: var(--ink-soft); }
+  .event-card--past { opacity: 0.85; }
   .event-card {
     background: #fff;
     border-top: 4px solid var(--accent);

@@ -1,25 +1,24 @@
 ---
-import events from '../../data/events.json';
+// Rendered per request so the page switches from tickets to feedback by itself after the event.
+export const prerender = false;
+
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { eventBySlug } from '../../lib/feedback.js';
+import { liveStatus } from '../../lib/dates.js';
 
-export function getStaticPaths() {
-  return events.map(event => ({
-    params: { slug: event.slug },
-    props: { event },
-  }));
-}
-
-const { event } = Astro.props;
+const event = eventBySlug(Astro.params.slug);
+if (!event) return Astro.redirect('/#the-year');
+const status = liveStatus(event);
 
 // Determine action CTA
 let actionLabel: string;
 let actionHref: string;
 let actionExternal = false;
 
-if (event.status === 'soldout') {
+if (status === 'soldout') {
   actionLabel = 'Sold out';
   actionHref = '';
-} else if (event.status === 'past') {
+} else if (status === 'past') {
   actionLabel = '';
   actionHref = '';
 } else {
@@ -40,9 +39,8 @@ const dateObj = new Date(Date.UTC(y, m - 1, d));
 const weekday = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dateObj.getUTCDay()];
 const longDate = `${weekday} ${d} ${event.month}`;
 
-// Feedback link shows from the day of the event. Pages are static, so a tiny script reveals it
-// on the day if the page was built beforehand.
-const happened = event.status === 'past' || event.date <= new Date().toISOString().slice(0, 10);
+// Feedback link shows from the day of the event.
+const happened = status === 'past' || status === 'today';
 ---
 
 <BaseLayout
@@ -82,7 +80,7 @@ const happened = event.status === 'past' || event.date <= new Date().toISOString
             <div class="event-detail__cta">
               <a
                 href={actionHref}
-                class={`btn btn-primary event-detail__btn ${event.status === 'soldout' ? 'event-detail__btn--soldout' : ''}`}
+                class={`btn btn-primary event-detail__btn ${status === 'soldout' ? 'event-detail__btn--soldout' : ''}`}
                 {...(actionExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
               >
                 {actionLabel}
@@ -97,11 +95,11 @@ const happened = event.status === 'past' || event.date <= new Date().toISOString
             </div>
           )}
 
-          <p class="event-detail__feedback" data-from={event.date} hidden={!happened}>
+          {happened && <p class="event-detail__feedback">
             Were you there?
             <a href={`/feedback/${event.slug}?utm_source=between&utm_medium=eventpage&utm_campaign=${event.slug}`}>Tell us how it went</a>
             (two minutes, five questions).
-          </p>
+          </p>}
         </div>
 
         <!-- Sidebar: date, venue, access -->
@@ -155,12 +153,6 @@ const happened = event.status === 'past' || event.date <= new Date().toISOString
 
   </main>
 </BaseLayout>
-
-<script is:inline>
-  document.querySelectorAll('.event-detail__feedback[hidden]').forEach(function (el) {
-    if (new Date().toISOString().slice(0, 10) >= el.dataset.from) el.hidden = false;
-  });
-</script>
 
 <style>
   .event-detail__people {

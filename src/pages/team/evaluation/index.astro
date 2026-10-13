@@ -9,6 +9,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import {
   HEARD_FROM, PRIOR_EVENTS, VENUE_USE, VENUE_QUESTION, LOCAL_OUTWARD, label, surveyDue,
 } from '../../../lib/feedback.js';
+import { ukToday } from '../../../lib/dates.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const env = Astro.locals.runtime?.env ?? {};
@@ -37,7 +38,7 @@ if (env.VENUE_KV) {
   poll = { yes: parseInt(yes ?? '0', 10), total: parseInt(total ?? '0', 10) };
 }
 
-const today = new Date().toISOString().slice(0, 10);
+const today = ukToday();
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
 const count = (rows: any[], key: string, value: string) => rows.filter(r => r[key] === value).length;
 

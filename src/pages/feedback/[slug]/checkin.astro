@@ -1,17 +1,18 @@
 ---
 // Public QR check-in for free events: counts who came (attendance is an ACE measure). Plain HTML
-// form post, open to everyone with no PIN. Saved to D1 via /api/feedback/checkin.
-import events from '../../../data/events.json';
+// form post, open to everyone with no PIN. Saved to D1 via /api/feedback/checkin. Rendered per
+// request: it only works on the day of the event (UK time); after that it points to the survey.
+export const prerender = false;
+
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { eventBySlug, checkinOpen, longDate } from '../../../lib/feedback.js';
+import { ukToday } from '../../../lib/dates.js';
 import '../../../styles/feedback.css';
 
-export function getStaticPaths() {
-  return events
-    .filter(event => event.ticketing === 'free')
-    .map(event => ({ params: { slug: event.slug }, props: { event } }));
-}
-
-const { event } = Astro.props;
+const event = eventBySlug(Astro.params.slug);
+if (!event || event.ticketing !== 'free') return Astro.redirect('/feedback');
+if (event.date < ukToday()) return Astro.redirect(`/feedback/${event.slug}`);
+const open = checkinOpen(event);
 ---
 <BaseLayout
   title={`Check in: ${event.name} · The Space Between`}
@@ -22,16 +23,18 @@ const { event } = Astro.props;
     <div class="fb-hero">
       <div class="container fb-hero__inner">
         <p class="fb-hero__eyebrow">{event.name} · {event.venue}</p>
-        <h1 class="fb-hero__title">Welcome in</h1>
+        <h1 class="fb-hero__title">{open ? 'Welcome in' : 'Check-in opens on the day'}</h1>
         <p class="fb-hero__sub">
-          Thanks for coming. A ten-second check-in helps us show how many people turn up for live
-          music in Burton.
+          {open
+            ? 'Thanks for coming. A ten-second check-in helps us show how many people turn up for live music in Burton.'
+            : `Scan this again at ${event.name} on ${longDate(event.date)} and we'll count you in.`}
         </p>
       </div>
     </div>
 
     <div class="fb-body">
       <div class="container fb-body__inner">
+        {open && (
         <form class="fb-form" method="post" action="/api/feedback/checkin">
           <input type="hidden" name="event" value={event.slug} />
           <div class="fb-hp" aria-hidden="true">
@@ -68,6 +71,7 @@ const { event } = Astro.props;
             Anonymous: no names or contact details. See our <a href="/privacy">privacy notice</a>.
           </p>
         </form>
+        )}
       </div>
     </div>
   </main>

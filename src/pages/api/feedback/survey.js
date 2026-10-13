@@ -1,7 +1,7 @@
 // POST /api/feedback/survey — the five-question post-event survey from /feedback/[slug].
 // Public (no PIN, no Access). Accepts a plain form post and redirects to /feedback/thanks.
 
-import { HEARD_FROM, PRIOR_EVENTS, VENUE_USE, eventBySlug, outwardCode } from '../../../lib/feedback.js';
+import { HEARD_FROM, PRIOR_EVENTS, VENUE_USE, eventBySlug, outwardCode, surveyOpen, longDate } from '../../../lib/feedback.js';
 import { readForm, rateLimited, redirect, errorPage } from '../../../lib/public-form.js';
 
 export const prerender = false;
@@ -17,6 +17,7 @@ export async function POST(context) {
   const back = event ? `/feedback/${event.slug}` : '/feedback';
 
   if (!event) return errorPage("We couldn't tell which event this was for.", '/feedback');
+  if (!surveyOpen(event)) return errorPage(`This survey opens on ${longDate(event.date)}, the day of the event.`, back);
   // Honeypot: real people never see or fill this field.
   if (body.website) return redirect('/feedback/thanks');
   if (!valid(HEARD_FROM, body.heard_from)) return errorPage('Please tell us how you heard about the event.', back);

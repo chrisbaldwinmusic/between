@@ -5,6 +5,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import WipNotice from '../../components/WipNotice.astro';
 import TeamWhy from '../../components/TeamWhy.astro';
 import { getEmail, isLead } from '../../lib/team-access.js';
+import { ukToday } from '../../lib/dates.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const lead = isLead(getEmail(Astro.request));
@@ -20,7 +21,7 @@ if (db) {
     db.prepare('SELECT COUNT(*) AS n FROM todos WHERE done = 0').first(),
     db.prepare(`SELECT COUNT(*) AS n FROM schedule_items
                 WHERE (status_override = 'blocked')
-                   OR (status_override IS NULL AND date('now') BETWEEN start_date AND end_date)`).first(),
+                   OR (status_override IS NULL AND ? BETWEEN start_date AND end_date)`).bind(ukToday()).first(),
   ]);
   team = teamRes.results;
   openTodos = todosRes?.n ?? 0;

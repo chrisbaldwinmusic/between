@@ -7,9 +7,10 @@ export const prerender = false;
 import events from '../../data/events.json';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StayInLoop from '../../components/StayInLoop.astro';
+import { ukToday } from '../../lib/dates.js';
 import '../../styles/feedback.css';
 
-const today = new Date().toISOString().slice(0, 10);
+const today = ukToday();
 const past = events.filter(e => e.date <= today).reverse();
 const upcoming = events.filter(e => e.date > today);
 

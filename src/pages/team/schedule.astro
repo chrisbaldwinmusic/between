@@ -4,6 +4,7 @@ export const prerender = false;
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import WipNotice from '../../components/WipNotice.astro';
 import { getEmail, isLead } from '../../lib/team-access.js';
+import { ukToday } from '../../lib/dates.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const lead = isLead(getEmail(Astro.request));
@@ -15,7 +16,7 @@ if (db) {
   items = results;
 }
 
-const today = new Date().toISOString().slice(0, 10);
+const today = ukToday();
 
 function computedStatus(item: any) {
   if (item.status_override) return item.status_override;
@@ -129,7 +130,7 @@ const sorted = [...items].sort((a, b) => {
   }
 
   function computeAutoStatus(item: { start_date: string; end_date: string }): string {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
     if (today < item.start_date) return 'upcoming';
     if (today > item.end_date) return 'done';
     return 'active';
