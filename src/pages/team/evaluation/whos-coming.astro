@@ -1,0 +1,120 @@
+---
+// Who's coming: where our audiences come from (postcode districts from the survey, QR check-in and
+// the venue poll), with first-timers, how they heard and venue demand by area. Our own stand-in for
+// the audience profiling Audience Spectrum would have given. Leads only (src/middleware.js).
+export const prerender = false;
+
+import ReportLayout from '../../../layouts/ReportLayout.astro';
+import { HEARD_FROM, label } from '../../../lib/feedback.js';
+import { loadAll, pct } from '../../../lib/metrics.js';
+import { lookupOutcode, band, BANDS } from '../../../lib/places.js';
+
+const env = Astro.locals.runtime?.env ?? {};
+const data = env.OPS_DB ? await loadAll(env.OPS_DB) : { responses: [], checkins: [] } as any;
+
+// Venue-poll postcodes are stored as aggregate counts in KV (postcode:DE14 → n).
+const pollCounts = new Map<string, number>();
+if (env.VENUE_KV) {
+  const list = await env.VENUE_KV.list({ prefix: 'postcode:' }).catch(() => ({ keys: [] }));
+  await Promise.all(list.keys.map(async (k: any) => {
+    pollCounts.set(k.name.slice('postcode:'.length), parseInt((await env.VENUE_KV.get(k.name)) ?? '0', 10));
+  }));
+}
+
+const codes = new Set<string>([
+  ...data.responses.map((r: any) => r.outward_postcode),
+  ...data.checkins.map((c: any) => c.outward_postcode),
+  ...pollCounts.keys(),
+].filter(Boolean));
+const places = new Map((await Promise.all([...codes].map(c => lookupOutcode(env, c)))).map(p => [p.code, p]));
+
+const areas = [...codes].map(code => {
+  const resp = data.responses.filter((r: any) => r.outward_postcode === code);
+  const chk = data.checkins.filter((c: any) => c.outward_postcode === code);
+  const heard = new Map<string, number>();
+  resp.forEach((r: any) => heard.set(r.heard_from, (heard.get(r.heard_from) ?? 0) + 1));
+  const top = [...heard.entries()].sort((a, b) => b[1] - a[1])[0];
+  const place = places.get(code)!;
+  return {
+    code,
+    place,
+    band: band(place),
+    responses: resp.length,
+    checkedIn: chk.reduce((s: number, c: any) => s + c.party_size, 0),
+    poll: pollCounts.get(code) ?? 0,
+    firstTimers: resp.filter((r: any) => r.prior_events === 'first').length + chk.filter((c: any) => c.first_time === 1).length,
+    firstKnown: resp.length + chk.filter((c: any) => c.first_time != null).length,
+    venueYes: resp.filter((r: any) => r.venue_use === 'yes').length,
+    topHeard: top ? label(HEARD_FROM, top[0]) : null,
+  };
+}).sort((a, b) => (b.responses + b.checkedIn + b.poll) - (a.responses + a.checkedIn + a.poll));
+
+const people = (a: any) => a.responses + a.checkedIn + a.poll;
+const totalPeople = areas.reduce((s, a) => s + people(a), 0);
+const bands = BANDS.map(b => {
+  const as = areas.filter(a => a.band === b);
+  const ft = as.reduce((s, a) => s + a.firstTimers, 0);
+  const known = as.reduce((s, a) => s + a.firstKnown, 0);
+  return { band: b, people: as.reduce((s, a) => s + people(a), 0), areas: as.length, firstPct: known ? pct(ft, known) : null };
+}).filter(b => b.people > 0);
+const noPostcode = data.responses.filter((r: any) => !r.outward_postcode).length + data.checkins.filter((c: any) => !c.outward_postcode).length;
+---
+<ReportLayout title="Who's coming">
+  <p class="r-eyebrow">The Space Between · Evaluation</p>
+  <h1 class="r-title">Who's coming</h1>
+  <p class="r-sub">
+    Where our audiences come from, from the postcode districts people chose to give in the survey, at QR check-in and in
+    the venue poll. Place names and distances come from the Office for National Statistics via postcodes.io.
+  </p>
+
+  {totalPeople === 0 ? (
+    <p>No postcodes yet. They'll build up from Firelight on 23 October.</p>
+  ) : (
+    <>
+      <h2 class="r-h2">How local is our audience?</h2>
+      <ul class="r-stats" role="list">
+        {bands.map(b => (
+          <li>
+            <strong>{pct(b.people, totalPeople)}%</strong>
+            <span>{b.band} ({b.people} {b.people === 1 ? 'person' : 'people'}, {b.areas} district{b.areas === 1 ? '' : 's'}){b.firstPct != null ? `, ${b.firstPct}% first-timers` : ''}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="r-note">{noPostcode} survey responses or check-ins gave no postcode, so they aren't counted here.</p>
+
+      <h2 class="r-h2">By postcode district</h2>
+      <div class="r-table-wrap">
+        <table class="r-table">
+          <thead>
+            <tr><th scope="col">District</th><th scope="col">Area</th><th scope="col">Miles</th><th scope="col">Surveys</th><th scope="col">Checked in</th><th scope="col">Venue poll</th><th scope="col">First-timers</th><th scope="col">Venue yes</th><th scope="col">Most heard via</th></tr>
+          </thead>
+          <tbody>
+            {areas.map(a => (
+              <tr>
+                <td><strong>{a.code}</strong></td>
+                <td style="text-align:left">{a.place.districts.join(', ') || '–'}</td>
+                <td>{a.place.miles ?? '–'}</td>
+                <td>{a.responses || '–'}</td>
+                <td>{a.checkedIn || '–'}</td>
+                <td>{a.poll || '–'}</td>
+                <td>{a.firstKnown ? `${pct(a.firstTimers, a.firstKnown)}%` : '–'}</td>
+                <td>{a.responses ? `${pct(a.venueYes, a.responses)}%` : '–'}</td>
+                <td style="text-align:left">{a.topHeard ?? '–'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )}
+
+  <h2 class="r-h2">About this profile</h2>
+  <p class="r-note">
+    The Audience Agency's Audience Spectrum is no longer available, so this is our own profile. We only ever ask for the
+    first half of a postcode, which keeps answers anonymous but is too broad for household-level profiling. For context on
+    each area, the Office for National Statistics publishes free Census 2021 and deprivation data by local authority and
+    neighbourhood (ons.gov.uk, nomisweb.co.uk, and the English Indices of Deprivation on gov.uk). Our priority audiences from
+    the ACE application are local, lower-engagement and family communities, and culturally diverse communities through
+    Global Sounds: watch the Burton share and first-timers above to see whether we're reaching them.
+  </p>
+</ReportLayout>

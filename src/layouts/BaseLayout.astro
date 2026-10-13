@@ -88,6 +88,16 @@ const WEB_ANALYTICS_TOKEN = '691a25c25a2b4921a3554bee800e01ef';
     )}
     <slot />
     <Footer />
+    {nav !== 'internal' && (
+      <script is:inline>
+        // Anonymous count of clicks on tracked links (e.g. joining WhatsApp), credited to this page's
+        // campaign tags. No cookies, nothing stored on the device. See src/lib/attribution.js.
+        document.addEventListener('click', function (e) {
+          var a = e.target.closest && e.target.closest('a[data-track]');
+          if (a && navigator.sendBeacon) navigator.sendBeacon('/api/attribution', JSON.stringify({ kind: a.getAttribute('data-track') }));
+        });
+      </script>
+    )}
   </body>
 </html>
 

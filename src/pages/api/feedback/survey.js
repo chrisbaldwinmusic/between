@@ -2,6 +2,7 @@
 // Public (no PIN, no Access). Accepts a plain form post and redirects to /feedback/thanks.
 
 import { HEARD_FROM, PRIOR_EVENTS, VENUE_USE, eventBySlug, outwardCode, surveyOpen, longDate } from '../../../lib/feedback.js';
+import { recordAction } from '../../../lib/attribution.js';
 import { readForm, rateLimited, redirect, errorPage } from '../../../lib/public-form.js';
 
 export const prerender = false;
@@ -38,5 +39,6 @@ export async function POST(context) {
     .bind(slug, body.heard_from, body.prior_events, outwardCode(body.postcode), body.venue_use, wants)
     .run();
 
+  recordAction(context, 'survey');
   return redirect('/feedback/thanks');
 }

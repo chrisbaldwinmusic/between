@@ -2,6 +2,7 @@
 // Public (no PIN, no Access). Accepts a plain form post and redirects to /feedback/checked-in.
 
 import { eventBySlug, outwardCode, checkinOpen, longDate } from '../../../lib/feedback.js';
+import { recordAction } from '../../../lib/attribution.js';
 import { readForm, rateLimited, redirect, errorPage } from '../../../lib/public-form.js';
 
 export const prerender = false;
@@ -32,5 +33,6 @@ export async function POST(context) {
     .bind(slug, party, firstTime, outwardCode(body.postcode))
     .run();
 
+  recordAction(context, 'checkin');
   return redirect(`/feedback/checked-in`);
 }

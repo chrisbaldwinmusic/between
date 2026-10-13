@@ -2,6 +2,7 @@
 // Stories wait in /team/stories until a lead approves them for the home page.
 
 import { eventBySlug } from '../../../lib/feedback.js';
+import { recordAction } from '../../../lib/attribution.js';
 import { readForm, rateLimited, redirect, errorPage } from '../../../lib/public-form.js';
 
 export const prerender = false;
@@ -35,5 +36,6 @@ export async function POST(context) {
     .bind(story, clean(body.credit, 80), clean(body.about, 160), event?.slug ?? null, email, body.consent_social ? 1 : 0)
     .run();
 
+  recordAction(context, 'story');
   return redirect('/feedback/story/thanks');
 }

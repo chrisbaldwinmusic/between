@@ -64,6 +64,8 @@ function initSignupForms() {
 
         if (res.ok) {
           showMessage('success', "You're on the list! Thanks for signing up.");
+          // Anonymous count for campaign attribution (src/lib/attribution.js).
+          navigator.sendBeacon?.('/api/attribution', JSON.stringify({ kind: 'signup' }));
           form.reset();
         } else {
           showMessage('error', data?.error || 'Something went wrong. Please try again.');

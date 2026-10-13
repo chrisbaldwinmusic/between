@@ -10,6 +10,7 @@
 import astro from '../dist/_worker.js/index.js';
 import { runReminders } from '../src/lib/reminders.js';
 import { ukToday } from '../src/lib/dates.js';
+import { utmFrom, record, isBot } from '../src/lib/attribution.js';
 
 const OPEN = [
   /^\/feedback(\/|$)/,
@@ -21,6 +22,7 @@ const OPEN = [
   /^\/img\//,
   /^\/favicon/,
   /^\/robots\.txt$/,
+  /^\/api\/attribution$/,
 ];
 const BEHIND_ACCESS = [/^\/team(\/|$)/, /^\/api\/team\//];
 const COOKIE = 'between_preview';
@@ -34,6 +36,7 @@ export default {
 
   async fetch(request, env, ctx) {
     maybeRunReminders(env, ctx);
+    countTrackedVisit(request, env, ctx);
     const url = new URL(request.url);
     const path = url.pathname;
     const pin = env.PREVIEW_PIN;
@@ -82,6 +85,14 @@ function maybeRunReminders(env, ctx) {
   if (remindersCheckedOn === today || Number(UK_HOUR.format(now)) < 7) return;
   remindersCheckedOn = today;
   ctx.waitUntil(runReminders(env).catch(err => console.error('reminders', err)));
+}
+
+// A page opened through a tracked (UTM) link counts as a visit for that source/campaign. Counts
+// only (src/lib/attribution.js): no cookies, nothing stored on the device.
+function countTrackedVisit(request, env, ctx) {
+  if (request.method !== 'GET' || !(request.headers.get('Accept') || '').includes('text/html') || isBot(request)) return;
+  const utm = utmFrom(request.url);
+  if (utm) ctx.waitUntil(record(env.OPS_DB, 'visit', utm));
 }
 
 async function tokenFor(pin) {

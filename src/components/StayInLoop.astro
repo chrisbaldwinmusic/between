@@ -18,7 +18,7 @@ const links = [
   </p>
   <div class="fb-links">
     {links.map(l => (
-      <a class={`btn ${l.primary ? 'btn-primary' : 'fb-btn-outline'}`} href={l.href} target="_blank" rel="noopener noreferrer">
+      <a data-track={l.primary ? 'whatsapp' : undefined} class={`btn ${l.primary ? 'btn-primary' : 'fb-btn-outline'}`} href={l.href} target="_blank" rel="noopener noreferrer">
         {l.label}<span class="sr-only"> (opens in new tab)</span>
       </a>
     ))}

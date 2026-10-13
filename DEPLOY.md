@@ -230,6 +230,11 @@ There are two emails: one for the leads, and one for the community managers (ros
 tracked links), monthly numbers and their to-dos, plus a Monday round-up. Preview or send either by
 hand from `/team/evaluation` (or `/api/team/reminders?audience=leads|community&date=YYYY-MM-DD`).
 
+Attribution (`src/lib/attribution.js`, D1 `attribution`, `d1/attribution.sql`): daily counts of
+tracked-link visits (counted in `worker/gate.js`) and of actions credited to the page's UTM tags.
+Report: `/team/evaluation/attribution`. Who's coming (`/team/evaluation/whos-coming`) labels postcode
+districts via postcodes.io (cached in KV).
+
 Reports (leads): `/team/evaluation/community-report`, `/team/evaluation/survey-report[?e=slug]`, and
 `/team/reviews` (one page per review checkpoint in the schedule, with write-up and sign-off;
 `d1/reviews.sql`).

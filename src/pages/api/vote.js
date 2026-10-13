@@ -10,6 +10,8 @@
 //   ratelimit:vote:{ip}:{YYYY-MM-DD}     — 1 vote per IP per day (TTL 24 h)
 //   ratelimit:pc:{ip}:{YYYY-MM-DD}       — 1 postcode per IP per day (TTL 24 h)
 
+import { recordAction } from '../../lib/attribution.js';
+
 export const prerender = false;
 
 export async function POST(context) {
@@ -81,6 +83,7 @@ export async function POST(context) {
   if (outward) writes.push(increment(kv, `postcode:${outward}`));
 
   await Promise.all(writes);
+  recordAction(context, 'vote');
 
   return ok({ ok: true, total: newTotal, yes: newYes, maybe: newMaybe, yesPct });
 }

@@ -6,3 +6,6 @@ node_modules/
 .wrangler/
 .astro/
 .dev.vars
+
+# The full ACE application (sensitive; keep out of git)
+export.pdf

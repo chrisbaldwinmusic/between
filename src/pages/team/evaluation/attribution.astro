@@ -1,0 +1,115 @@
+---
+// Campaign attribution: which tracked links brought people in, and what they did next. Counts only
+// (src/lib/attribution.js). Leads only (src/middleware.js).
+export const prerender = false;
+
+import ReportLayout from '../../../layouts/ReportLayout.astro';
+import { ukToday, addDays } from '../../../lib/dates.js';
+import { fmtDate } from '../../../lib/metrics.js';
+
+const db = Astro.locals.runtime?.env?.OPS_DB;
+const ranges = [
+  { key: '30', label: 'Last 30 days', from: addDays(ukToday(), -29) },
+  { key: '90', label: 'Last 90 days', from: addDays(ukToday(), -89) },
+  { key: 'all', label: 'Since launch', from: '2026-09-01' },
+];
+const range = ranges.find(r => r.key === Astro.url.searchParams.get('range')) ?? ranges[2];
+
+let rows: any[] = [];
+if (db) {
+  const { results } = await db
+    .prepare(`SELECT source, medium, campaign, kind, SUM(n) AS n FROM attribution WHERE day >= ? GROUP BY source, medium, campaign, kind`)
+    .bind(range.from)
+    .all()
+    .catch(() => ({ results: [] }));
+  rows = results;
+}
+
+const ACTIONS = [
+  ['signup', 'Email sign-ups'],
+  ['whatsapp', 'WhatsApp clicks'],
+  ['vote', 'Venue votes'],
+  ['survey', 'Surveys'],
+  ['checkin', 'Check-ins'],
+  ['story', 'Stories'],
+] as const;
+
+type Line = { key: string; source: string; medium: string; campaign: string; visit: number; [k: string]: any };
+function group(by: (r: any) => string, label: (r: any) => Partial<Line>) {
+  const map = new Map<string, Line>();
+  for (const r of rows) {
+    const key = by(r);
+    if (!map.has(key)) map.set(key, { key, source: '', medium: '', campaign: '', visit: 0, ...label(r) } as Line);
+    const line = map.get(key)!;
+    line[r.kind] = (line[r.kind] ?? 0) + r.n;
+  }
+  return [...map.values()]
+    .map(l => ({ ...l, actions: ACTIONS.reduce((s, [k]) => s + (l[k] ?? 0), 0) }))
+    .sort((a, b) => (b.visit + b.actions) - (a.visit + a.actions));
+}
+const bySource = group(r => r.source, r => ({ source: r.source }));
+const byCampaign = group(r => `${r.source}|${r.medium}|${r.campaign}`, r => ({ source: r.source, medium: r.medium, campaign: r.campaign }));
+const totals = Object.fromEntries(['visit', ...ACTIONS.map(([k]) => k)].map(k => [k, rows.filter(r => r.kind === k).reduce((s, r) => s + r.n, 0)]));
+const attributed = (k: string) => rows.filter(r => r.kind === k && r.source !== '(direct)').reduce((s, r) => s + r.n, 0);
+const n = (v: number | undefined) => (v ? v.toLocaleString('en-GB') : '–');
+const nice = (s: string) => (s === '(direct)' ? 'No tracked link' : s.replace(/-/g, ' '));
+---
+<ReportLayout title="Where people came from">
+  <p class="r-eyebrow">The Space Between · Evaluation</p>
+  <h1 class="r-title">Where people came from</h1>
+  <p class="r-sub">
+    Visits that arrived through our tracked links, and what people did next. {range.label}
+    ({fmtDate(range.from)} to {fmtDate(ukToday())}). Anonymous counts: no cookies, nothing stored on anyone's device.
+  </p>
+  <nav class="no-print r-note" aria-label="Date range">
+    {ranges.map((r, i) => <>{i > 0 && ' · '}{r.key === range.key ? <strong>{r.label}</strong> : <a href={`?range=${r.key}`}>{r.label}</a>}</>)}
+  </nav>
+
+  <h2 class="r-h2">Totals</h2>
+  <ul class="r-stats" role="list">
+    <li><strong>{n(totals.visit)}</strong><span>visits from tracked links</span></li>
+    {ACTIONS.map(([k, label]) => (
+      <li><strong>{n(totals[k])}</strong><span>{label.toLowerCase()} ({n(attributed(k))} from a tracked link)</span></li>
+    ))}
+  </ul>
+
+  {rows.length === 0 ? (
+    <p style="margin-top:1.5rem">Nothing counted yet. Counts start as people use the links in posts, emails and QR codes.</p>
+  ) : (
+    <>
+      <h2 class="r-h2">By source</h2>
+      <div class="r-table-wrap">
+        <table class="r-table">
+          <thead><tr><th scope="col">Source</th><th scope="col">Visits</th>{ACTIONS.map(([, l]) => <th scope="col">{l}</th>)}</tr></thead>
+          <tbody>
+            {bySource.map(l => (
+              <tr><td>{nice(l.source)}</td><td>{n(l.visit)}</td>{ACTIONS.map(([k]) => <td>{n(l[k])}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="r-h2">By campaign link</h2>
+      <div class="r-table-wrap">
+        <table class="r-table">
+          <thead><tr><th scope="col">Source · medium · campaign</th><th scope="col">Visits</th>{ACTIONS.map(([, l]) => <th scope="col">{l}</th>)}</tr></thead>
+          <tbody>
+            {byCampaign.map(l => (
+              <tr>
+                <td>{nice(l.source)}{l.medium && <> · {l.medium}</>}{l.campaign && <> · <strong>{l.campaign}</strong></>}</td>
+                <td>{n(l.visit)}</td>{ACTIONS.map(([k]) => <td>{n(l[k])}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )}
+
+  <p class="r-note" style="margin-top:1.5rem">
+    How this works: every link we share carries tracking tags (source, medium, campaign). A visit counts when a page is
+    opened through one, and an action is credited to the tags on the page it happened on. Actions after someone moves to
+    another page count as "No tracked link". Email sign-ups count when the form is submitted on our site. Survey answers
+    to "How did you hear about this event?" remain the main evidence of how people found us; this shows which links worked.
+  </p>
+</ReportLayout>
