@@ -2,17 +2,21 @@
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { ukToday } from '../../lib/dates.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const db = Astro.locals.runtime?.env?.OPS_DB;
 
 let todos = [];
 if (db) {
-  const { results } = await db.prepare('SELECT * FROM todos ORDER BY done ASC, created_at DESC').all();
+  const { results } = await db.prepare('SELECT * FROM todos ORDER BY done ASC, due_on IS NULL, due_on ASC, created_at DESC').all();
   todos = results;
 }
 
 const areas = [...new Set(todos.map(t => t.area))];
+const today = ukToday();
+const dueLabel = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const dueState = (t: any) => (t.done || !t.due_on ? '' : t.due_on < today ? 'overdue' : t.due_on === today ? 'today' : 'later');
 ---
 <BaseLayout title="To-dos · Between Ops" nav="internal" authEmail={authEmail}>
   <main id="main">
@@ -25,6 +29,7 @@ const areas = [...new Set(todos.map(t => t.area))];
           <input class="add-form__input add-form__task" name="task" type="text" placeholder="New to-do…" required />
           <input class="add-form__input add-form__owner" name="owner" type="text" placeholder="Owner" />
           <input class="add-form__input add-form__area" name="area" type="text" placeholder="Area" list="area-options" />
+          <input class="add-form__input add-form__due" name="due_on" type="date" aria-label="Due date (optional): it goes in the owner's daily email from that day" title="Due date (optional)" />
           <datalist id="area-options">
             {areas.map(a => <option value={a} />)}
           </datalist>
@@ -44,6 +49,7 @@ const areas = [...new Set(todos.map(t => t.area))];
                       <span class="todo-item__task">{t.task}</span>
                     </label>
                     <div class="todo-item__meta">
+                      {t.due_on && <span class={`todo-item__due todo-item__due--${dueState(t)}`}>{dueState(t) === 'overdue' ? 'Overdue · ' : ''}{dueLabel(t.due_on)}</span>}
                       <span class="todo-item__owner">{t.owner || '—'}</span>
                       <button class="todo-item__delete" type="button" data-role="delete" aria-label={`Delete: ${t.task}`}>✕</button>
                     </div>
@@ -156,12 +162,14 @@ const areas = [...new Set(todos.map(t => t.area))];
     const task = String(fd.get('task') || '').trim();
     const owner = String(fd.get('owner') || '').trim();
     const area = String(fd.get('area') || '').trim() || 'General';
+    const due_on = String(fd.get('due_on') || '');
     if (!task) return;
 
     const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
     submitBtn.disabled = true;
     try {
-      const { todo } = await api('/api/team/todos', { method: 'POST', body: JSON.stringify({ task, owner, area }) });
+      const { todo } = await api('/api/team/todos', { method: 'POST', body: JSON.stringify({ task, owner, area, due_on }) });
+      if (due_on) { location.reload(); return; }
       const group = findOrCreateGroup(area);
       group.querySelector('.todo-list')!.prepend(renderItem(todo));
       form.reset();
@@ -217,6 +225,10 @@ const areas = [...new Set(todos.map(t => t.area))];
   .add-form__task { flex: 1 1 240px; }
   .add-form__owner { flex: 1 1 140px; }
   .add-form__area { flex: 0 1 130px; }
+  .add-form__due { flex: 0 1 150px; color-scheme: dark; }
+  .todo-item__due { font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid currentColor; white-space: nowrap; color: var(--body); }
+  .todo-item__due--today { color: var(--ember); }
+  .todo-item__due--overdue { color: #ff8080; }
   .add-form__submit { flex-shrink: 0; padding: 0.55rem 1.25rem; font-size: var(--text-sm); }
 
   .add-form__msg {

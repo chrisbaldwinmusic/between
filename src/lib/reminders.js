@@ -15,6 +15,7 @@ import { ukToday, addDays } from './dates.js';
 import { surveyDue, longDate } from './feedback.js';
 import { LEADS } from './team-access.js';
 import { loadAll, eventReport, reviewPeriods } from './metrics.js';
+import { nameMatcher } from './ownership.js';
 
 const SITE = 'https://between.sonicboom.org.uk';
 const FROM = 'Between Ops <hello@sonicboom.org.uk>';
@@ -104,6 +105,17 @@ export async function buildReminders(db, today = ukToday(), data = null) {
     (day === 1 || day === 7 ? urgent : outstanding).push(item);
   }
 
+  // Dated to-dos owned by the leads: on the day, then overdue until ticked off.
+  const [leadPeople, todos] = await Promise.all([
+    db.prepare(`SELECT name FROM team_members WHERE lower(email) IN (${LEADS.map(() => '?').join(', ')})`).bind(...LEADS).all().then(r => r.results),
+    db.prepare('SELECT task, owner, due_on FROM todos WHERE done = 0 AND due_on IS NOT NULL').all().then(r => r.results),
+  ]);
+  const ours = nameMatcher(leadPeople.map(p => p.name));
+  for (const t of todos.filter(t => ours(t.owner) && t.due_on <= today)) {
+    if (t.due_on === today) urgent.push({ text: `Today: ${t.task} (${t.owner}).`, link: `${SITE}/team/todos` });
+    else (t.due_on >= addDays(today, -2) ? urgent : outstanding).push({ text: `Overdue since ${shortDate(t.due_on)}: ${t.task} (${t.owner}).`, link: `${SITE}/team/todos` });
+  }
+
   // Stories waiting for review.
   const waiting = data.stories.filter(s => s.status === 'new');
   if (waiting.length) {
@@ -123,13 +135,9 @@ export async function buildCommunityReminders(db, today = ukToday(), data = null
   data ??= await loadAll(db);
   const [people, todos] = await Promise.all([
     db.prepare(`SELECT name, email FROM team_members WHERE role LIKE 'Community%'`).all().then(r => r.results),
-    db.prepare('SELECT task, owner FROM todos WHERE done = 0').all().then(r => r.results),
+    db.prepare('SELECT task, owner, due_on FROM todos WHERE done = 0').all().then(r => r.results),
   ]);
-  // Owners are written as full names ("Vikki Asker & Emma Buckley"); match whole names only, so a
-  // short name can't match inside someone else's.
-  const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const nameRes = people.map(p => new RegExp(`(^|[^A-Za-z])${escape(p.name)}($|[^A-Za-z])`, 'i'));
-  const mine = owner => Boolean(owner) && nameRes.some(re => re.test(owner));
+  const mine = nameMatcher(people.map(p => p.name));
 
   for (const e of events) {
     const where = `${e.name} (${longDate(e.date)}, ${e.venue})`;
@@ -186,7 +194,15 @@ export async function buildCommunityReminders(db, today = ukToday(), data = null
     if (s.status_override === 'done' || !mine(s.owner)) continue;
     if (s.start_date === today) urgent.push({ text: `Starting today: ${s.task} (${s.owner}).`, link: `${SITE}/team/schedule` });
   }
-  for (const t of todos.filter(t => mine(t.owner))) outstanding.push({ text: `${t.task} (${t.owner})` });
+  // Their to-dos: dated ones arrive on the day and stay as overdue until ticked off (on their
+  // dashboard); undated ones are listed as open.
+  for (const t of todos.filter(t => mine(t.owner))) {
+    if (t.due_on && t.due_on > today) continue;
+    if (t.due_on === today) urgent.push({ text: `Today: ${t.task} (${t.owner}). Tick it off on your dashboard when it's done.`, link: `${SITE}/team` });
+    // Overdue: nudge for two days after the due date, then keep it on the list.
+    else if (t.due_on) (t.due_on >= addDays(today, -2) ? urgent : outstanding).push({ text: `Overdue since ${shortDate(t.due_on)}: ${t.task} (${t.owner})`, link: `${SITE}/team` });
+    else outstanding.push({ text: `${t.task} (${t.owner})` });
+  }
 
   // Monday round-up: always goes, with the next fortnight's events.
   if (isMonday(today)) {

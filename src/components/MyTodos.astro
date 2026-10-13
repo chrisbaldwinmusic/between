@@ -1,0 +1,82 @@
+---
+// "Your to-dos" on the /team dashboard: the signed-in person's own to-dos (matched on their roster
+// name), with due dates. Anyone can tick their own off here; the daily email nudges until they do.
+import { getEmail } from '../lib/team-access.js';
+import { nameMatcher, rosterName } from '../lib/ownership.js';
+import { ukToday } from '../lib/dates.js';
+
+const db = Astro.locals.runtime?.env?.OPS_DB;
+const name = await rosterName(db, getEmail(Astro.request));
+let todos: any[] = [];
+if (db && name) {
+  const mine = nameMatcher([name]);
+  const { results } = await db
+    .prepare(`SELECT * FROM todos WHERE done = 0 OR updated_at >= datetime('now', '-3 days')
+              ORDER BY done ASC, due_on IS NULL, due_on ASC, created_at ASC`)
+    .all();
+  todos = results.filter((t: any) => mine(t.owner));
+}
+const today = ukToday();
+const dueLabel = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const state = (t: any) => (t.done ? 'done' : !t.due_on ? 'open' : t.due_on < today ? 'overdue' : t.due_on === today ? 'today' : 'later');
+const open = todos.filter(t => !t.done).length;
+---
+{name && todos.length > 0 && (
+  <section class="my" aria-labelledby="my-h">
+    <h2 class="my__title" id="my-h">Your to-dos <span>{open} open</span></h2>
+    <ul class="my__list" role="list">
+      {todos.map(t => (
+        <li class={`my__item my__item--${state(t)}`} data-id={t.id}>
+          <label>
+            <input type="checkbox" checked={!!t.done} data-role="my-toggle" />
+            <span class="my__task">{t.task}</span>
+          </label>
+          {t.due_on && <span class="my__due">{state(t) === 'overdue' ? 'Overdue · ' : state(t) === 'today' ? 'Today · ' : ''}{dueLabel(t.due_on)}</span>}
+        </li>
+      ))}
+    </ul>
+    <p class="my__msg" role="status"></p>
+  </section>
+)}
+
+<script>
+  document.addEventListener('change', async (e) => {
+    const box = e.target as HTMLInputElement;
+    if (box.dataset.role !== 'my-toggle') return;
+    const li = box.closest('li') as HTMLLIElement;
+    const msg = document.querySelector('.my__msg')!;
+    box.disabled = true;
+    try {
+      const res = await fetch(`/api/team/todos/${li.dataset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: box.checked }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Not saved');
+      li.className = `my__item my__item--${box.checked ? 'done' : 'open'}`;
+      msg.textContent = box.checked ? 'Ticked off ✓' : 'Reopened';
+    } catch (err: any) {
+      box.checked = !box.checked;
+      msg.textContent = err.message;
+    } finally {
+      box.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .my { background: var(--ink-soft); border: 1px solid var(--line); border-left: 3px solid var(--red); border-radius: var(--radius); padding: var(--space-4); margin-bottom: var(--space-6); }
+  .my__title { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper); margin: 0 0 var(--space-3); display: flex; gap: var(--space-2); }
+  .my__title span { color: var(--ember); text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .my__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+  .my__item { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem var(--space-3); }
+  .my__item label { display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; min-width: 0; flex: 1 1 16rem; }
+  .my__item input { margin-top: 0.2rem; width: 1.05rem; height: 1.05rem; accent-color: var(--red); flex-shrink: 0; }
+  .my__item input:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .my__task { font-size: var(--text-sm); color: var(--paper); line-height: 1.45; }
+  .my__item--done .my__task { color: var(--body); text-decoration: line-through; }
+  .my__due { font-size: 0.7rem; font-weight: 700; color: var(--body); white-space: nowrap; padding-left: 1.65rem; }
+  .my__item--today .my__due { color: var(--ember); }
+  .my__item--overdue .my__due { color: #ff8080; }
+  .my__msg { font-size: var(--text-xs); color: var(--body); margin: var(--space-2) 0 0; min-height: 1em; }
+</style>

@@ -16,7 +16,8 @@ CREATE TABLE todos (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   created_by TEXT,
-  completed_by TEXT
+  completed_by TEXT,
+  due_on TEXT                -- optional YYYY-MM-DD: the owner's daily email flags it from this day
 );
 
 CREATE TABLE schedule_items (

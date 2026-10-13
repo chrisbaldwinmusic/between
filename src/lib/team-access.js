@@ -33,6 +33,8 @@ export function canAccess(email, pathname, method = 'GET') {
   const path = strip(pathname);
   if (path.startsWith('/api/team')) {
     if (SHARED_API_PREFIXES.some(p => path === p || path.startsWith(`${p}/`))) return true;
+    // Ticking off their own to-dos (the route checks ownership).
+    if (method === 'PATCH' && /^\/api\/team\/todos\/\d+$/.test(path)) return true;
     return method === 'GET' && SHARED_API_READS.includes(path);
   }
   return SHARED_PAGES.includes(path);

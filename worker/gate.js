@@ -72,6 +72,14 @@ export default {
   },
 };
 
+// A page opened through a tracked (UTM) link counts as a visit for that source/campaign. Counts
+// only (src/lib/attribution.js): no cookies, nothing stored on the device.
+function countTrackedVisit(request, env, ctx) {
+  if (request.method !== 'GET' || !(request.headers.get('Accept') || '').includes('text/html') || isBot(request)) return;
+  const utm = utmFrom(request.url);
+  if (utm) ctx.waitUntil(record(env.OPS_DB, 'visit', utm));
+}
+
 async function tokenFor(pin) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`between-preview:${pin}`));
   return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
