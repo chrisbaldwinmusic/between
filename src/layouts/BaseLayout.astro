@@ -74,7 +74,7 @@ const WEB_ANALYTICS_TOKEN = '691a25c25a2b4921a3554bee800e01ef';
         data-cf-beacon={JSON.stringify({ token: WEB_ANALYTICS_TOKEN })}></script>
     )}
   </head>
-  <body>
+  <body class={nav === 'internal' ? 'is-team' : undefined}>
     <a href="#main" class="skip-link">Skip to content</a>
     {nav === 'internal' && <TeamNav authEmail={authEmail} />}
     {nav === 'public' && <SiteNav />}
