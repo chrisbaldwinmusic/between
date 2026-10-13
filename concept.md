@@ -93,6 +93,7 @@ Drive everything from one file.
     "date": "2026-10-23",
     "format": "Intergenerational folk & storytelling",
     "blurb": "An evening of folk, song and stories with Burton Folk Club...",
+    "people": "Who it brings together and why: the community this event is for.",
     "venue": "Burton Library",
     "ticketing": "ticketed",       // "free" | "ticketed"
     "priceFrom": "£7.50",           // omit if free

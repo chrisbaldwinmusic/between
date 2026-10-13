@@ -64,12 +64,19 @@ const happened = event.status === 'past' || event.date <= new Date().toISOString
     </div>
 
     <!-- ── Event detail ────────────────────────────────────────────────── -->
-    <div class="event-detail section-light">
+    <div class="event-detail section-light" style={`--accent: ${event.accent}`}>
       <div class="container event-detail__grid">
 
         <!-- Main content -->
         <div class="event-detail__main">
           <p class="event-detail__blurb">{event.blurb}</p>
+
+          {event.people && (
+            <div class="event-detail__people">
+              <h2 class="event-detail__people-heading">Who it's for</h2>
+              <p>{event.people}</p>
+            </div>
+          )}
 
           {actionLabel && (
             <div class="event-detail__cta">
@@ -156,6 +163,29 @@ const happened = event.status === 'past' || event.date <= new Date().toISOString
 </script>
 
 <style>
+  .event-detail__people {
+    margin-top: var(--space-6);
+    padding: var(--space-4) var(--space-5);
+    background: #fff;
+    border-left: 4px solid var(--accent, var(--ember));
+    border-radius: var(--radius);
+  }
+  .event-detail__people-heading {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin: 0 0 var(--space-2);
+  }
+  .event-detail__people p {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--ink);
+    margin: 0;
+  }
   .event-detail__feedback {
     margin-top: var(--space-6);
     font-family: var(--font-body);

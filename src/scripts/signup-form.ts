@@ -1,5 +1,8 @@
 // Shared wiring for every `.signup-form` on the page (SignupSection + SignupStrip).
-// Posts to /api/subscribe — a same-origin proxy to Sonic Boom Music CIC's shared mailer.
+// Posts straight to Sonic Boom Music CIC's shared mailer (mailer.sonicboom.org.uk), which allows
+// this origin via CORS and verifies the Turnstile token itself.
+
+const MAILER_SUBSCRIBE_URL = 'https://mailer.sonicboom.org.uk/api/public/subscribe';
 
 type TurnstileGlobal = {
   render: (el: string | HTMLElement, opts: { sitekey: string }) => string;
@@ -52,7 +55,7 @@ function initSignupForms() {
       submitBtn.textContent = 'Signing up…';
 
       try {
-        const res = await fetch('/api/subscribe', {
+        const res = await fetch(MAILER_SUBSCRIBE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, turnstileToken: token }),

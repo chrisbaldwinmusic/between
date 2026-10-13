@@ -3,6 +3,7 @@ export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import WipNotice from '../../components/WipNotice.astro';
+import TeamWhy from '../../components/TeamWhy.astro';
 import { getEmail, isLead } from '../../lib/team-access.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
@@ -41,6 +42,7 @@ const unconfirmedCount = team.filter(p => p.status === 'unconfirmed').length;
         <h1 class="team-heading">Dashboard</h1>
 
         {!lead && <WipNotice />}
+        <TeamWhy />
 
         <ul class="stat-row" role="list">
           <li class="stat">

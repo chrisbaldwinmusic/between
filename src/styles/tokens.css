@@ -317,3 +317,6 @@ p + p { margin-top: var(--space-4); }
     scroll-behavior: auto;
   }
 }
+
+/* Jumping to a section (nav links, #signup) shouldn't hide its top under the sticky nav. */
+html { scroll-padding-top: calc(var(--nav-h) + 0.5rem); }

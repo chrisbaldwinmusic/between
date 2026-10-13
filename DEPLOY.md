@@ -54,7 +54,7 @@ preview_id = "78f18b42723a401b8a3444298e9cbd7f"
 1. The `@astrojs/cloudflare` adapter builds `dist/_worker.js` ("advanced mode"). Cloudflare
    treats a top-level `functions/` directory and an `_worker.js` as mutually exclusive — if
    `_worker.js` exists, `functions/` is never invoked. So the dynamic routes (`/api/vote`,
-   `/api/results`, `/api/subscribe`) live as ordinary Astro pages under `src/pages/api/*.js`,
+   `/api/results`) live as ordinary Astro pages under `src/pages/api/*.js`,
    each with `export const prerender = false;`. They read bindings as
    `context.locals.runtime.env.VENUE_KV`, not `context.env`.
 2. `[assets] directory = "./dist"` uploads everything in `dist/`, including the `_worker.js`
@@ -155,7 +155,7 @@ Most integrations are **public client-side values**, not secrets:
 
 | Value | How it's set |
 |---|---|
-| Email signup (Turnstile + `mailer.sonicboom.org.uk`) | `SignupSection`/`SignupStrip` + `src/pages/api/subscribe.js` (public) |
+| Email signup (Turnstile + `mailer.sonicboom.org.uk`) | `SignupSection`/`SignupStrip` + `src/scripts/signup-form.ts`, posting straight to the mailer (public) |
 | WhatsApp invite link | In component/data (public) |
 | Ticket Tailor URLs | In `events.json` / membership (public) |
 | Cloudflare Web Analytics token | In the `BaseLayout` snippet (public) |

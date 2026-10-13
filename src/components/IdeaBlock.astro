@@ -1,5 +1,20 @@
 ---
-// No props — static section content
+// The rationale. The Space Between is a community and audience development programme: the
+// events are how we bring people in, not the point. Sourced from the ACE application.
+const pillars = [
+  {
+    title: 'Bring people together',
+    body: "Every event is a reason to meet: neighbours, families, friends of friends. Our WhatsApp community keeps those connections going between nights.",
+  },
+  {
+    title: 'Open the door wider',
+    body: "Not everyone calls themselves a music fan, and they're exactly who we want to meet. Free daytime events, family sessions, a youth-run night and community-curated music give everyone a way in.",
+  },
+  {
+    title: "Tell Burton's story",
+    body: "Every event gathers the stories of the people in the room: why they came, who they came with, what music means to them. We share them back, so the town can see itself.",
+  },
+];
 ---
 
 <section id="idea" class="idea-section" aria-labelledby="idea-heading">
@@ -7,50 +22,39 @@
 
     <div class="idea-inner">
 
-      <!-- Copy -->
       <div class="idea-copy">
+        <p class="idea-eyebrow">Why we're doing this</p>
         <h2 id="idea-heading" class="idea-heading">
-          One&nbsp;day isn't enough.
+          It's not about the gigs. It's about the&nbsp;people.
         </h2>
         <p class="idea-body">
-          Sonic Boom Festival is the loud part. The Space Between is everything else:
-          the months where a music scene is either built or quietly lost.
+          Sonic Boom Festival brings thousands of people together for one free day every
+          September. Then the stage comes down. The months in between are where a
+          community either holds together or drifts apart.
         </p>
         <p class="idea-body">
-          Our job is simple: give you a reason to come once. Then give you a
-          reason to come back. And eventually, a reason to shape what this
-          town sounds like next.
+          The Space Between is a year of holding it together. The music is how we bring
+          people in. What we're really building is a community: people who know each other,
+          come back, bring their friends, and have a say in what Burton sounds like next.
         </p>
       </div>
 
-      <!-- Loop graphic -->
-      <div class="idea-loop" role="img" aria-label="The community loop: Come once, then come back, then shape what's next">
-
-        <div class="loop-node">
-          <span class="loop-node__num" aria-hidden="true">1</span>
-          <strong class="loop-node__label">Come once</strong>
-          <span class="loop-node__sub">An event a month. Free or from&nbsp;£7.50.</span>
-        </div>
-
-        <span class="loop-arrow" aria-hidden="true"></span>
-
-        <div class="loop-node">
-          <span class="loop-node__num" aria-hidden="true">2</span>
-          <strong class="loop-node__label">Come back</strong>
-          <span class="loop-node__sub">Join the community. Hear what's next&nbsp;first.</span>
-        </div>
-
-        <span class="loop-arrow" aria-hidden="true"></span>
-
-        <div class="loop-node loop-node--red">
-          <span class="loop-node__num" aria-hidden="true">3</span>
-          <strong class="loop-node__label">Shape what's next</strong>
-          <span class="loop-node__sub">Founding Membership. Make the case&nbsp;with&nbsp;us.</span>
-        </div>
-
-      </div>
+      <ol class="idea-pillars" role="list">
+        {pillars.map((p, i) => (
+          <li class={`pillar${i === 2 ? ' pillar--red' : ''}`}>
+            <span class="pillar__num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            <h3 class="pillar__title">{p.title}</h3>
+            <p class="pillar__body">{p.body}</p>
+          </li>
+        ))}
+      </ol>
 
     </div>
+
+    <p class="idea-close">
+      And every person who joins, comes back and adds their voice helps build the case for our
+      ambition: a permanent home for grassroots music in Burton.
+    </p>
 
   </div>
 </section>
@@ -78,7 +82,7 @@
     .idea-copy {
       flex: 0 0 min(46%, 520px);
     }
-    .idea-loop {
+    .idea-pillars {
       flex: 1;
     }
   }
@@ -105,82 +109,75 @@
   }
   .idea-body:last-child { margin-bottom: 0; }
 
-  /* ── Loop graphic ─────────────────────────────────────────────────────── */
-  .idea-loop {
+  .idea-eyebrow {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin: 0 0 var(--space-3);
+  }
+
+  /* ── Pillars ──────────────────────────────────────────────────────────── */
+  .idea-pillars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
+    gap: var(--space-3);
   }
 
-  @media (min-width: 640px) {
-    .idea-loop {
-      flex-direction: row;
-      align-items: stretch;
-    }
-  }
-
-  /* Arrow connector — ↓ on mobile, → on wide */
-  .loop-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--line);
-    font-size: 1.25rem;
-    flex-shrink: 0;
-    padding: var(--space-2) var(--space-3);
-  }
-  .loop-arrow::before {
-    content: '↓';
-  }
-  @media (min-width: 640px) {
-    .loop-arrow::before { content: '→'; }
-    .loop-arrow {
-      align-self: center;
-      padding: 0 var(--space-2);
-    }
-  }
-
-  /* Node cards */
-  .loop-node {
+  .pillar {
     background: #fff;
     border-left: 4px solid var(--ember);
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
     padding: var(--space-5);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    flex: 1;
     box-shadow: 0 2px 10px rgba(26, 18, 18, 0.07);
-    min-width: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--space-4);
+    row-gap: var(--space-1);
   }
+  .pillar--red { border-color: var(--red); }
 
-  .loop-node--red {
-    border-color: var(--red);
-  }
-
-  .loop-node__num {
+  .pillar__num {
+    grid-row: span 2;
     font-family: var(--font-display);
-    font-size: var(--text-xs);
+    font-size: 1.5rem;
     font-weight: 800;
-    color: var(--body);
-    letter-spacing: 0.05em;
-    line-height: 1;
+    color: var(--ember);
+    line-height: 1.1;
   }
+  .pillar--red .pillar__num { color: var(--red); }
 
-  .loop-node__label {
+  .pillar__title {
     font-family: var(--font-display);
-    font-size: clamp(1rem, 2vw, 1.2rem);
+    font-size: clamp(1.1rem, 2.2vw, 1.3rem);
     font-weight: 700;
     color: var(--ink);
     line-height: 1.2;
-    font-optical-sizing: auto;
+    margin: 0;
   }
 
-  .loop-node__sub {
+  .pillar__body {
     font-family: var(--font-body);
     font-size: var(--text-sm);
     color: var(--ink-soft);
-    line-height: 1.5;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .idea-close {
+    margin: clamp(var(--space-8), 5vw, var(--space-12)) 0 0;
+    padding-top: var(--space-6);
+    border-top: 1px solid #e3d9d2;
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink);
+    max-width: 48ch;
   }
 </style>

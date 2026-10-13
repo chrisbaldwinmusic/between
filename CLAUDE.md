@@ -5,9 +5,9 @@ You are building **between.sonicboom.org.uk** for Sonic Boom Music CIC. Read `do
 ## Stack (don't substitute without asking)
 
 - **Astro**, static output, `@astrojs/cloudflare` adapter.
-- **Cloudflare Workers** (with static assets) for hosting — deployed to the existing `between` Worker (`between.sonic-boom.workers.dev`, custom domain `between.sonicboom.org.uk`) via `wrangler deploy`, **not** Cloudflare Pages. Dynamic routes are **Astro API endpoints** (`src/pages/api/*.js`, `prerender = false`) reading bindings via `context.locals.runtime.env` — not a top-level `functions/` folder, which the `@astrojs/cloudflare` adapter's `_worker.js` makes unreachable. KV backs the venue poll and the email signup proxy (`/api/subscribe` → `mailer.sonicboom.org.uk`, Sonic Boom's shared mailer, not MailerLite).
+- **Cloudflare Workers** (with static assets) for hosting — deployed to the existing `between` Worker (`between.sonic-boom.workers.dev`, custom domain `between.sonicboom.org.uk`) via `wrangler deploy`, **not** Cloudflare Pages. Dynamic routes are **Astro API endpoints** (`src/pages/api/*.js`, `prerender = false`) reading bindings via `context.locals.runtime.env` — not a top-level `functions/` folder, which the `@astrojs/cloudflare` adapter's `_worker.js` makes unreachable. KV backs the venue poll. Email signup ("Join the community") posts straight from the browser to `mailer.sonicboom.org.uk/api/public/subscribe`, Sonic Boom Music CIC's shared mailer (not MailerLite), which allows this origin via CORS and verifies Turnstile itself.
 - Email signup protected by **Cloudflare Turnstile**; **Ticket Tailor** (via events.sonicboom.org.uk) for tickets; **Cloudflare Web Analytics**.
-- The whole site sits behind **Cloudflare Access** (sonicboom.org.uk email domain) during pre-launch, covering both the custom domain and the workers.dev subdomain — see `DEPLOY.md` §5a.
+- Pre-launch, the public pages sit behind a **preview PIN** (`worker/gate.js`, secret `PREVIEW_PIN`); `/feedback`, `/privacy` and `/accessibility` stay open. `/team` sits behind **Cloudflare Access** (sonicboom.org.uk email domain) on both the custom domain and the workers.dev subdomain — see `DEPLOY.md` §5a–5b.
 - Self-hosted fonts. No client-side framework beyond what Astro needs. Keep JS minimal on the **public** pages.
 - **`/team` is a separate internal tool, not part of the public marketing site.** It's a live project/productivity manager for the delivery team (roster, schedule, to-dos), backed by D1 (`OPS_DB`), with real writes and an activity log — not static content, not a checklist. Hard rules 2–8 below are written for the public site; `/team` follows its own dark, dense, utilitarian styling (see the existing `src/pages/team/*.astro`) rather than the warm marketing brand system, and JS there is fine where it makes the tool work. It still needs to be accessible and mobile-usable, but it doesn't need to "welcome someone in or count them in" (rule 5) — its job is to run the project.
 
@@ -21,6 +21,16 @@ You are building **between.sonicboom.org.uk** for Sonic Boom Music CIC. Read `do
 6. **Every outbound / share / CTA link carries UTM params** so channel attribution works.
 7. **No personal data in URLs.** Poll writes are POSTs. Email/postcode are always optional and explained at the point of capture.
 8. **No cookie wall.** Use Cloudflare Web Analytics (cookieless). Don't add Google Analytics.
+
+## Purpose and content: people, not gigs
+
+The Space Between is a **community and audience development programme**, not a gig series. The
+events are how we bring people in; the point is building a community around live music in Burton,
+widening who comes (families, young people, people who wouldn't call themselves music fans), and
+telling the story as it happens. Make that clear throughout: content is about **people and their
+stories** first, then the music, then the logistics. Every event says who it's for (`people` in
+`events.json`). Never invent stories, quotes or people; real stories go in `src/data/stories.json`.
+Always write the organisation's name in full: **Sonic Boom Music CIC**.
 
 ## Tone
 

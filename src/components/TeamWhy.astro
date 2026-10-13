@@ -1,0 +1,82 @@
+---
+// The project rationale for the delivery team, from the ACE application. Shown on the /team
+// dashboard so everyone working on comms and events starts from the same "why".
+const points = [
+  {
+    title: 'Build community',
+    body: 'Every event should leave people more connected than it found them: WhatsApp joins, email sign-ups, people who come back and bring someone. Without that, each event is a spike that fades.',
+  },
+  {
+    title: 'Develop audiences',
+    body: "Reach people who don't already go to gigs: families, young people, Circularity.org's community, Folk Club regulars, the Caribbean community. A programme that only reaches existing music fans is a loyalty scheme, not a community programme.",
+  },
+  {
+    title: 'Tell the story',
+    body: "Lead with people: who came, why, who with, what it meant. Gather stories at every event (with permission) and share them back. Content pillars: community, story, artist, proof, tickets.",
+  },
+  {
+    title: 'Build the evidence',
+    body: 'Surveys, attendance and community numbers show the demand behind our ambition for a permanent grassroots venue, and feed the report to Arts Council England.',
+  },
+];
+---
+<section class="why" aria-labelledby="why-h">
+  <h2 class="why__h" id="why-h">Why we're doing this</h2>
+  <p class="why__lead">
+    The Space Between is a twelve-month <strong>community and audience development programme</strong>,
+    not a gig series. The events are how we bring people in. The point is the people.
+  </p>
+  <ul class="why__list" role="list">
+    {points.map(p => (
+      <li>
+        <h3>{p.title}</h3>
+        <p>{p.body}</p>
+      </li>
+    ))}
+  </ul>
+  <p class="why__targets">
+    By Sept 2027: <strong>1,500+</strong> unique attenders · <strong>500+</strong> in our social
+    communities · <strong>500+</strong> email subscribers · a year of audience data, including venue demand.
+  </p>
+</section>
+
+<style>
+  .why {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--space-5) var(--space-4);
+    margin-bottom: var(--space-8);
+  }
+  .why__h {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ember);
+    margin: 0 0 var(--space-2);
+  }
+  .why__lead {
+    font-size: var(--text-base);
+    color: var(--paper);
+    line-height: 1.55;
+    max-width: 70ch;
+    margin: 0 0 var(--space-4);
+  }
+  .why__lead strong { color: var(--ember); }
+  .why__list {
+    list-style: none;
+    margin: 0 0 var(--space-4);
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  @media (min-width: 760px) { .why__list { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1200px) { .why__list { grid-template-columns: repeat(4, 1fr); } }
+  .why__list li { border-left: 3px solid var(--ember); padding-left: var(--space-3); }
+  .why__list h3 { font-size: var(--text-sm); font-weight: 700; color: var(--paper); margin: 0 0 0.25rem; }
+  .why__list p { font-size: var(--text-xs); color: var(--body); line-height: 1.55; margin: 0; max-width: none; }
+  .why__targets { font-size: var(--text-xs); color: var(--body); margin: 0; max-width: none; }
+  .why__targets strong { color: var(--paper); }
+</style>
