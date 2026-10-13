@@ -201,6 +201,20 @@ behind the sonicboom.org.uk login.
 
 Evaluation tables: `d1/evaluation.sql` (applied to production). Internal view: `/team/evaluation`.
 
+## 5c. Daily reminders
+
+`src/lib/reminders.js` builds a digest (event tomorrow/today, survey due within 48 hours,
+debriefs, reviews a week out, schedule items starting, monthly community numbers) and emails the
+leads through **Resend**, the same provider and verified `sonicboom.org.uk` domain as the shared
+mailer. The Worker's cron (`[triggers]` in `wrangler.toml`, 07:00 UTC) runs it; it only sends when
+something is time-critical and logs each send in `reminder_log`. Needs the secret:
+
+```bash
+npx wrangler secret put RESEND_API_KEY   # a sending-only Resend key for sonicboom.org.uk
+```
+
+Preview or send by hand from `/team/evaluation` (or `/api/team/reminders?date=YYYY-MM-DD`).
+
 ## 6. Custom domain + DNS
 
 Already attached: `between.sonicboom.org.uk` → the `between` Worker, via a **Workers Custom

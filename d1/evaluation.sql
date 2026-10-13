@@ -51,3 +51,11 @@ CREATE TABLE IF NOT EXISTS community_counts (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by TEXT
 );
+
+-- One row per day a reminder digest was sent, so a repeated cron run can't email twice.
+CREATE TABLE IF NOT EXISTS reminder_log (
+  sent_on TEXT PRIMARY KEY,        -- YYYY-MM-DD (UK)
+  subject TEXT,
+  items INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

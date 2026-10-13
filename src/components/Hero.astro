@@ -258,7 +258,8 @@ const youtubeSrc: string = 'nb_TL5TfI2I';
       const res = await fetch('/api/results');
       if (!res.ok) return;
       const { total } = await res.json() as { total: number };
-      if (typeof total === 'number' && total > 0) {
+      // Same threshold as the demand meter: a tiny number undersells the community.
+      if (typeof total === 'number' && total >= 25) {
         countEl.textContent = total.toLocaleString('en-GB');
         delete section.dataset.empty;
       }

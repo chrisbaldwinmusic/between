@@ -117,6 +117,9 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
           <div class="head-links">
             <a class="ev-btn" href="/api/team/evaluation/export?type=survey">Survey CSV</a>
             <a class="ev-btn" href="/api/team/evaluation/export?type=checkins">Check-ins CSV</a>
+            <a class="ev-btn" href="/api/team/reminders" target="_blank" rel="noopener">Preview today's reminder<span class="visually-hidden"> (opens in new tab)</span></a>
+            <button class="ev-btn" type="button" id="send-reminder">Send it now</button>
+            <span class="ev__msg" id="send-reminder-msg" role="status"></span>
           </div>
         </div>
 
@@ -352,6 +355,22 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
     });
   });
 
+  const sendBtn = document.getElementById('send-reminder') as HTMLButtonElement | null;
+  sendBtn?.addEventListener('click', async () => {
+    const msg = document.getElementById('send-reminder-msg')!;
+    sendBtn.disabled = true;
+    msg.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/team/reminders', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      msg.textContent = res.ok ? `Sent: ${data.subject}` : (data.error || 'Not sent');
+    } catch {
+      msg.textContent = 'Not sent';
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+
   const cgMsg = document.getElementById('cg-msg')!;
   document.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest('[data-role="save-month"]') as HTMLButtonElement | null;
@@ -388,7 +407,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
   @media (min-width: 860px) { .page-head { flex-direction: row; justify-content: space-between; align-items: flex-end; } }
   .ev-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin-bottom: var(--space-2); }
   .ev-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; }
-  .head-links { display: flex; gap: var(--space-2); flex-shrink: 0; }
+  .head-links { display: flex; flex-wrap: wrap; gap: var(--space-2); flex-shrink: 0; }
 
   .ev-btn {
     display: inline-block;

@@ -1,7 +1,7 @@
 ---
-// This section holds the prose for §6.6.
-// The live demand-poll widget (DemandMeter) is added in Step 8.
-// At that point, replace the placeholder block below with <DemandMeter />.
+import DemandMeter from './DemandMeter.astro';
+// The ambition (§6.6) and the live venue-demand meter. The meter hides its numbers until
+// enough people have answered (see MIN_PUBLIC in DemandMeter).
 ---
 
 <section id="the-ambition" class="ambition-section" aria-labelledby="ambition-heading">
@@ -37,27 +37,7 @@
 
       </div>
 
-      <!-- Demand poll placeholder — replaced by DemandMeter component in Step 8 -->
-      <div class="ambition-poll" aria-label="Venue demand poll, coming soon">
-
-        <p class="ambition-poll__question">
-          Would you use a permanent grassroots music venue in Burton?
-        </p>
-
-        <div class="ambition-poll__placeholder" role="presentation">
-          <p class="ambition-poll__coming">
-            <span class="ambition-poll__icon" aria-hidden="true">◎</span>
-            Live demand meter: launching Winter 2026
-          </p>
-          <p class="ambition-poll__hint">
-            Sign up below and you'll be among the first to add your voice when
-            we open the demand count.
-          </p>
-        </div>
-
-        <!-- TODO: Replace ambition-poll__placeholder with <DemandMeter /> in Step 8 -->
-
-      </div>
+      <DemandMeter />
 
     </div>
 

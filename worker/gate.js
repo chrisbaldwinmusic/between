@@ -8,6 +8,7 @@
 //    necessary cookie remembers it for 30 days. Remove the secret to switch the gate off at launch.
 
 import astro from '../dist/_worker.js/index.js';
+import { runReminders } from '../src/lib/reminders.js';
 
 const OPEN = [
   /^\/feedback(\/|$)/,
@@ -25,6 +26,11 @@ const COOKIE = 'between_preview';
 const PIN_PATH = '/__preview';
 
 export default {
+  // Daily cron (wrangler.toml): email the leads anything time-critical today.
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(runReminders(env).then(r => console.log('reminders', r.sent, r.reason ?? r.subject)));
+  },
+
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;

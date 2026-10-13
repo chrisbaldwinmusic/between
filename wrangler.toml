@@ -18,3 +18,8 @@ preview_id = "78f18b42723a401b8a3444298e9cbd7f"
 binding = "OPS_DB"
 database_name = "between-ops"
 database_id = "e7cc1aba-58a7-411d-8809-54b7d5f46baa"
+
+# Daily reminder digest for the leads (src/lib/reminders.js), 07:00 UTC = 8am BST / 7am GMT.
+# Sends through Resend; needs the RESEND_API_KEY secret.
+[triggers]
+crons = ["0 7 * * *"]

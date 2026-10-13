@@ -63,6 +63,12 @@
       <span> voices counted so far</span>
     </p>
 
+    <!-- Shown instead of the numbers until enough people have answered -->
+    <p class="dm-early" hidden>
+      You're one of the first voices. We'll show the live count here once
+      <span class="dm-min-text">25</span> people have answered.
+    </p>
+
     <!-- Thanks line -->
     <p class="dm-thanks">
       Your voice, <span class="dm-chosen"></span>, has been added. Thank you.
@@ -128,6 +134,16 @@
   }
 
   /* ── State pane visibility ────────────────────────────────────────────── */
+  .demand-meter [hidden] { display: none !important; }
+  .dm-early {
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    color: var(--paper);
+    border-left: 3px solid var(--ember);
+    padding-left: var(--space-3);
+    margin: 0 0 var(--space-4);
+  }
   .dm-pane { display: none; }
   .demand-meter[data-state="question"] .dm-pane--question { display: flex; flex-direction: column; gap: var(--space-5); }
   .demand-meter[data-state="voting"]   .dm-pane--voting   { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding-block: var(--space-8); }
@@ -427,7 +443,15 @@
 
   // ─── State ────────────────────────────────────────────────────────────────
   let counts = { total: 0, yes: 0, maybe: 0, yesPct: 0 };
-  let userChoice = localStorage.getItem('tsb-voted'); // 'yes'|'maybe'|'already'|null
+  // Below this many answers, a percentage means little and a tiny count undersells the
+  // campaign, so the meter thanks people instead of showing numbers. Same threshold as the hero.
+  const MIN_PUBLIC = 25;
+  // localStorage is a per-viewer convenience only; it can throw in private windows.
+  const store = {
+    get(k: string) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k: string, v: string) { try { localStorage.setItem(k, v); } catch { /* ignore */ } },
+  };
+  let userChoice = store.get('tsb-voted'); // 'yes'|'maybe'|'already'|null
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function announce(msg: string) { if (statusEl) statusEl.textContent = msg; }
@@ -454,6 +478,18 @@
     if (totalEl)  totalEl.textContent = counts.total.toLocaleString('en-GB');
     if (chosenEl) chosenEl.textContent = choice === 'yes' ? 'yes' : choice === 'maybe' ? 'maybe / not sure' : 'already counted';
     if (meterEl)  meterEl.setAttribute('aria-valuenow', String(counts.yesPct));
+
+    // Too few answers yet: thank them, hide the numbers.
+    const early = counts.total < MIN_PUBLIC;
+    const earlyEl = meter.querySelector<HTMLElement>('.dm-early');
+    const totalLine = meter.querySelector<HTMLElement>('.dm-total-line');
+    if (earlyEl) earlyEl.hidden = !early;
+    if (meterEl) meterEl.hidden = early;
+    if (totalLine) totalLine.hidden = early;
+    if (early) {
+      announce("Thank you. You're one of the first voices counted.");
+      return;
+    }
 
     // Animate fill
     if (fillEl) {
@@ -505,7 +541,7 @@
         if (data.ok || data.alreadyVoted) {
           counts     = { total: data.total, yes: data.yes, maybe: data.maybe, yesPct: data.yesPct };
           userChoice = data.alreadyVoted ? 'already' : choice;
-          localStorage.setItem('tsb-voted', userChoice);
+          store.set('tsb-voted', userChoice);
           showResult(userChoice);
         } else {
           throw new Error('vote rejected');
