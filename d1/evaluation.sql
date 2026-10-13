@@ -37,7 +37,9 @@ CREATE TABLE IF NOT EXISTS eval_events (
   debrief_on TEXT,                 -- YYYY-MM-DD the delivery-team debrief happened
   notes TEXT,
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_by TEXT
+  updated_by TEXT,
+  locked_at TEXT,                  -- set when the numbers are final; locked rows can't be edited
+  locked_by TEXT
 );
 
 -- Monthly community growth, reported quarterly.
@@ -51,7 +53,9 @@ CREATE TABLE IF NOT EXISTS community_counts (
   instagram_channel INTEGER,       -- Instagram broadcast channel members
   tiktok INTEGER,                  -- TikTok followers
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_by TEXT
+  updated_by TEXT,
+  locked_at TEXT,                  -- set when the month's numbers are final and reported
+  locked_by TEXT
 );
 
 -- One row per day a reminder digest was sent, so a repeated cron run can't email twice.

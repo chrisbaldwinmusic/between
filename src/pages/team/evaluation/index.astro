@@ -88,6 +88,17 @@ for (let d = new Date(Date.UTC(2026, 8, 1)); d <= new Date(Date.UTC(2027, 8, 1))
   months.push(d.toISOString().slice(0, 7));
 }
 const communityByMonth = new Map(community.map(c => [c.month, c]));
+
+// "Saved 20:21, 13 Oct by chris" / "Locked 13 Oct by dan" (UK time). Mirrored in the script below.
+const who = (email: string | null) => (email ? email.split('@')[0] : 'someone');
+const ukStamp = (sql: string, withTime = true) => new Date(sql.replace(' ', 'T') + 'Z').toLocaleString('en-GB', {
+  timeZone: 'Europe/London', day: 'numeric', month: 'short', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+});
+function stateOf(row: any) {
+  if (row?.locked_at) return { key: 'locked', text: `Locked ${ukStamp(row.locked_at, false)} by ${who(row.locked_by)}` };
+  if (row?.updated_at) return { key: 'saved', text: `Saved ${ukStamp(row.updated_at)} by ${who(row.updated_by)}` };
+  return { key: 'idle', text: 'Not saved yet' };
+}
 const monthLabel = (m: string) => new Date(`${m}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const thisMonth = today.slice(0, 7);
 
@@ -173,25 +184,28 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
                   {e.ticketing === 'free' && <> · <strong>{checkedIn}</strong> checked in</>}
                 </p>
 
-                <form class="ev__form" data-event={e.slug}>
+                <form class={`ev__form${row.locked_at ? ' is-locked' : ''}`} data-event={e.slug} data-kind="event">
                   <div class="f">
                     <label for={`sent-${e.slug}`}>Survey sent</label>
-                    <input id={`sent-${e.slug}`} name="survey_sent_on" type="date" value={row.survey_sent_on ?? ''} />
+                    <input id={`sent-${e.slug}`} name="survey_sent_on" type="date" value={row.survey_sent_on ?? ''} disabled={!!row.locked_at} />
                   </div>
                   <div class="f">
                     <label for={`att-${e.slug}`}>Attendance ({e.ticketing === 'free' ? 'headcount' : 'box office'})</label>
-                    <input id={`att-${e.slug}`} name="attendance" type="number" min="0" inputmode="numeric" value={row.attendance ?? ''} />
+                    <input id={`att-${e.slug}`} name="attendance" type="number" min="0" inputmode="numeric" value={row.attendance ?? ''} disabled={!!row.locked_at} />
                   </div>
                   <div class="f">
                     <label for={`deb-${e.slug}`}>Debrief done</label>
-                    <input id={`deb-${e.slug}`} name="debrief_on" type="date" value={row.debrief_on ?? ''} />
+                    <input id={`deb-${e.slug}`} name="debrief_on" type="date" value={row.debrief_on ?? ''} disabled={!!row.locked_at} />
                   </div>
                   <div class="f f--wide">
                     <label for={`notes-${e.slug}`}>Notes</label>
-                    <input id={`notes-${e.slug}`} name="notes" type="text" value={row.notes ?? ''} />
+                    <input id={`notes-${e.slug}`} name="notes" type="text" value={row.notes ?? ''} disabled={!!row.locked_at} />
                   </div>
-                  <button class="ev-btn ev-btn--primary" type="submit">Save<span class="visually-hidden"> {e.name}</span></button>
-                  <span class="ev__msg" role="status"></span>
+                  <div class="save-bar">
+                    <button class="ev-btn ev-btn--primary" type="submit" data-role="save" hidden={!!row.locked_at}>Save<span class="visually-hidden"> {e.name}</span></button>
+                    <button class="ev-btn" type="button" data-role="lock" hidden={!row.updated_at}>{row.locked_at ? 'Unlock' : 'Lock'}<span class="visually-hidden"> {e.name}</span></button>
+                    <span class={`save-state save-state--${stateOf(row).key}`} role="status">{stateOf(row).text}</span>
+                  </div>
                 </form>
 
                 <div class="ev__links">
@@ -237,14 +251,14 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
                 <tr>
                   <th scope="col">Month</th>
                   {CHANNELS.map(([, text, unit]) => <th scope="col">{text}<span class="cg__unit">{unit}</span></th>)}
-                  <th scope="col"><span class="visually-hidden">Save</span></th>
+                  <th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {months.map(m => {
                   const row = communityByMonth.get(m) ?? {};
                   return (
-                    <tr class={m === thisMonth ? 'is-now' : m > thisMonth ? 'is-future' : ''} data-month={m}>
+                    <tr class={`${m === thisMonth ? 'is-now' : m > thisMonth ? 'is-future' : ''}${row.locked_at ? ' is-locked' : ''}`} data-month={m} data-kind="month">
                       <th scope="row">{monthLabel(m)}</th>
                       {CHANNELS.map(([key, text]) => (
                         <td>
@@ -254,18 +268,23 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
                             min="0"
                             inputmode="numeric"
                             value={row[key] ?? ''}
+                            disabled={!!row.locked_at}
                             aria-label={`${text}, ${monthLabel(m)}`}
                           />
                         </td>
                       ))}
-                      <td><button class="ev-btn" type="button" data-role="save-month">Save<span class="visually-hidden"> {monthLabel(m)}</span></button></td>
+                      <td class="save-bar">
+                        <button class="ev-btn" type="button" data-role="save" hidden={!!row.locked_at}>Save<span class="visually-hidden"> {monthLabel(m)}</span></button>
+                        <button class="ev-btn" type="button" data-role="lock" hidden={!row.updated_at}>{row.locked_at ? 'Unlock' : 'Lock'}<span class="visually-hidden"> {monthLabel(m)}</span></button>
+                        <span class={`save-state save-state--${stateOf(row).key}`} role="status">{stateOf(row).text}</span>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-          <p class="cg__msg" id="cg-msg" role="status"></p>
+          <p class="ev-note">Save each month as you go. Lock a month once its numbers are final and reported, so they can't be changed by accident. Any lead can unlock.</p>
         </section>
 
         <!-- Reviews -->
@@ -338,21 +357,103 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
     if (!res.ok) throw new Error(data.error || 'Something went wrong');
   }
 
-  document.querySelectorAll<HTMLFormElement>('.ev__form').forEach(form => {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const msg = form.querySelector('.ev__msg')!;
-      const btn = form.querySelector('button')!;
-      btn.disabled = true;
-      msg.textContent = 'Saving…';
-      try {
-        await post('/api/team/evaluation/event', { event_slug: form.dataset.event, ...Object.fromEntries(new FormData(form)) });
-        location.reload();
-      } catch (err: any) {
-        msg.textContent = err.message;
-        btn.disabled = false;
-      }
+  // ── Save / lock for event checklists (form[data-kind=event]) and community months (tr[data-kind=month]) ──
+  const who = (email: string | null) => (email ? email.split('@')[0] : 'someone');
+  const ukStamp = (sql: string, withTime = true) => new Date(sql.replace(' ', 'T') + 'Z').toLocaleString('en-GB', {
+    timeZone: 'Europe/London', day: 'numeric', month: 'short', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+  });
+
+  function setState(scope: HTMLElement, key: string, text: string) {
+    const el = scope.querySelector<HTMLElement>('.save-state');
+    if (!el) return;
+    el.className = `save-state save-state--${key}`;
+    el.textContent = text;
+  }
+
+  function applyRow(scope: HTMLElement, row: any, justSaved = false) {
+    const locked = Boolean(row?.locked_at);
+    scope.classList.toggle('is-locked', locked);
+    scope.classList.remove('is-dirty');
+    scope.querySelectorAll<HTMLInputElement>('input').forEach(i => { i.disabled = locked; });
+    const save = scope.querySelector<HTMLButtonElement>('[data-role="save"]');
+    const lock = scope.querySelector<HTMLButtonElement>('[data-role="lock"]');
+    if (save) save.hidden = locked;
+    if (lock) {
+      lock.hidden = !row?.updated_at;
+      lock.firstChild!.textContent = locked ? 'Unlock' : 'Lock';
+    }
+    if (locked) setState(scope, 'locked', `Locked ${ukStamp(row.locked_at, false)} by ${who(row.locked_by)}`);
+    else if (row?.updated_at) setState(scope, justSaved ? 'just-saved' : 'saved', `${justSaved ? 'Saved ✓' : 'Saved'} ${ukStamp(row.updated_at)} by ${who(row.updated_by)}`);
+  }
+
+  const endpoint = (scope: HTMLElement) =>
+    scope.dataset.kind === 'event' ? '/api/team/evaluation/event' : '/api/team/evaluation/community';
+  const idOf = (scope: HTMLElement) =>
+    scope.dataset.kind === 'event' ? { event_slug: scope.dataset.event } : { month: scope.dataset.month };
+
+  async function send(scope: HTMLElement, extra: Record<string, unknown>) {
+    const res = await fetch(endpoint(scope), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...idOf(scope), ...extra }),
     });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Not saved. Please try again.');
+    return data.row;
+  }
+
+  async function save(scope: HTMLElement) {
+    const values: Record<string, string> = {};
+    scope.querySelectorAll<HTMLInputElement>('input[name]').forEach(i => { values[i.name] = i.value; });
+    const btn = scope.querySelector<HTMLButtonElement>('[data-role="save"]');
+    if (btn) btn.disabled = true;
+    setState(scope, 'busy', 'Saving…');
+    try {
+      applyRow(scope, await send(scope, values), true);
+    } catch (err: any) {
+      setState(scope, 'error', err.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  // Unsaved changes are flagged on the row/card, and leaving the page asks first.
+  document.addEventListener('input', (e) => {
+    const scope = (e.target as HTMLElement).closest<HTMLElement>('[data-kind]');
+    if (!scope || scope.classList.contains('is-locked')) return;
+    scope.classList.add('is-dirty');
+    setState(scope, 'dirty', 'Unsaved changes');
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if (document.querySelector('[data-kind].is-dirty')) e.preventDefault();
+  });
+
+  document.querySelectorAll<HTMLFormElement>('form[data-kind="event"]').forEach(form => {
+    form.addEventListener('submit', (e) => { e.preventDefault(); save(form); });
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-role="save"], [data-role="lock"]');
+    const scope = btn?.closest<HTMLElement>('[data-kind]');
+    if (!btn || !scope) return;
+    if (btn.dataset.role === 'save') {
+      if (scope.dataset.kind === 'month') save(scope); // event forms save via submit
+      return;
+    }
+    // Lock / unlock
+    const locking = !scope.classList.contains('is-locked');
+    if (locking && scope.classList.contains('is-dirty')) {
+      setState(scope, 'error', 'Save your changes before locking.');
+      return;
+    }
+    btn.disabled = true;
+    try {
+      applyRow(scope, await send(scope, { lock: locking }));
+    } catch (err: any) {
+      setState(scope, 'error', err.message);
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   const sendBtn = document.getElementById('send-reminder') as HTMLButtonElement | null;
@@ -371,23 +472,6 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
     }
   });
 
-  const cgMsg = document.getElementById('cg-msg')!;
-  document.addEventListener('click', async (e) => {
-    const btn = (e.target as HTMLElement).closest('[data-role="save-month"]') as HTMLButtonElement | null;
-    if (!btn) return;
-    const tr = btn.closest('tr') as HTMLTableRowElement;
-    const body: Record<string, string> = { month: tr.dataset.month! };
-    tr.querySelectorAll<HTMLInputElement>('input').forEach(i => { body[i.name] = i.value; });
-    btn.disabled = true;
-    try {
-      await post('/api/team/evaluation/community', body);
-      cgMsg.textContent = `Saved ${tr.querySelector('th')!.textContent}.`;
-    } catch (err: any) {
-      cgMsg.textContent = err.message;
-    } finally {
-      btn.disabled = false;
-    }
-  });
 </script>
 
 <style>
@@ -515,7 +599,23 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
   .cg input { width: 5.5rem; }
   .cg tr.is-now { background: rgba(232, 162, 61, 0.08); }
   .cg tr.is-future th { color: var(--body); font-weight: 400; }
-  .cg__msg { font-size: var(--text-xs); color: var(--body); min-height: 1.2em; margin-top: var(--space-2); }
+  /* Save state + lock */
+  .save-bar [hidden] { display: none !important; }
+  .save-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; grid-column: 1 / -1; }
+  td.save-bar { display: table-cell; white-space: nowrap; }
+  td.save-bar .save-state { display: block; margin-top: 0.3rem; white-space: normal; min-width: 11rem; }
+  .save-state { font-size: var(--text-xs); color: var(--body); }
+  .save-state--dirty { color: var(--ember); font-weight: 600; }
+  .save-state--just-saved { color: #4caf50; font-weight: 700; }
+  .save-state--saved { color: var(--body); }
+  .save-state--locked { color: var(--paper); }
+  .save-state--locked::before { content: '🔒 '; }
+  .save-state--error { color: #ff8080; font-weight: 600; }
+  .save-state--busy { color: var(--body); font-style: italic; }
+  .is-dirty { box-shadow: inset 3px 0 0 var(--ember); }
+  tr.is-dirty th { color: var(--ember); }
+  .is-locked input { opacity: 0.65; cursor: not-allowed; }
+  .cg tr.is-locked { background: rgba(255, 255, 255, 0.025); }
 
   /* Reviews */
   .reviews { list-style: none; margin: 0 0 var(--space-2); padding: 0; background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); }
