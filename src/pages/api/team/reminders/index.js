@@ -26,5 +26,6 @@ export async function GET(context) {
 export async function POST(context) {
   const env = context.locals.runtime?.env ?? {};
   const result = await runReminders(env, { force: true });
+  console.log('reminders send-now', JSON.stringify({ sent: result.sent, reason: result.reason, subject: result.subject }));
   return result.sent ? jsonOk({ sent: true, subject: result.subject }) : jsonErr(result.reason, 400);
 }
