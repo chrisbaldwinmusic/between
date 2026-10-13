@@ -134,7 +134,12 @@ export async function buildCommunityReminders(db, today = ukToday(), data = null
   for (const e of events) {
     const where = `${e.name} (${longDate(e.date)}, ${e.venue})`;
     if (e.ticketing === 'ticketed' && e.date === addDays(today, 8)) {
-      urgent.push({ text: `Start the 8-day presale sequence for ${where} today: one post a day through to the night, leading with the people it's for.`, link: `${SITE}/events/${e.slug}` });
+      urgent.push({
+        text: e.status === 'onsale'
+          ? `Start the 8-day countdown for ${where} today: tickets are already on sale${e.ticketNote ? ` (${e.ticketNote.toLowerCase()})` : ''}, so one post a day through to the night, leading with the people it's for.`
+          : `Start the 8-day presale sequence for ${where} today: one post a day through to the night, leading with the people it's for.`,
+        link: `${SITE}/events/${e.slug}`,
+      });
     }
     if (e.date === addDays(today, 7)) {
       urgent.push({ text: `${where} is a week away. Share it into local Facebook groups and the WhatsApp community, and agree who's capturing content on the night.` });

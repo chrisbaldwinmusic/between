@@ -101,7 +101,8 @@ Drive everything from one file.
     "registerUrl": null,            // free events
     "accent": "#E8A23D",
     "access": "Step-free. BSL on request.",
-    "status": "announced"           // "announced" | "onsale" | "soldout" | "past"
+    "status": "announced",          // "announced" | "onsale" | "soldout" | "past" (past is automatic after the date)
+    "ticketNote": "Early bird tickets on sale now"  // optional, shown on the card and event page
   }
 ]
 ```

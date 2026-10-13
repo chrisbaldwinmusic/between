@@ -14,8 +14,9 @@
     "registerUrl": "https://events.sonicboom.org.uk",
     "accent": "#E8A23D",
     "access": "Step-free. BSL on request.",
-    "status": "announced",
-    "timeOfDay": "evening"
+    "status": "onsale",
+    "timeOfDay": "evening",
+    "ticketNote": "Early bird tickets on sale now"
   },
   {
     "slug": "winter-sounds",

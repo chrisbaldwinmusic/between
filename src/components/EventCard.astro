@@ -16,6 +16,7 @@ interface Event {
   accent: string;
   access: string;
   status: string;
+  ticketNote?: string;
   timeOfDay: 'daytime' | 'evening';
 }
 
@@ -79,6 +80,8 @@ const longDate = `${weekday} ${d} ${event.month}`;
   </h3>
 
   <p class="event-card__format">{event.format}</p>
+
+  {event.ticketNote && status !== 'past' && <p class="event-card__note">{event.ticketNote}</p>}
 
   <p class="event-card__venue">
     <span aria-hidden="true" class="event-card__pin">⌖</span>
@@ -252,6 +255,13 @@ const longDate = `${weekday} ${d} ${event.month}`;
     border-top: 1px solid rgba(26, 18, 18, 0.08);
   }
 
+  .event-card__note {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--red);
+  }
   .event-card__price {
     font-family: var(--font-body);
     font-size: var(--text-sm);
