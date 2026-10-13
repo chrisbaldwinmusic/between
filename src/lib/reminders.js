@@ -136,7 +136,7 @@ export async function buildCommunityReminders(db, today = ukToday(), data = null
     if (e.ticketing === 'ticketed' && e.date === addDays(today, 8)) {
       urgent.push({
         text: e.status === 'onsale'
-          ? `Start the 8-day countdown for ${where} today: tickets are already on sale${e.ticketNote ? ` (${e.ticketNote.toLowerCase()})` : ''}, so one post a day through to the night, leading with the people it's for.`
+          ? `Start the 8-day countdown for ${where} today: tickets are already on sale, so one post a day through to the night, leading with the people it's for.`
           : `Start the 8-day presale sequence for ${where} today: one post a day through to the night, leading with the people it's for.`,
         link: `${SITE}/events/${e.slug}`,
       });
