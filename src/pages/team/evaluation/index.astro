@@ -7,7 +7,7 @@ export const prerender = false;
 import events from '../../../data/events.json';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import {
-  HEARD_FROM, PRIOR_EVENTS, VENUE_USE, VENUE_QUESTION, LOCAL_OUTWARD, label, surveyDue,
+  HEARD_FROM, PRIOR_EVENTS, VENUE_USE, VENUE_QUESTION, LOCAL_OUTWARD, COMMUNITY_CHANNELS, label, surveyDue,
 } from '../../../lib/feedback.js';
 import { ukToday } from '../../../lib/dates.js';
 
@@ -82,7 +82,7 @@ const eventRows = allRows.filter(r => r.e.date <= today).reverse();
 const upcomingRows = allRows.filter(r => r.e.date > today);
 
 // ── Monthly community counts, Sep 2026 to Sep 2027 ─────────────────────────
-const CHANNELS = [['whatsapp', 'WhatsApp'], ['email', 'Email'], ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']];
+const CHANNELS = COMMUNITY_CHANNELS;
 const months: string[] = [];
 for (let d = new Date(Date.UTC(2026, 8, 1)); d <= new Date(Date.UTC(2027, 8, 1)); d.setUTCMonth(d.getUTCMonth() + 1)) {
   months.push(d.toISOString().slice(0, 7));
@@ -236,7 +236,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
               <thead>
                 <tr>
                   <th scope="col">Month</th>
-                  {CHANNELS.map(([, text]) => <th scope="col">{text}</th>)}
+                  {CHANNELS.map(([, text, unit]) => <th scope="col">{text}<span class="cg__unit">{unit}</span></th>)}
                   <th scope="col"><span class="visually-hidden">Save</span></th>
                 </tr>
               </thead>
@@ -507,11 +507,12 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
 
   /* Community table */
   .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--ink-soft); }
-  .cg { width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 40rem; }
+  .cg { width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 56rem; }
+  .cg__unit { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--body); opacity: 0.8; }
   .cg th, .cg td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); text-align: left; }
   .cg thead th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--body); }
   .cg tbody th { color: var(--paper); font-weight: 600; white-space: nowrap; }
-  .cg input { width: 6rem; }
+  .cg input { width: 5.5rem; }
   .cg tr.is-now { background: rgba(232, 162, 61, 0.08); }
   .cg tr.is-future th { color: var(--body); font-weight: 400; }
   .cg__msg { font-size: var(--text-xs); color: var(--body); min-height: 1.2em; margin-top: var(--space-2); }

@@ -43,11 +43,13 @@ CREATE TABLE IF NOT EXISTS eval_events (
 -- Monthly community growth, reported quarterly.
 CREATE TABLE IF NOT EXISTS community_counts (
   month TEXT PRIMARY KEY,          -- YYYY-MM
-  whatsapp INTEGER,
-  email INTEGER,
-  instagram INTEGER,
-  facebook INTEGER,
-  tiktok INTEGER,
+  whatsapp INTEGER,                -- WhatsApp community members
+  email INTEGER,                   -- email subscribers
+  facebook_page INTEGER,           -- Facebook page followers
+  facebook_group INTEGER,          -- Facebook group members
+  instagram INTEGER,               -- Instagram account followers
+  instagram_channel INTEGER,       -- Instagram broadcast channel members
+  tiktok INTEGER,                  -- TikTok followers
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_by TEXT
 );

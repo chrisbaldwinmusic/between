@@ -8,8 +8,10 @@ import { ukToday, addDays } from './dates.js';
 
 export const HEARD_FROM = [
   ['whatsapp', 'WhatsApp'],
-  ['instagram', 'Instagram'],
-  ['facebook', 'Facebook'],
+  ['facebook_page', 'Our Facebook page'],
+  ['facebook_group', 'A Facebook group (like a local community group)'],
+  ['instagram', 'Our Instagram'],
+  ['instagram_share', "Someone else's Instagram post or story"],
   ['tiktok', 'TikTok'],
   ['email', 'Email from us'],
   ['friend', 'A friend or family member'],
@@ -18,6 +20,19 @@ export const HEARD_FROM = [
   ['press', 'Radio, press or BBC Introducing'],
   ['website', 'This website'],
   ['other', 'Somewhere else'],
+];
+
+// Monthly community numbers, tracked by the community managers and reported quarterly. Pages
+// (followers) and groups (members) are counted separately: they're different relationships.
+// TikTok has no groups, so it's one figure. Keys are community_counts columns.
+export const COMMUNITY_CHANNELS = [
+  ['whatsapp', 'WhatsApp community', 'members'],
+  ['email', 'Email list', 'subscribers'],
+  ['facebook_page', 'Facebook page', 'followers'],
+  ['facebook_group', 'Facebook group', 'members'],
+  ['instagram', 'Instagram account', 'followers'],
+  ['instagram_channel', 'Instagram broadcast channel', 'members'],
+  ['tiktok', 'TikTok', 'followers'],
 ];
 
 export const PRIOR_EVENTS = [

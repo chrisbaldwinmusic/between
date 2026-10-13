@@ -1,11 +1,12 @@
 // POST /api/team/evaluation/community — save a month's community counts
-// { month: 'YYYY-MM', whatsapp?, email?, instagram?, facebook?, tiktok? }. Leads only (src/middleware.js).
+// { month: 'YYYY-MM', ...one whole number per COMMUNITY_CHANNELS key }. Leads only (src/middleware.js).
 
 import { getDb, getActor, logActivity, jsonOk, jsonErr } from '../../../../lib/ops-db.js';
+import { COMMUNITY_CHANNELS } from '../../../../lib/feedback.js';
 
 export const prerender = false;
 
-const CHANNELS = ['whatsapp', 'email', 'instagram', 'facebook', 'tiktok'];
+const CHANNELS = COMMUNITY_CHANNELS.map(([key]) => key);
 
 export async function POST(context) {
   const db = getDb(context);
@@ -26,7 +27,7 @@ export async function POST(context) {
   const actor = getActor(context.request);
 
   await db
-    .prepare(`INSERT INTO community_counts (month, ${CHANNELS.join(', ')}, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?)
+    .prepare(`INSERT INTO community_counts (month, ${CHANNELS.join(', ')}, updated_by) VALUES (?, ${CHANNELS.map(() => '?').join(', ')}, ?)
               ON CONFLICT(month) DO UPDATE SET ${CHANNELS.map(c => `${c} = excluded.${c}`).join(', ')},
                 updated_at = datetime('now'), updated_by = excluded.updated_by`)
     .bind(body.month, ...values, actor)

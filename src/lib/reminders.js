@@ -83,7 +83,7 @@ export async function buildReminders(db, today = ukToday()) {
   const recorded = new Set(communityRes.results.map(r => r.month));
   if (lastMonth >= '2026-09' && lastMonth <= '2027-09' && !recorded.has(lastMonth)) {
     const day = Number(today.slice(8));
-    const item = { text: `Record ${monthName(lastMonth)}'s community numbers (WhatsApp, email, Instagram, Facebook, TikTok).`, link: `${SITE}/team/evaluation` };
+    const item = { text: `Record ${monthName(lastMonth)}'s community numbers (WhatsApp, email, Facebook page and group, Instagram account and channel, TikTok).`, link: `${SITE}/team/evaluation` };
     (day === 1 || day === 7 ? urgent : outstanding).push(item);
   }
 
