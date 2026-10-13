@@ -9,7 +9,6 @@
 
 import astro from '../dist/_worker.js/index.js';
 import { runReminders } from '../src/lib/reminders.js';
-import { ukToday } from '../src/lib/dates.js';
 import { utmFrom, record, isBot } from '../src/lib/attribution.js';
 
 const OPEN = [
@@ -29,13 +28,12 @@ const COOKIE = 'between_preview';
 const PIN_PATH = '/__preview';
 
 export default {
-  // Daily cron (wrangler.toml): email the leads anything time-critical today.
+  // Daily cron (wrangler.toml, 07:00 UTC): the leads' and community managers' reminder emails.
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(runReminders(env).then(r => console.log('reminders', r.sent, r.reason ?? r.subject)));
   },
 
   async fetch(request, env, ctx) {
-    maybeRunReminders(env, ctx);
     countTrackedVisit(request, env, ctx);
     const url = new URL(request.url);
     const path = url.pathname;
@@ -73,27 +71,6 @@ export default {
     return pinPage(path + url.search, false);
   },
 };
-
-// Stand-in for the cron while the account is on Workers Free (see wrangler.toml): the first
-// request after 7am UK time each day runs the reminders in the background. runReminders keeps a
-// per-day log, so this never emails twice; the in-memory date just avoids a DB check per request.
-let remindersCheckedOn = '';
-const UK_HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', hour12: false });
-function maybeRunReminders(env, ctx) {
-  const now = new Date();
-  const today = ukToday(now);
-  if (remindersCheckedOn === today || Number(UK_HOUR.format(now)) < 7) return;
-  remindersCheckedOn = today;
-  ctx.waitUntil(runReminders(env).catch(err => console.error('reminders', err)));
-}
-
-// A page opened through a tracked (UTM) link counts as a visit for that source/campaign. Counts
-// only (src/lib/attribution.js): no cookies, nothing stored on the device.
-function countTrackedVisit(request, env, ctx) {
-  if (request.method !== 'GET' || !(request.headers.get('Accept') || '').includes('text/html') || isBot(request)) return;
-  const utm = utmFrom(request.url);
-  if (utm) ctx.waitUntil(record(env.OPS_DB, 'visit', utm));
-}
 
 async function tokenFor(pin) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`between-preview:${pin}`));
