@@ -118,14 +118,18 @@ export async function runReminders(env, { today = ukToday(), force = false } = {
   const db = env.OPS_DB;
   if (!db) return { sent: false, reason: 'no database' };
 
-  const reminders = await buildReminders(db, today);
-  if (!reminders.urgent.length) return { sent: false, reason: 'nothing due today', ...reminders };
-  if (!env.RESEND_API_KEY) return { sent: false, reason: 'RESEND_API_KEY not set', ...reminders };
-
   if (!force) {
     const already = await db.prepare('SELECT 1 FROM reminder_log WHERE sent_on = ?').bind(today).first();
-    if (already) return { sent: false, reason: 'already sent today', ...reminders };
+    if (already) return { sent: false, reason: 'already checked today' };
   }
+
+  const reminders = await buildReminders(db, today);
+  if (!reminders.urgent.length) {
+    // Record the quiet day too, so later checks today stop early.
+    if (!force) await db.prepare('INSERT OR IGNORE INTO reminder_log (sent_on, subject, items) VALUES (?, NULL, 0)').bind(today).run();
+    return { sent: false, reason: 'nothing due today', ...reminders };
+  }
+  if (!env.RESEND_API_KEY) return { sent: false, reason: 'RESEND_API_KEY not set', ...reminders };
 
   const { subject, html, text } = renderDigest(reminders, today);
   const res = await fetch('https://api.resend.com/emails', {

@@ -9,6 +9,7 @@
 
 import astro from '../dist/_worker.js/index.js';
 import { runReminders } from '../src/lib/reminders.js';
+import { ukToday } from '../src/lib/dates.js';
 
 const OPEN = [
   /^\/feedback(\/|$)/,
@@ -32,6 +33,7 @@ export default {
   },
 
   async fetch(request, env, ctx) {
+    maybeRunReminders(env, ctx);
     const url = new URL(request.url);
     const path = url.pathname;
     const pin = env.PREVIEW_PIN;
@@ -68,6 +70,19 @@ export default {
     return pinPage(path + url.search, false);
   },
 };
+
+// Stand-in for the cron while the account is on Workers Free (see wrangler.toml): the first
+// request after 7am UK time each day runs the reminders in the background. runReminders keeps a
+// per-day log, so this never emails twice; the in-memory date just avoids a DB check per request.
+let remindersCheckedOn = '';
+const UK_HOUR = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', hour: '2-digit', hour12: false });
+function maybeRunReminders(env, ctx) {
+  const now = new Date();
+  const today = ukToday(now);
+  if (remindersCheckedOn === today || Number(UK_HOUR.format(now)) < 7) return;
+  remindersCheckedOn = today;
+  ctx.waitUntil(runReminders(env).catch(err => console.error('reminders', err)));
+}
 
 async function tokenFor(pin) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`between-preview:${pin}`));

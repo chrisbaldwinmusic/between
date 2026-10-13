@@ -206,7 +206,7 @@ Evaluation tables: `d1/evaluation.sql` (applied to production). Internal view: `
 `src/lib/reminders.js` builds a digest (event tomorrow/today, survey due within 48 hours,
 debriefs, reviews a week out, schedule items starting, monthly community numbers) and emails the
 leads through **Resend**, the same provider and verified `sonicboom.org.uk` domain as the shared
-mailer. The Worker's cron (`[triggers]` in `wrangler.toml`, 07:00 UTC) runs it; it only sends when
+mailer. The Worker's cron (`[triggers]` in `wrangler.toml`, 07:00 UTC) runs it, but that's commented out while the account is on Workers Free (5-cron limit, all in use); until then the first request after 7am UK time runs it (`worker/gate.js`); it only sends when
 something is time-critical and logs each send in `reminder_log`. Needs the secret:
 
 ```bash
