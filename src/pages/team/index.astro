@@ -3,28 +3,25 @@ export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import WipNotice from '../../components/WipNotice.astro';
-import { getEmail, isLead, activityWhere } from '../../lib/team-access.js';
+import { getEmail, isLead } from '../../lib/team-access.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const lead = isLead(getEmail(Astro.request));
 const db = Astro.locals.runtime?.env?.OPS_DB;
 
 let team = [];
-let activity = [];
 let openTodos = 0;
 let activeSchedule = 0;
 
 if (db) {
-  const [teamRes, activityRes, todosRes, scheduleRes] = await Promise.all([
+  const [teamRes, todosRes, scheduleRes] = await Promise.all([
     db.prepare('SELECT * FROM team_members ORDER BY id ASC').all(),
-    db.prepare(`SELECT * FROM activity_log ${activityWhere(getEmail(Astro.request))} ORDER BY created_at DESC LIMIT 10`).all(),
     db.prepare('SELECT COUNT(*) AS n FROM todos WHERE done = 0').first(),
     db.prepare(`SELECT COUNT(*) AS n FROM schedule_items
                 WHERE (status_override = 'blocked')
                    OR (status_override IS NULL AND date('now') BETWEEN start_date AND end_date)`).first(),
   ]);
   team = teamRes.results;
-  activity = activityRes.results;
   openTodos = todosRes?.n ?? 0;
   activeSchedule = scheduleRes?.n ?? 0;
 }
@@ -36,15 +33,6 @@ const statusLabel: Record<string, string> = {
 };
 const unconfirmedCount = team.filter(p => p.status === 'unconfirmed').length;
 
-function timeAgo(iso: string) {
-  const then = new Date(iso.replace(' ', 'T') + 'Z').getTime();
-  const mins = Math.round((Date.now() - then) / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.round(hrs / 24)}d ago`;
-}
 ---
 <BaseLayout title="Dashboard · Between Ops" nav="internal" authEmail={authEmail}>
   <main id="main">
@@ -77,50 +65,29 @@ function timeAgo(iso: string) {
           )}
         </ul>
 
-        <div class="dash-grid">
-
-          <div class="dash-col">
-            <h2 class="team-subheading">Roster</h2>
-            <ul class="team-list" role="list" id="roster-list">
-              {team.map(person => (
-                <li class={`person-row person-row--${person.status}`} data-id={person.id}>
-                  <div class="person-row__id">
-                    <p class="person-row__name">{person.name}</p>
-                    <p class="person-row__role" data-role="role-text">{person.role}</p>
-                  </div>
-                  <p class="person-row__remit" data-role="remit-text">{person.remit}</p>
-                  <div class="person-row__meta">
-                    {lead ? (
-                      <button class="person-row__status" type="button" data-role="cycle-status">
-                        {statusLabel[person.status] ?? person.status}
-                      </button>
-                    ) : (
-                      <span class="person-row__status">{statusLabel[person.status] ?? person.status}</span>
-                    )}
-                    <a class="person-row__email" href={`mailto:${person.email}`}>{person.email}</a>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            {lead && <p class="team-footnote">Click a status pill to cycle it. Confirmed → Expected → Unconfirmed.</p>}
-          </div>
-
-          <div class="dash-col">
-            <h2 class="team-subheading">Recent activity</h2>
-            <ul class="activity-list" role="list">
-              {activity.length === 0 && <li class="activity-empty">Nothing logged yet.</li>}
-              {activity.map(a => (
-                <li class="activity-item">
-                  <p class="activity-item__line">
-                    <strong>{a.actor}</strong> {a.action}{a.detail ? <>: <span class="activity-item__detail">{a.detail}</span></> : ''}
-                  </p>
-                  <span class="activity-item__time">{timeAgo(a.created_at)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-        </div>
+        <h2 class="team-subheading">Roster</h2>
+        <ul class="team-list" role="list" id="roster-list">
+          {team.map(person => (
+            <li class={`person-row person-row--${person.status}`} data-id={person.id}>
+              <div class="person-row__id">
+                <p class="person-row__name">{person.name}</p>
+                <p class="person-row__role" data-role="role-text">{person.role}</p>
+              </div>
+              <p class="person-row__remit" data-role="remit-text">{person.remit}</p>
+              <div class="person-row__meta">
+                {lead ? (
+                  <button class="person-row__status" type="button" data-role="cycle-status">
+                    {statusLabel[person.status] ?? person.status}
+                  </button>
+                ) : (
+                  <span class="person-row__status">{statusLabel[person.status] ?? person.status}</span>
+                )}
+                <a class="person-row__email" href={`mailto:${person.email}`}>{person.email}</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {lead && <p class="team-footnote">Click a status pill to cycle it. Confirmed → Expected → Unconfirmed.</p>}
       </div>
     </section>
   </main>
@@ -220,21 +187,6 @@ function timeAgo(iso: string) {
     color: var(--body);
   }
 
-  /* ── Two-column layout ────────────────────────────────────────────────── */
-  .dash-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-  }
-  @media (min-width: 1000px) {
-    .dash-grid {
-      flex-direction: row;
-      align-items: flex-start;
-    }
-    .dash-col:first-child { flex: 3; }
-    .dash-col:last-child { flex: 2; }
-  }
-
   /* ── Roster ───────────────────────────────────────────────────────────── */
   .team-list {
     list-style: none;
@@ -332,49 +284,5 @@ function timeAgo(iso: string) {
     font-size: var(--text-xs);
     color: var(--body);
     margin-top: var(--space-3);
-  }
-
-  /* ── Activity feed ────────────────────────────────────────────────────── */
-  .activity-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    background: var(--line);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .activity-empty {
-    background: var(--ink-soft);
-    padding: var(--space-4);
-    font-size: var(--text-sm);
-    color: var(--body);
-  }
-
-  .activity-item {
-    background: var(--ink-soft);
-    padding: var(--space-3) var(--space-4);
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-3);
-  }
-
-  .activity-item__line {
-    font-size: var(--text-xs);
-    color: var(--body);
-    line-height: 1.5;
-    max-width: none;
-  }
-  .activity-item__line strong { color: var(--paper); }
-  .activity-item__detail { color: var(--ember); }
-
-  .activity-item__time {
-    font-size: 0.65rem;
-    color: var(--body);
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 </style>

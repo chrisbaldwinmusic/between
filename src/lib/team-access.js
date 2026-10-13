@@ -8,16 +8,7 @@ export const LEADS = ['chris@sonicboom.org.uk', 'dan@sonicboom.org.uk'];
 
 // Pages and read-only API routes open to everyone signed in.
 const SHARED_PAGES = ['/team', '/team/schedule'];
-const SHARED_API_READS = ['/api/team/schedule', '/api/team/roster', '/api/team/activity'];
-
-// Activity log entries about lead-only areas are hidden from everyone else.
-const LEAD_ONLY_ACTIVITY = ['to-do', 'budget'];
-
-// SQL WHERE clause for the activity log as this person may see it ('' for leads).
-export function activityWhere(email) {
-  if (isLead(email)) return '';
-  return 'WHERE ' + LEAD_ONLY_ACTIVITY.map(w => `action NOT LIKE '%${w}%'`).join(' AND ');
-}
+const SHARED_API_READS = ['/api/team/schedule', '/api/team/roster'];
 
 export function getEmail(request) {
   return (request.headers.get('Cf-Access-Authenticated-User-Email') || '').toLowerCase() || null;

@@ -118,7 +118,7 @@ Schema: `votes(id, choice, outward_code, created_at)`. `/api/results` aggregates
 
 `/team` is a **live, editable project/productivity tool**, not static content — to-dos, the
 schedule and the roster are all read and written from a D1 database (`OPS_DB` binding, database
-`between-ops`), with every write logged to an `activity_log` table shown on the dashboard.
+`between-ops`), with every write logged to an `activity_log` table as an audit trail (not shown in the UI).
 
 Schema lives at `d1/schema.sql`. Already created and bound (see `wrangler.toml`). To recreate
 elsewhere:
