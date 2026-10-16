@@ -16,6 +16,6 @@
   "shortcuts": [
     { "name": "Schedule", "url": "/team/schedule" },
     { "name": "Media", "url": "/team/media" },
-    { "name": "Help", "url": "/team/help" }
+    { "name": "Help guide", "url": "/team/help" }
   ]
 }

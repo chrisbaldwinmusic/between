@@ -12,7 +12,7 @@ import { VAPID_PUBLIC_KEY } from '../../lib/webpush.js';
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const email = getEmail(Astro.request);
 const who = { lead: isLead(email), community: isCommunity(email) };
-const pages = PAGE_HELP.filter(h => h.path !== '/team/help' && canAccess(email, h.path));
+const pages = PAGE_HELP.filter(h => canAccess(email, h.path));
 ---
 <BaseLayout title="Help · Between Ops" nav="internal" authEmail={authEmail}>
   <main id="main">
@@ -78,8 +78,8 @@ const pages = PAGE_HELP.filter(h => h.path !== '/team/help' && canAccess(email, 
         <section class="hp-block" id="pages" aria-labelledby="h-pages">
           <h2 class="hp-block__title" id="h-pages">What each page does</h2>
           <p>
-            Each page has a help panel at the top with these tips. Turn it off and on with the
-            <strong>Help</strong> button at the top of the screen on a phone, or <strong>Show help on each page</strong> at the bottom of the menu.
+            The same tips are at the top of each page, under <strong>How this page works</strong>. Tap it
+            to fold them away; it stays that way on this device until you tap it again.
           </p>
           <div class="hp-pages">
             {pages.map(h => (

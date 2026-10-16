@@ -1,6 +1,5 @@
-// Help for each /team page, in one place: shown in the help panel at the top of the page (the
-// Help switch in the team menu turns it on and off) and gathered on /team/help ("How to use this
-// site"). Pages appear only to people who can open them (canAccess). Each entry can have
+// Help for each /team page, in one place: shown in the "How this page works" fold-out at the top
+// of that page (src/components/TeamHelp.astro) and gathered on /team/help (the "Help guide"). Pages appear only to people who can open them (canAccess). Each entry can have
 // different tips for leads and for everyone else.
 
 export const PAGE_HELP = [
@@ -63,6 +62,12 @@ export const PAGE_HELP = [
     ],
   },
   {
+    path: '/team/reviews',
+    title: 'Reviews',
+    what: 'Every review checkpoint from the schedule, with its period and whether the write-up is done.',
+    tips: ['Open a review to see its numbers, pulled live from the evaluation data, then write it up and sign it off.'],
+  },
+  {
     path: '/team/stories',
     title: 'Stories',
     what: "People's stories from /feedback/story, the heart of what we share.",
@@ -91,20 +96,13 @@ export const PAGE_HELP = [
     what: 'Standing procedures from the Arts Council England application.',
     tips: ['Edit the page in the code to keep it current.'],
   },
-  {
-    path: '/team/help',
-    title: 'Help',
-    what: 'Getting the app on your phone, turning on notifications, and how each part of the team area works.',
-    tips: [],
-  },
 ];
 
-/** The help entry for a path: exact match, else the nearest parent section. */
+/** The help entry for this exact page, if it has one. Sub-pages (QR posters, reports) don't inherit
+ *  their section's help: it's about a different page, and often one this person can't open. */
 export function helpFor(pathname) {
   const path = pathname.replace(/\/$/, '') || '/team';
-  return PAGE_HELP.find(h => h.path === path)
-    ?? PAGE_HELP.filter(h => h.path !== '/team' && path.startsWith(`${h.path}/`)).sort((a, b) => b.path.length - a.path.length)[0]
-    ?? null;
+  return PAGE_HELP.find(h => h.path === path) ?? null;
 }
 
 /** The tips for this person: everyone's, then the leads' or the community managers' extras. */
