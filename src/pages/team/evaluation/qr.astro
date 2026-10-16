@@ -1,15 +1,19 @@
 ---
 // Printable QR poster for an event's survey or check-in (/team/evaluation/qr?e=slug&t=survey|checkin).
-// Leads only (src/middleware.js). The QR code points at the public, PIN-free /feedback page.
+// Ready from the 1st of the event's month (materialsReady). Leads and the community managers
+// (src/middleware.js). The QR code points at the public, PIN-free /feedback page.
 export const prerender = false;
 
 import qrcode from 'qrcode-generator';
+import { getEmail, isLead } from '../../../lib/team-access.js';
 import { eventBySlug } from '../../../lib/feedback.js';
+import { materialsReady } from '../../../lib/dates.js';
 
+const back = isLead(getEmail(Astro.request)) ? { href: '/team/evaluation', label: 'Evaluation' } : { href: '/team', label: 'Dashboard' };
 const params = Astro.url.searchParams;
 const event = eventBySlug(params.get('e'));
 const type = params.get('t') === 'checkin' ? 'checkin' : 'survey';
-if (!event || (type === 'checkin' && event.ticketing !== 'free')) return Astro.redirect('/team/evaluation');
+if (!event || !materialsReady(event) || (type === 'checkin' && event.ticketing !== 'free')) return Astro.redirect(back.href);
 
 const medium = type === 'checkin' ? 'qr-checkin' : 'qr-survey';
 const path = type === 'checkin' ? `/feedback/${event.slug}/checkin` : `/feedback/${event.slug}`;
@@ -93,7 +97,7 @@ const sub = type === 'checkin'
   </head>
   <body>
     <div class="toolbar">
-      <a href="/team/evaluation">← Evaluation</a>
+      <a href={back.href}>← {back.label}</a>
       <button type="button" onclick="window.print()">Print</button>
     </div>
     <main class="poster" style={`--accent:${event.accent}`}>

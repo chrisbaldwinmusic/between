@@ -1,16 +1,21 @@
 ---
 // Review people's stories from /feedback/story. Approved stories appear in "Burton's stories" on
-// the home page straight away. Leads only (src/middleware.js).
+// the home page straight away. Leads review and edit; the community managers get a read-only list
+// of the approved stories to share, without contributor emails (src/middleware.js).
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import events from '../../data/events.json';
+import { getEmail, isLead } from '../../lib/team-access.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const lead = isLead(getEmail(Astro.request));
 const db = Astro.locals.runtime?.env?.OPS_DB;
 let stories: any[] = [];
 if (db) {
-  const { results } = await db.prepare(`SELECT * FROM stories ORDER BY CASE status WHEN 'new' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, created_at DESC`).all();
+  const { results } = lead
+    ? await db.prepare(`SELECT * FROM stories ORDER BY CASE status WHEN 'new' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, created_at DESC`).all()
+    : await db.prepare(`SELECT id, story, credit, about, event_slug, consent_social, created_at FROM stories WHERE status = 'approved' ORDER BY created_at DESC`).all();
   stories = results;
 }
 const eventName = (slug: string | null) => events.find(e => e.slug === slug)?.name;
@@ -26,14 +31,38 @@ const when = (iso: string) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleDate
     <section class="st-section">
       <div class="container">
         <h1 class="st-heading">Stories</h1>
-        <p class="st-intro">
+        {!lead && (
+          <p class="st-intro">
+            Stories people have shared, approved and on the website. Only share one on social media
+            where it says "OK for social media", and use the wording and credit exactly as here.
+            New stories go to Chris and Dan to review first; tell them if you hear one worth adding,
+            or send people to <a href="/feedback/story">/feedback/story</a>.
+          </p>
+        )}
+        {!lead && (
+          <ul class="st-list" role="list">
+            {stories.length === 0 && <li class="st-empty">None yet.</li>}
+            {stories.map(s => (
+              <li class="st st--approved">
+                <blockquote class="st__quote">{s.story}</blockquote>
+                <p class="st__meta">
+                  {s.credit || 'Anonymous'}{s.about && <>, {s.about}</>}
+                  {eventName(s.event_slug) && <> · {eventName(s.event_slug)}</>}
+                  · {when(s.created_at)}
+                  · <strong>{s.consent_social ? 'OK for social media' : 'Website only, not social'}</strong>
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {lead && <p class="st-intro">
           People's stories from <a href="/feedback/story">/feedback/story</a>. Approve one and it
           appears in Burton's stories on the home page straight away. You can tidy the wording first
           (keep their voice). Approving or not using a story deletes the contributor's email, as
           promised on the form. Social-media sharing is only OK where it says so.
-        </p>
+        </p>}
 
-        {groups.map(g => {
+        {lead && groups.map(g => {
           const rows = stories.filter(s => s.status === g.key);
           return (
             <section class="st-group" aria-labelledby={`h-${g.key}`}>
@@ -125,6 +154,7 @@ const when = (iso: string) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleDate
   .st { background: var(--ink-soft); border: 1px solid var(--line); border-left: 4px solid var(--ember); border-radius: var(--radius); padding: var(--space-4); }
   .st--approved { border-left-color: #4caf50; }
   .st--declined { border-left-color: var(--line); opacity: 0.75; }
+  .st__quote { margin: 0 0 var(--space-2); color: var(--paper); line-height: 1.5; white-space: pre-line; }
   .st__form { display: flex; flex-direction: column; gap: var(--space-3); }
   .st textarea, .f input {
     font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink);

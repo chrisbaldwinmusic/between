@@ -8,7 +8,7 @@ import ReportLayout from '../../../layouts/ReportLayout.astro';
 import ReportGallery from '../../../components/ReportGallery.astro';
 import { COMMUNITY_CHANNELS } from '../../../lib/feedback.js';
 import { loadAll, periodReport, reviewPeriods, socialTotal, fmtDate, monthLabel, pct, TARGETS } from '../../../lib/metrics.js';
-import { ukToday } from '../../../lib/dates.js';
+import { ukToday, eventWhen } from '../../../lib/dates.js';
 
 const db = Astro.locals.runtime?.env?.OPS_DB;
 if (!db) return new Response('Database unavailable', { status: 503 });
@@ -72,7 +72,7 @@ const prompts = [
           {r.events.map(e => (
             <tr>
               <td><a href={`/team/evaluation/survey-report?e=${e.event.slug}`}>{e.event.name}</a></td>
-              <td>{fmtDate(e.event.date, { day: 'numeric', month: 'short' })}</td>
+              <td>{eventWhen(e.event, d => fmtDate(d, { day: 'numeric', month: 'short' }))}</td>
               <td>{fmt(e.attendance)}</td>
               <td>{e.survey.n}</td>
               <td>{e.responseRate != null ? `${e.responseRate}%` : '–'}</td>

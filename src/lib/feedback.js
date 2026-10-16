@@ -75,6 +75,21 @@ export function checkinOpen(event, today = ukToday()) {
   return event.date === today;
 }
 
+// Tracked survey links, one per channel, so the attribution report shows which channel brought
+// responses in. Used by the community email and the team's survey preview page.
+export const SURVEY_SHARE_CHANNELS = [
+  ['WhatsApp', 'whatsapp'],
+  ['Facebook page', 'facebook-page'],
+  ['Facebook groups', 'facebook-group'],
+  ['Instagram', 'instagram'],
+  ['TikTok', 'tiktok'],
+  ['Email', 'email'],
+];
+export function surveyShareLinks(slug) {
+  return SURVEY_SHARE_CHANNELS.map(([name, source]) =>
+    [name, `https://between.sonicboom.org.uk/feedback/${slug}?utm_source=${source}&utm_medium=social&utm_campaign=${slug}-survey`]);
+}
+
 // The survey should go out within 48 hours of the event.
 export function surveyDue(event) {
   return addDays(event.date, 2);

@@ -28,9 +28,27 @@ export function liveStatus(event, today = ukToday()) {
 }
 
 /**
- * Whether an event's exact date is public. Dates aren't locked down until tickets go on sale, so
- * until then the public site shows only the month (events.json `month`).
+ * Whether an event's exact date is fixed. Dates aren't locked down until tickets go on sale (or,
+ * for a free event, until events.json has `"date_confirmed": true`), so until then the site and
+ * the team area show only the month (events.json `month`).
  */
 export function dateFixed(event, today = ukToday()) {
-  return event.status === 'onsale' || event.status === 'soldout' || event.date <= today;
+  return event.status === 'onsale' || event.status === 'soldout' || event.date_confirmed === true || event.date <= today;
+}
+
+/**
+ * An event's date for the team: the exact date once it's fixed (see dateFixed), otherwise its
+ * month with "date TBC". Team pages and emails use this too, so nobody plans around a date that
+ * may still move. `exact` formats the fixed date.
+ */
+export function eventWhen(event, exact, today = ukToday()) {
+  return dateFixed(event, today) ? exact(event.date) : `${event.month}, date TBC`;
+}
+
+/**
+ * The survey preview and the QR posters are ready from the 1st of the event's month: early enough
+ * to plan posts and print posters, without pinning anyone to a day that may still change.
+ */
+export function materialsReady(event, today = ukToday()) {
+  return today >= `${event.date.slice(0, 7)}-01`;
 }

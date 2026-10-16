@@ -11,8 +11,8 @@
 // worker/gate.js; previewed and sent by hand from /team/evaluation.
 
 import events from '../data/events.json';
-import { ukToday, addDays } from './dates.js';
-import { surveyDue, longDate } from './feedback.js';
+import { ukToday, addDays, dateFixed, eventWhen } from './dates.js';
+import { surveyDue, longDate, surveyShareLinks } from './feedback.js';
 import { LEADS } from './team-access.js';
 import { loadAll, eventReport, reviewPeriods } from './metrics.js';
 import { nameMatcher } from './ownership.js';
@@ -23,7 +23,6 @@ const FROM = 'Between Ops <hello@sonicboom.org.uk>';
 const monthName = m => new Date(`${m}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const isMonday = d => new Date(`${d}T00:00:00Z`).getUTCDay() === 1;
 const shortDate = d => longDate(d).replace(/^\w+ /, '');
-const surveyLink = (slug, source) => `${SITE}/feedback/${slug}?utm_source=${source}&utm_medium=social&utm_campaign=${slug}-survey`;
 
 // ── Leads ────────────────────────────────────────────────────────────────────
 
@@ -141,6 +140,17 @@ export async function buildCommunityReminders(db, today = ukToday(), data = null
 
   for (const e of events) {
     const where = `${e.name} (${longDate(e.date)}, ${e.venue})`;
+    // Dates aren't fixed until tickets go on sale (or a free event is confirmed): until then, a
+    // heads-up on the 1st of the month instead of countdowns to a day that may still move.
+    if (!dateFixed(e, today)) {
+      if (today === `${e.date.slice(0, 7)}-01`) {
+        urgent.push({
+          text: `${e.name} is this month (${e.month}, date TBC, ${e.venue}). The survey preview and QR posters are ready; check with Chris and Dan before putting a date in any post. The countdown reminders start once it's fixed.`,
+          link: `${SITE}/team`,
+        });
+      }
+      continue;
+    }
     if (e.ticketing === 'ticketed' && e.date === addDays(today, 8)) {
       urgent.push({
         text: e.status === 'onsale'
@@ -167,13 +177,7 @@ export async function buildCommunityReminders(db, today = ukToday(), data = null
     if (e.date === addDays(today, -1)) {
       urgent.push({
         text: `Share the ${e.name} survey today, using the link for each channel so we can see what works. Emma: post the highlights. Vikki: thank everyone in the WhatsApp community.`,
-        links: [
-          ['WhatsApp', surveyLink(e.slug, 'whatsapp')],
-          ['Facebook page', surveyLink(e.slug, 'facebook-page')],
-          ['Facebook groups', surveyLink(e.slug, 'facebook-group')],
-          ['Instagram', surveyLink(e.slug, 'instagram')],
-          ['Email', surveyLink(e.slug, 'email')],
-        ],
+        links: surveyShareLinks(e.slug),
       });
     }
     if (e.date === addDays(today, -3)) {
@@ -209,7 +213,7 @@ export async function buildCommunityReminders(db, today = ukToday(), data = null
     const soon = events.filter(e => e.date >= today && e.date <= addDays(today, 14));
     urgent.unshift({
       text: soon.length
-        ? `This week and next: ${soon.map(e => `${e.name} on ${shortDate(e.date)}`).join(', ')}. Every post should be about people: who it's for, who came, what it meant.`
+        ? `This week and next: ${soon.map(e => `${e.name} ${eventWhen(e, d => `on ${shortDate(d)}`, today)}`).join(', ')}. Every post should be about people: who it's for, who came, what it meant.`
         : 'No events in the next fortnight: a good week for stories, community posts and growing the WhatsApp community.',
     });
   }

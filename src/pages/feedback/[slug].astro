@@ -6,7 +6,8 @@ export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StayInLoop from '../../components/StayInLoop.astro';
-import { HEARD_FROM, PRIOR_EVENTS, VENUE_QUESTION, VENUE_USE, eventBySlug, surveyOpen, onTheDay } from '../../lib/feedback.js';
+import SurveyForm from '../../components/SurveyForm.astro';
+import { eventBySlug, surveyOpen, onTheDay } from '../../lib/feedback.js';
 import { dateFixed } from '../../lib/dates.js';
 import '../../styles/feedback.css';
 
@@ -37,90 +38,7 @@ const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { we
     <div class="fb-body">
       <div class="container fb-body__inner">
         {!open && <StayInLoop medium="feedback-early" />}
-        {open && (
-        <form class="fb-form" method="post" action="/api/feedback/survey">
-          <input type="hidden" name="event" value={event.slug} />
-          <div class="fb-hp" aria-hidden="true">
-            <label for="website">Leave this empty</label>
-            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
-          </div>
-
-          <fieldset class="fb-q">
-            <legend class="fb-q__legend"><span class="fb-q__num">1.</span>How did you hear about this event?</legend>
-            <p class="fb-q__hint">Pick the one that brought you here.</p>
-            <div class="fb-choices">
-              {HEARD_FROM.map(([value, text], i) => (
-                <label class="fb-choice">
-                  <input type="radio" name="heard_from" value={value} required={i === 0} />
-                  {text}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset class="fb-q">
-            <legend class="fb-q__legend"><span class="fb-q__num">2.</span>Including this one, how many Sonic Boom Music CIC events have you been to?</legend>
-            <div class="fb-choices fb-choices--row">
-              {PRIOR_EVENTS.map(([value, text], i) => (
-                <label class="fb-choice">
-                  <input type="radio" name="prior_events" value={value} required={i === 0} />
-                  {text}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <div class="fb-q">
-            <label class="fb-q__label" for="postcode">
-              <span class="fb-q__num">3.</span>What's the first half of your postcode? <span class="fb-q__opt-tag">(optional)</span>
-            </label>
-            <p class="fb-q__hint" id="postcode-hint">
-              Just the first part, like DE14. It shows us where our audience comes from. We never
-              ask for your full postcode, your name or your email here.
-            </p>
-            <input
-              class="fb-input fb-input--short"
-              id="postcode"
-              name="postcode"
-              type="text"
-              inputmode="text"
-              autocomplete="off"
-              maxlength="4"
-              aria-describedby="postcode-hint"
-            />
-          </div>
-
-          <fieldset class="fb-q">
-            <legend class="fb-q__legend"><span class="fb-q__num">4.</span>{VENUE_QUESTION}</legend>
-            <p class="fb-q__hint">
-              A dedicated grassroots venue for Burton is our ambition, not a done deal. Your answer
-              helps us find out if the demand is there.
-            </p>
-            <div class="fb-choices fb-choices--row">
-              {VENUE_USE.map(([value, text], i) => (
-                <label class="fb-choice">
-                  <input type="radio" name="venue_use" value={value} required={i === 0} />
-                  {text}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <div class="fb-q">
-            <label class="fb-q__label" for="venue_wants">
-              <span class="fb-q__num">5.</span>What would you want from a venue like that? <span class="fb-q__opt-tag">(optional)</span>
-            </label>
-            <p class="fb-q__hint" id="wants-hint">Gigs, genres, times, prices, anything. Please don't include names or contact details.</p>
-            <textarea class="fb-textarea" id="venue_wants" name="venue_wants" maxlength="1000" aria-describedby="wants-hint"></textarea>
-          </div>
-
-          <button class="btn btn-primary fb-submit" type="submit">Send my answers</button>
-          <p class="fb-note">
-            Answers are anonymous. We use them to plan future events and to report to Arts Council
-            England, who fund this programme. See our <a href="/privacy">privacy notice</a>.
-          </p>
-        </form>
-        )}
+        {open && <SurveyForm event={event} />}
       </div>
     </div>
   </main>

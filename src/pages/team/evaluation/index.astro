@@ -9,7 +9,7 @@ import BaseLayout from '../../../layouts/BaseLayout.astro';
 import {
   HEARD_FROM, PRIOR_EVENTS, VENUE_USE, VENUE_QUESTION, LOCAL_OUTWARD, COMMUNITY_CHANNELS, label, surveyDue,
 } from '../../../lib/feedback.js';
-import { ukToday } from '../../../lib/dates.js';
+import { ukToday, eventWhen, materialsReady } from '../../../lib/dates.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const env = Astro.locals.runtime?.env ?? {};
@@ -225,7 +225,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
         <section class="block" aria-labelledby="h-events">
           <h2 class="block__title" id="h-events">After every event</h2>
           {eventRows.length === 0 && (
-            <p class="ev-empty">Checklists appear here from the day of each event. First up: {upcomingRows[0]?.e.name}, {upcomingRows[0] && fmt(upcomingRows[0].e.date)}.</p>
+            <p class="ev-empty">Checklists appear here from the day of each event. First up: {upcomingRows[0]?.e.name}, {upcomingRows[0] && eventWhen(upcomingRows[0].e, fmt)}.</p>
           )}
           <ul class="ev-list" role="list">
             {eventRows.map(({ e, row, status, responses: n, checkedIn }) => (
@@ -281,17 +281,21 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
 
         {upcomingRows.length > 0 && (
           <section class="block" aria-labelledby="h-upcoming">
-            <h2 class="block__title" id="h-upcoming">Coming up <span class="block__total">print QR posters in advance</span></h2>
+            <h2 class="block__title" id="h-upcoming">Coming up <span class="block__total">survey preview and QR posters from the 1st of the month</span></h2>
             <ul class="up-list" role="list">
               {upcomingRows.map(({ e }) => (
                 <li style={`--accent:${e.accent}`}>
                   <span class="up-list__name">{e.name}</span>
-                  <span class="up-list__date">{fmt(e.date)} {e.date.slice(0, 4)} · {e.ticketing === 'free' ? 'Free' : 'Ticketed'}</span>
-                  <span class="up-list__links">
-                    <a href={`/feedback/${e.slug}`}>Survey<span class="visually-hidden"> page for {e.name}</span></a>
-                    <a href={`/team/evaluation/qr?e=${e.slug}&t=survey`}>Survey QR<span class="visually-hidden"> for {e.name}</span></a>
-                    {e.ticketing === 'free' && <a href={`/team/evaluation/qr?e=${e.slug}&t=checkin`}>Check-in QR<span class="visually-hidden"> for {e.name}</span></a>}
-                  </span>
+                  <span class="up-list__date">{eventWhen(e, d => `${fmt(d)} ${d.slice(0, 4)}`)} · {e.ticketing === 'free' ? 'Free' : 'Ticketed'}</span>
+                  {materialsReady(e) ? (
+                    <span class="up-list__links">
+                      <a href={`/team/evaluation/survey-preview?e=${e.slug}`}>Survey preview<span class="visually-hidden"> for {e.name}</span></a>
+                      <a href={`/team/evaluation/qr?e=${e.slug}&t=survey`}>Survey QR<span class="visually-hidden"> for {e.name}</span></a>
+                      {e.ticketing === 'free' && <a href={`/team/evaluation/qr?e=${e.slug}&t=checkin`}>Check-in QR<span class="visually-hidden"> for {e.name}</span></a>}
+                    </span>
+                  ) : (
+                    <span class="up-list__date">Survey and QR posters from 1 {e.month}</span>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,0 +1,125 @@
+---
+// Preview of an event's post-event survey (/team/evaluation/survey-preview?e=slug): the same form
+// people will see, with nothing that can be sent. Ready from the 1st of the event's month, like the
+// QR posters, so the team can plan posts around it. Leads and the community managers
+// (src/middleware.js).
+export const prerender = false;
+
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SurveyForm from '../../../components/SurveyForm.astro';
+import { eventBySlug, surveyOpen, surveyShareLinks } from '../../../lib/feedback.js';
+import { materialsReady, eventWhen } from '../../../lib/dates.js';
+import { fmtDate } from '../../../lib/metrics.js';
+import { getEmail, isLead } from '../../../lib/team-access.js';
+import '../../../styles/feedback.css';
+
+const back = isLead(getEmail(Astro.request)) ? '/team/evaluation' : '/team';
+const event = eventBySlug(Astro.url.searchParams.get('e'));
+if (!event || !materialsReady(event)) return Astro.redirect(back);
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const when = eventWhen(event, d => fmtDate(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+const live = `/feedback/${event.slug}`;
+---
+<BaseLayout title={`Survey preview: ${event.name} · Between Ops`} nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <div class="sp-bar">
+      <div class="container sp-bar__inner">
+        <h1 class="sp-bar__title">Survey preview: {event.name}</h1>
+        <p>
+          This is the survey people get for {event.name} ({when}).
+          {surveyOpen(event)
+            ? <>It's open now at <a href={live}>{`between.sonicboom.org.uk${live}`}</a>.</>
+            : <>It opens on the day of the event at <a href={live}>{`between.sonicboom.org.uk${live}`}</a>; until then that link shows a "see you there" page.</>}
+          {' '}Share it with the links below, not this page.
+        </p>
+      </div>
+    </div>
+
+    <section class="sp-share" aria-labelledby="h-share">
+      <div class="container">
+        <h2 class="sp-share__title" id="h-share">Share it</h2>
+        <p class="sp-share__intro">
+          Use the link for the channel you're posting on, so we can see which channels bring
+          answers in (<a href="/team/evaluation/attribution">tracked links report</a>). Best shared
+          the day after the event, while it's fresh.
+        </p>
+        <ul class="sp-links" role="list">
+          {surveyShareLinks(event.slug).map(([name, url]) => (
+            <li class="sp-link">
+              <span class="sp-link__name">{name}</span>
+              <code class="sp-link__url">{url}</code>
+              <button class="sp-link__copy" type="button" data-copy={url}>Copy<span class="visually-hidden"> the {name} link</span></button>
+            </li>
+          ))}
+        </ul>
+        <p class="sp-share__msg" role="status"></p>
+        <p class="sp-share__intro">
+          Posters at the venue: <a href={`/team/evaluation/qr?e=${event.slug}&t=survey`}>survey QR poster</a>
+          {event.ticketing === 'free' && <> · <a href={`/team/evaluation/qr?e=${event.slug}&t=checkin`}>check-in QR poster</a></>}.
+        </p>
+      </div>
+    </section>
+
+    <div class="fb-hero" style={`--accent:${event.accent}`}>
+      <div class="container fb-hero__inner">
+        <p class="fb-hero__eyebrow">{event.name}</p>
+        <p class="fb-hero__title" aria-hidden="true">How was it?</p>
+        <p class="fb-hero__sub">
+          Five quick questions, about two minutes. Every answer shapes the next night, and helps build
+          the case for our ambition: a permanent home for grassroots music in Burton.
+        </p>
+      </div>
+    </div>
+
+    <div class="fb-body">
+      <div class="container fb-body__inner">
+        <SurveyForm event={event} preview />
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  // Nothing here posts anywhere: the preview form has no action or submit button, and this stops
+  // an Enter key press from submitting it to the page itself.
+  document.querySelectorAll('form[data-preview]').forEach(f => f.addEventListener('submit', e => e.preventDefault()));
+
+  const msg = document.querySelector('.sp-share__msg');
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
+    const name = btn.closest('.sp-link')?.querySelector('.sp-link__name')?.textContent;
+    try {
+      await navigator.clipboard.writeText(btn.dataset.copy!);
+      if (msg) msg.textContent = `${name} link copied.`;
+    } catch {
+      if (msg) msg.textContent = 'Could not copy: press and hold the link to copy it instead.';
+    }
+  }));
+</script>
+
+<style>
+  .sp-bar { background: var(--ink-soft); border-bottom: 1px solid var(--line); border-left: 3px solid var(--ember); }
+  .sp-bar__inner { padding-block: var(--space-3); font-size: var(--text-sm); color: var(--body); }
+  .sp-bar__title { font-family: var(--font-body); font-size: var(--text-lg, 1.25rem); font-weight: 700; color: var(--paper); margin: 0 0 var(--space-1, 0.25rem); }
+  .sp-bar p { margin: 0; }
+  .sp-bar a { color: var(--ember); overflow-wrap: anywhere; }
+  .sp-bar a:focus-visible, .sp-share a:focus-visible, .sp-link__copy:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .sp-share { background: var(--ink); padding-block: var(--space-6); border-bottom: 1px solid var(--line); }
+  .sp-share__title { font-family: var(--font-body); font-size: var(--text-base); font-weight: 700; color: var(--paper); margin: 0 0 var(--space-2); }
+  .sp-share__intro { font-size: var(--text-sm); color: var(--body); margin: 0 0 var(--space-3); }
+  .sp-share a { color: var(--ember); }
+  .sp-share__msg { font-size: var(--text-xs); color: var(--body); min-height: 1.2em; margin: 0 0 var(--space-3); }
+  .sp-links { list-style: none; margin: 0 0 var(--space-2); padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+  .sp-link {
+    display: grid; grid-template-columns: 1fr auto; gap: 0.25rem var(--space-3); align-items: center;
+    background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-2) var(--space-3);
+  }
+  .sp-link__name { font-size: var(--text-sm); font-weight: 700; color: var(--paper); }
+  .sp-link__url { grid-column: 1; font-size: 0.72rem; color: var(--body); overflow-wrap: anywhere; user-select: all; }
+  .sp-link__copy {
+    grid-column: 2; grid-row: 1 / span 2; font: inherit; font-size: var(--text-xs); font-weight: 700;
+    color: var(--ink); background: var(--ember); border: 0; border-radius: var(--radius-sm); padding: 0.55rem 0.9rem; min-height: 44px; cursor: pointer;
+  }
+  .sp-link__copy:hover { background: var(--paper); }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+</style>

@@ -5,11 +5,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import WipNotice from '../../components/WipNotice.astro';
 import TeamWhy from '../../components/TeamWhy.astro';
 import MyTodos from '../../components/MyTodos.astro';
-import { getEmail, isLead } from '../../lib/team-access.js';
-import { ukToday } from '../../lib/dates.js';
+import { getEmail, isLead, isCommunity } from '../../lib/team-access.js';
+import { ukToday, addDays, eventWhen, materialsReady } from '../../lib/dates.js';
+import { fmtDate } from '../../lib/metrics.js';
+import events from '../../data/events.json';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const lead = isLead(getEmail(Astro.request));
+const community = isCommunity(getEmail(Astro.request));
+// Community managers: surveys to preview and share, from the 1st of the event's month until a
+// fortnight after it.
+const shareable = community ? events.filter(e => materialsReady(e) && e.date >= addDays(ukToday(), -14)) : [];
 const db = Astro.locals.runtime?.env?.OPS_DB;
 
 let team = [];
@@ -45,6 +51,33 @@ const unconfirmedCount = team.filter(p => p.status === 'unconfirmed').length;
 
         {!lead && <WipNotice />}
         <MyTodos />
+        {community && (
+          <section class="cm" aria-labelledby="h-cm">
+            <h2 class="team-subheading" id="h-cm">Surveys and stories to share</h2>
+            {shareable.length > 0 ? (
+              <ul class="cm-list" role="list">
+                {shareable.map(e => (
+                  <li class="cm-item" style={`--accent:${e.accent}`}>
+                    <span class="cm-item__name">{e.name}</span>
+                    <span class="cm-item__when">{eventWhen(e, d => fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' }))}</span>
+                    <span class="cm-item__links">
+                      <a href={`/team/evaluation/survey-preview?e=${e.slug}`}>Survey and share links<span class="visually-hidden"> for {e.name}</span></a>
+                      <a href={`/team/evaluation/qr?e=${e.slug}&t=survey`}>QR poster<span class="visually-hidden"> for {e.name}</span></a>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="cm-empty">Each event's survey and QR poster appear here from the 1st of its month.</p>
+            )}
+            <p class="cm-more">
+              <a href="/team/stories">Stories to share</a> ·
+              <a href="/team/evaluation/survey-report">Survey results</a> ·
+              <a href="/team/evaluation/community-report">Community growth</a> ·
+              <a href="/team/evaluation/attribution">Which links work</a>
+            </p>
+          </section>
+        )}
         <TeamWhy />
 
         <ul class="stat-row" role="list">
@@ -132,6 +165,20 @@ const unconfirmedCount = team.filter(p => p.status === 'unconfirmed').length;
 </script>
 
 <style>
+  .cm { margin-bottom: var(--space-6); }
+  .cm-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+  .cm-item {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem var(--space-3);
+    background: var(--ink-soft); border: 1px solid var(--line); border-left: 4px solid var(--accent, var(--ember));
+    border-radius: var(--radius); padding: var(--space-3);
+  }
+  .cm-item__name { font-weight: 700; color: var(--paper); }
+  .cm-item__when { font-size: var(--text-xs); color: var(--body); }
+  .cm-item__links { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--text-sm); }
+  .cm a { color: var(--ember); font-weight: 600; }
+  .cm a:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .cm-empty, .cm-more { font-size: var(--text-sm); color: var(--body); margin: 0 0 var(--space-2); }
+  .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   .team-section {
     background: var(--ink);
     padding-block: clamp(var(--space-8), 6vw, var(--space-12));

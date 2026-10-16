@@ -1,6 +1,6 @@
 ---
 // Post-event survey report: one event (?e=slug) or the whole programme so far. Printable. The daily
-// reminder emails a summary and a link seven days after each event. Leads only (src/middleware.js).
+// reminder emails a summary and a link seven days after each event. Leads and the community managers (src/middleware.js).
 export const prerender = false;
 
 import ReportLayout from '../../../layouts/ReportLayout.astro';
@@ -8,7 +8,7 @@ import ReportGallery from '../../../components/ReportGallery.astro';
 import events from '../../../data/events.json';
 import { eventBySlug, VENUE_QUESTION } from '../../../lib/feedback.js';
 import { loadAll, eventReport, surveySummary, fmtDate } from '../../../lib/metrics.js';
-import { ukToday } from '../../../lib/dates.js';
+import { ukToday, eventWhen } from '../../../lib/dates.js';
 
 const db = Astro.locals.runtime?.env?.OPS_DB;
 const data = db ? await loadAll(db) : null;
@@ -37,7 +37,7 @@ const title = event ? `Survey report: ${event.name}` : 'Survey report: all event
   </nav>
 
   {!s || s.n === 0 ? (
-    <p style="margin-top:1.5rem">No survey responses yet{event && event.date > today ? `: the survey opens on ${fmtDate(event.date)}` : ''}.</p>
+    <p style="margin-top:1.5rem">No survey responses yet{event && event.date > today ? `: the survey opens on the day of the event (${eventWhen(event, d => fmtDate(d))})` : ''}.</p>
   ) : (
     <>
       <h2 class="r-h2">Headlines</h2>
