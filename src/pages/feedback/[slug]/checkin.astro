@@ -5,7 +5,7 @@
 export const prerender = false;
 
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import { eventBySlug, checkinOpen, longDate } from '../../../lib/feedback.js';
+import { eventBySlug, checkinOpen, onTheDay } from '../../../lib/feedback.js';
 import { ukToday } from '../../../lib/dates.js';
 import '../../../styles/feedback.css';
 
@@ -27,7 +27,7 @@ const open = checkinOpen(event);
         <p class="fb-hero__sub">
           {open
             ? 'Thanks for coming. A ten-second check-in helps us show how many people turn up for live music in Burton.'
-            : `Scan this again at ${event.name} on ${longDate(event.date)} and we'll count you in.`}
+            : `Scan this again at ${event.name} ${onTheDay(event)} and we'll count you in.`}
         </p>
       </div>
     </div>

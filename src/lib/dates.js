@@ -26,3 +26,11 @@ export function liveStatus(event, today = ukToday()) {
   if (event.date === today) return 'today';
   return event.status;
 }
+
+/**
+ * Whether an event's exact date is public. Dates aren't locked down until tickets go on sale, so
+ * until then the public site shows only the month (events.json `month`).
+ */
+export function dateFixed(event, today = ukToday()) {
+  return event.status === 'onsale' || event.status === 'soldout' || event.date <= today;
+}

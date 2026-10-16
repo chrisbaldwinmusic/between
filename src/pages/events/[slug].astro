@@ -4,7 +4,7 @@ export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { eventBySlug } from '../../lib/feedback.js';
-import { liveStatus } from '../../lib/dates.js';
+import { liveStatus, dateFixed } from '../../lib/dates.js';
 
 const event = eventBySlug(Astro.params.slug);
 if (!event) return Astro.redirect('/#the-year');
@@ -108,7 +108,7 @@ const happened = status === 'past' || status === 'today';
           <dl class="event-detail__facts">
             <div class="event-fact">
               <dt class="event-fact__label">Date</dt>
-              <dd class="event-fact__value">{longDate}</dd>
+              <dd class="event-fact__value">{dateFixed(event) ? longDate : event.month}</dd>
             </div>
 
             <div class="event-fact">

@@ -6,7 +6,8 @@ export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StayInLoop from '../../components/StayInLoop.astro';
-import { HEARD_FROM, PRIOR_EVENTS, VENUE_QUESTION, VENUE_USE, eventBySlug, surveyOpen, longDate } from '../../lib/feedback.js';
+import { HEARD_FROM, PRIOR_EVENTS, VENUE_QUESTION, VENUE_USE, eventBySlug, surveyOpen, onTheDay } from '../../lib/feedback.js';
+import { dateFixed } from '../../lib/dates.js';
 import '../../styles/feedback.css';
 
 const event = eventBySlug(Astro.params.slug);
@@ -23,12 +24,12 @@ const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { we
   <main id="main">
     <div class="fb-hero" style={`--accent:${event.accent}`}>
       <div class="container fb-hero__inner">
-        <p class="fb-hero__eyebrow">{event.name} · {weekday} {d} {event.month}</p>
+        <p class="fb-hero__eyebrow">{event.name} · {dateFixed(event) ? `${weekday} ${d} ${event.month}` : event.month}</p>
         <h1 class="fb-hero__title">{open ? 'How was it?' : 'See you there'}</h1>
         <p class="fb-hero__sub">
           {open
             ? 'Five quick questions, about two minutes. Every answer shapes the next night, and helps build the case for our ambition: a permanent home for grassroots music in Burton.'
-            : `This is where you'll tell us how ${event.name} went. The questions open on ${longDate(event.date)}, the day of the event.`}
+            : `This is where you'll tell us how ${event.name} went. The questions open ${onTheDay(event)} of the event.`}
         </p>
       </div>
     </div>

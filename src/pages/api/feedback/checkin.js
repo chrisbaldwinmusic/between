@@ -1,7 +1,7 @@
 // POST /api/feedback/checkin — QR check-in at free events, from /feedback/[slug]/checkin.
 // Public (no PIN, no Access). Accepts a plain form post and redirects to /feedback/checked-in.
 
-import { eventBySlug, outwardCode, checkinOpen, longDate } from '../../../lib/feedback.js';
+import { eventBySlug, outwardCode, checkinOpen, onTheDay } from '../../../lib/feedback.js';
 import { recordAction } from '../../../lib/attribution.js';
 import { readForm, rateLimited, redirect, errorPage } from '../../../lib/public-form.js';
 
@@ -16,7 +16,7 @@ export async function POST(context) {
 
   if (!event || event.ticketing !== 'free') return errorPage("We couldn't tell which event this was for.", '/feedback');
   const back = `/feedback/${event.slug}/checkin`;
-  if (!checkinOpen(event)) return errorPage(`Check-in for ${event.name} is open on ${longDate(event.date)} only.`, `/feedback/${event.slug}`);
+  if (!checkinOpen(event)) return errorPage(`Check-in for ${event.name} opens ${onTheDay(event)} of the event.`, `/feedback/${event.slug}`);
   if (body.website) return redirect('/feedback/checked-in');
 
   const party = Number(body.party_size);

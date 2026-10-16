@@ -4,7 +4,7 @@
 // endpoints and /team/evaluation so the options only live in one place.
 
 import events from '../data/events.json';
-import { ukToday, addDays } from './dates.js';
+import { ukToday, addDays, dateFixed } from './dates.js';
 
 export const HEARD_FROM = [
   ['whatsapp', 'WhatsApp'],
@@ -84,4 +84,9 @@ export function surveyDue(event) {
 export function longDate(date) {
   const [y, m, d] = date.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+}
+
+/** "on Friday 23 October", or "on the day" while the date isn't public yet (see dateFixed). */
+export function onTheDay(event) {
+  return dateFixed(event) ? `on ${longDate(event.date)}` : 'on the day';
 }

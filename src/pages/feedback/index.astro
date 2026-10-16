@@ -7,7 +7,7 @@ export const prerender = false;
 import events from '../../data/events.json';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import StayInLoop from '../../components/StayInLoop.astro';
-import { ukToday } from '../../lib/dates.js';
+import { ukToday, dateFixed } from '../../lib/dates.js';
 import '../../styles/feedback.css';
 
 const today = ukToday();
@@ -47,7 +47,7 @@ const utm = (slug: string) => `utm_source=between&utm_medium=feedback-hub&utm_ca
           <h2 class="fb-h2" id="past-h">Been to one of these?</h2>
           {past.length === 0 ? (
             <p class="fb-p">
-              Our first event is <strong>{upcoming[0]?.name}</strong> on {upcoming[0] && when(upcoming[0].date)}.
+              Our first event is <strong>{upcoming[0]?.name}</strong>{upcoming[0] && (dateFixed(upcoming[0], today) ? ` on ${when(upcoming[0].date)}` : ` in ${upcoming[0].month}`)}.
               Its feedback form opens here on the day.
             </p>
           ) : (
@@ -77,7 +77,7 @@ const utm = (slug: string) => `utm_source=between&utm_medium=feedback-hub&utm_ca
             <h2 class="fb-h2" id="next-h">Coming up</h2>
             <ul class="fb-upcoming" role="list">
               {upcoming.map(e => (
-                <li><span>{e.name}</span><span>{when(e.date)}</span></li>
+                <li><span>{e.name}</span><span>{dateFixed(e, today) ? when(e.date) : e.month}</span></li>
               ))}
             </ul>
           </section>
