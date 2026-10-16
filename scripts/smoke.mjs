@@ -7,6 +7,10 @@ const checks = [
   ['/feedback/firelight', [200], 'survey page (open)'],
   ['/privacy', [200], 'privacy notice (open)'],
   ['/team', [302], 'team area (behind Cloudflare Access)'],
+  ['/team/help', [302], 'team help (behind Cloudflare Access)'],
+  ['/between-ops.webmanifest', [200], 'team app manifest (open)'],
+  ['/between-ops-sw.js', [200], 'team app service worker (open)'],
+  ['/api/team/push', [302], 'push subscriptions (behind Cloudflare Access)'],
   ['/api/team/budget', [302], 'team API (behind Cloudflare Access)'],
 ];
 let failed = 0;

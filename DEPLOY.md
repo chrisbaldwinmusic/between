@@ -239,6 +239,28 @@ Reports (leads): `/team/evaluation/community-report`, `/team/evaluation/survey-r
 `/team/reviews` (one page per review checkpoint in the schedule, with write-up and sign-off;
 `d1/reviews.sql`).
 
+## 5d. Team app and notifications
+
+`/team` installs on phones as **Between Ops** (instructions for the team at `/team/help`). The
+manifest (`public/between-ops.webmanifest`), service worker (`public/between-ops-sw.js`) and offline
+page sit at the site root, outside `/team*`, so Cloudflare Access doesn't block the browser fetching
+them; `worker/gate.js` lets them past the preview PIN. They hold no team data.
+
+Notifications are Web Push (`src/lib/webpush.js`, no third-party service): the daily reminder run
+also notifies everyone in that email's audience on each device they've turned notifications on
+for. Devices are stored in D1 `push_subscriptions` (`d1/push.sql`). Needs, once:
+
+```bash
+npx wrangler d1 execute between-ops --remote --file=d1/push.sql
+npx wrangler secret put VAPID_PRIVATE_KEY   # the private half of the key in src/lib/webpush.js
+```
+
+The VAPID public key is in `src/lib/webpush.js`. If you ever replace the key pair, everyone has to
+turn notifications off and on again. Keep the Access application's session duration long (a month)
+so the installed app rarely asks people to sign in again.
+
+App icons (`public/img/app/`) are placeholders. // TODO: replace with the final brand mark.
+
 ## 6. Custom domain + DNS
 
 Already attached: `between.sonicboom.org.uk` → the `between` Worker, via a **Workers Custom

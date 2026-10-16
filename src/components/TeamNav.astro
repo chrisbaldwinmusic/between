@@ -18,6 +18,7 @@ const ICONS: Record<string, string> = {
   stories: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h-1A.5.5 0 0 1 4 15.5z"/><path d="M8.5 8h7M8.5 11.5h5"/>',
   media: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-8.5 9"/>',
   ops: '<path d="M9 4h6v3H9z"/><path d="M15 5.5h2.5A1.5 1.5 0 0 1 19 7v12.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5V7a1.5 1.5 0 0 1 1.5-1.5H9"/><path d="M8.5 11.5h7M8.5 15h7M8.5 18.5h4"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.8"/><path d="M12 17.2v.1"/>',
   site: '<path d="M14 4h6v6M20 4l-8.5 8.5"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>',
 };
 
@@ -30,6 +31,7 @@ const links = [
   { href: '/team/stories',    label: 'Stories',    icon: 'stories'    },
   { href: '/team/media',      label: 'Media',      icon: 'media'      },
   { href: '/team/ops',        label: 'Ops',        icon: 'ops'        },
+  { href: '/team/help',       label: 'Help',       icon: 'help'       },
 ].filter(({ href }) => canAccess(authEmail?.toLowerCase() ?? null, href));
 
 // Highlight the section, including sub-pages (e.g. /team/evaluation/community-report, /team/reviews).
@@ -46,10 +48,13 @@ const initials = authEmail
 
 <header class="tbar" role="banner">
   <a href="/team" class="tbar__brand">Between Ops</a>
+  <span class="tbar__actions">
+  <button class="tbar__help" type="button" aria-pressed="true" data-help-toggle>Help</button>
   <button class="tbar__menu" type="button" aria-controls="team-side" aria-expanded="false">
     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
     Menu
   </button>
+  </span>
 </header>
 
 <div class="tside-backdrop" hidden></div>
@@ -74,6 +79,10 @@ const initials = authEmail
   </nav>
 
   <div class="tside__foot">
+    <button class="tside__switch" type="button" role="switch" aria-checked="true" data-help-toggle>
+      <span>Show help on each page</span>
+      <span class="tside__switch-track" aria-hidden="true"><span class="tside__switch-thumb"></span></span>
+    </button>
     <a href="/" class="tside__link tside__link--quiet">
       <svg class="tside__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" set:html={ICONS.site} />
       <span>Public site</span>
@@ -96,6 +105,30 @@ const initials = authEmail
 </aside>
 
 <script>
+  // Help switch: shows or hides the help panel on every team page, remembered on this device.
+  const HELP_KEY = 'between-ops-help';
+  const syncHelp = () => {
+    const on = document.documentElement.dataset.help !== 'off';
+    document.querySelectorAll<HTMLElement>('[data-help-toggle]').forEach(el => {
+      if (el.getAttribute('role') === 'switch') el.setAttribute('aria-checked', String(on));
+      else if (el.hasAttribute('aria-pressed')) el.setAttribute('aria-pressed', String(on));
+    });
+  };
+  document.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-help-toggle]')) return;
+    const on = document.documentElement.dataset.help === 'off';
+    if (on) delete document.documentElement.dataset.help; else document.documentElement.dataset.help = 'off';
+    try { localStorage.setItem(HELP_KEY, on ? 'on' : 'off'); } catch {}
+    syncHelp();
+    if (on) document.querySelector<HTMLElement>('.page-help')?.scrollIntoView({ block: 'nearest' });
+  });
+  syncHelp();
+
+  // The team app: register the service worker for notifications and the offline page.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/between-ops-sw.js', { scope: '/team' }).catch(() => {});
+  }
+
   const side = document.getElementById('team-side');
   const toggle = document.querySelector<HTMLButtonElement>('.tbar__menu');
   const backdrop = document.querySelector<HTMLElement>('.tside-backdrop');
@@ -154,6 +187,26 @@ const initials = authEmail
     padding: 0.45rem 0.7rem;
     cursor: pointer;
   }
+
+  .tbar__actions { display: inline-flex; gap: var(--space-2); }
+  .tbar__help {
+    font: inherit; font-size: var(--text-xs); font-weight: 700; color: var(--body);
+    background: none; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.45rem 0.7rem; cursor: pointer;
+  }
+  .tbar__help[aria-pressed='true'] { color: var(--ink); background: var(--ember); border-color: var(--ember); }
+
+  .tside__switch {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); width: 100%;
+    font: inherit; font-size: var(--text-xs); font-weight: 600; color: var(--body); text-align: left;
+    background: none; border: 0; border-radius: var(--radius); padding: 0.6rem 0.75rem; cursor: pointer;
+  }
+  .tside__switch:hover { color: var(--paper); background: rgba(255, 255, 255, 0.05); }
+  .tside__switch-track { position: relative; width: 2.2rem; height: 1.25rem; border-radius: 1rem; background: var(--line); flex-shrink: 0; transition: background 150ms ease; }
+  .tside__switch-thumb { position: absolute; top: 0.15rem; left: 0.15rem; width: 0.95rem; height: 0.95rem; border-radius: 50%; background: var(--paper); transition: transform 150ms ease; }
+  .tside__switch[aria-checked='true'] .tside__switch-track { background: var(--ember); }
+  .tside__switch[aria-checked='true'] .tside__switch-thumb { transform: translateX(0.95rem); }
+  @media (prefers-reduced-motion: reduce) { .tside__switch-track, .tside__switch-thumb { transition: none; } }
+  .tside__switch:focus-visible, .tbar__help:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
 
   /* ── Sidebar ─────────────────────────────────────────────────────────── */
   .tside {

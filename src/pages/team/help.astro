@@ -1,0 +1,245 @@
+---
+// How to use the team area: put it on your phone as an app, turn on notifications, and what each
+// page is for (from src/lib/team-help.js, filtered to the pages this person can open). Open to
+// everyone signed in (src/middleware.js).
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { PAGE_HELP, tipsFor } from '../../lib/team-help.js';
+import { canAccess, getEmail, isLead, isCommunity } from '../../lib/team-access.js';
+import { VAPID_PUBLIC_KEY } from '../../lib/webpush.js';
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const email = getEmail(Astro.request);
+const who = { lead: isLead(email), community: isCommunity(email) };
+const pages = PAGE_HELP.filter(h => h.path !== '/team/help' && canAccess(email, h.path));
+---
+<BaseLayout title="Help · Between Ops" nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <section class="hp">
+      <div class="container hp__inner">
+        <h1 class="hp-heading">How to use this site</h1>
+        <p class="hp-intro">
+          Between Ops is the team's workspace for The Space Between: the plan, your to-dos, stories,
+          surveys and photos, kept live. It works in any browser, and it's quickest as an app on your phone.
+        </p>
+        <nav class="hp-toc" aria-label="On this page">
+          <a href="#app">Get the app</a> · <a href="#notifications">Notifications</a> · <a href="#pages">What each page does</a> · <a href="#signing-in">Signing in</a>
+        </nav>
+
+        <section class="hp-block" id="app" aria-labelledby="h-app">
+          <h2 class="hp-block__title" id="h-app">Get the app on your phone</h2>
+          <p class="hp-status" data-app-status>It isn't installed on this device yet.</p>
+          <button class="hp-btn hp-btn--primary" type="button" data-install hidden>Install Between Ops</button>
+
+          <div class="hp-cols">
+            <section class="hp-card" data-platform="ios" aria-labelledby="h-ios">
+              <h3 id="h-ios">iPhone or iPad</h3>
+              <ol>
+                <li>Open this page in <strong>Safari</strong> (other browsers on iPhone can't install apps with notifications).</li>
+                <li>Tap the <strong>Share</strong> button (the square with an arrow pointing up).</li>
+                <li>Scroll down and tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+                <li>Open <strong>Between Ops</strong> from your Home Screen, sign in, and come back to this page to turn on notifications.</li>
+              </ol>
+              <p class="hp-note">Notifications need iOS 16.4 or later, and only work in the Home Screen app, not in Safari itself.</p>
+            </section>
+            <section class="hp-card" data-platform="android" aria-labelledby="h-android">
+              <h3 id="h-android">Android</h3>
+              <ol>
+                <li>Open this page in <strong>Chrome</strong>.</li>
+                <li>Tap <strong>Install Between Ops</strong> above if you see it. If not, tap the <strong>⋮ menu</strong>, then <strong>Install app</strong> (or <strong>Add to Home screen</strong>).</li>
+                <li>Open <strong>Between Ops</strong> from your home screen or app drawer, and turn on notifications below.</li>
+              </ol>
+              <p class="hp-note">On a computer, Chrome and Edge can install it too: look for the install icon in the address bar.</p>
+            </section>
+          </div>
+        </section>
+
+        <section class="hp-block" id="notifications" aria-labelledby="h-notif">
+          <h2 class="hp-block__title" id="h-notif">Notifications</h2>
+          <p>
+            Turn them on and the daily reminders come to your phone as well as your email: your to-dos
+            on the day they're due, event countdowns, survey days and monthly numbers. They only come on
+            days when something needs doing, at about 8am (7am in winter).
+          </p>
+          <p class="hp-status" data-push-status role="status">Checking this device…</p>
+          <div class="hp-actions">
+            <button class="hp-btn hp-btn--primary" type="button" data-push="on" hidden>Turn on notifications</button>
+            <button class="hp-btn" type="button" data-push="test" hidden>Send me a test</button>
+            <button class="hp-btn" type="button" data-push="off" hidden>Turn off on this device</button>
+          </div>
+          <p class="hp-note">
+            Notifications are per device: turn them on on each phone or computer you want them on. If you
+            block them by mistake, allow them again in your phone's settings for Between Ops (iPhone:
+            Settings → Notifications → Between Ops; Android: long-press the app icon → App info → Notifications).
+          </p>
+        </section>
+
+        <section class="hp-block" id="pages" aria-labelledby="h-pages">
+          <h2 class="hp-block__title" id="h-pages">What each page does</h2>
+          <p>
+            Each page has a help panel at the top with these tips. Turn it off and on with the
+            <strong>Help</strong> button at the top of the screen on a phone, or <strong>Show help on each page</strong> at the bottom of the menu.
+          </p>
+          <div class="hp-pages">
+            {pages.map(h => (
+              <section class="hp-page" aria-labelledby={`h-${h.path.replace(/\W+/g, '-')}`}>
+                <h3 id={`h-${h.path.replace(/\W+/g, '-')}`}>
+                  {h.path.includes('?') || h.path.endsWith('survey-preview') ? h.title : <a href={h.path}>{h.title}</a>}
+                </h3>
+                <p>{h.what}</p>
+                {tipsFor(h, who).length > 0 && <ul>{tipsFor(h, who).map(t => <li>{t}</li>)}</ul>}
+              </section>
+            ))}
+          </div>
+        </section>
+
+        <section class="hp-block" id="signing-in" aria-labelledby="h-signin">
+          <h2 class="hp-block__title" id="h-signin">Signing in</h2>
+          <ul>
+            <li>Sign in with your <strong>sonicboom.org.uk</strong> email, with Google or with a one-time code sent to that inbox.</li>
+            <li>You'll stay signed in for a while, then be asked again. That's normal: it keeps the team area private.</li>
+            <li>To sign out, use <strong>Log out</strong> at the bottom of the menu.</li>
+            <li>Something wrong or missing? Tell Chris or Dan.</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script define:vars={{ VAPID_PUBLIC_KEY }}>
+  // Install and notification controls. Plain script (define:vars) so the public VAPID key reaches it.
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua);
+
+  const appStatus = document.querySelector('[data-app-status]');
+  if (standalone) appStatus.textContent = "You're using the app. You're all set.";
+  else if (ios) appStatus.textContent = 'On this iPhone: follow the iPhone steps below.';
+  else if (android) appStatus.textContent = 'On this phone: follow the Android steps below.';
+  // Put this device's steps first.
+  if (android) document.querySelector('[data-platform="android"]').parentElement.prepend(document.querySelector('[data-platform="android"]'));
+
+  const installBtn = document.querySelector('[data-install]');
+  let deferred = null;
+  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; installBtn.hidden = false; });
+  installBtn.addEventListener('click', async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    await deferred.userChoice;
+    deferred = null;
+    installBtn.hidden = true;
+  });
+  addEventListener('appinstalled', () => { appStatus.textContent = 'Installed. Open Between Ops from your home screen.'; });
+
+  // ── Notifications ──
+  const status = document.querySelector('[data-push-status]');
+  const btn = k => document.querySelector(`[data-push="${k}"]`);
+  const show = (...keys) => ['on', 'test', 'off'].forEach(k => { btn(k).hidden = !keys.includes(k); });
+  const keyBytes = () => {
+    const s = VAPID_PUBLIC_KEY.replace(/-/g, '+').replace(/_/g, '/');
+    return Uint8Array.from(atob(s.padEnd(Math.ceil(s.length / 4) * 4, '=')), c => c.charCodeAt(0));
+  };
+  const device = () => (ios ? 'iPhone/iPad' : android ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Browser');
+  const reg = () => navigator.serviceWorker.register('/between-ops-sw.js', { scope: '/team' }).then(() => navigator.serviceWorker.ready);
+
+  async function refresh() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      status.textContent = ios && !standalone
+        ? 'On iPhone, notifications only work in the app: add Between Ops to your Home Screen first (steps above), then open it and come back here.'
+        : "This browser can't do notifications. Try Chrome on Android, or the Home Screen app on iPhone.";
+      return show();
+    }
+    if (Notification.permission === 'denied') {
+      status.textContent = "Notifications are blocked for Between Ops on this device. Allow them in your phone's settings (see below), then reload this page.";
+      return show();
+    }
+    const sub = await (await reg()).pushManager.getSubscription();
+    if (sub) { status.textContent = 'Notifications are on for this device.'; return show('test', 'off'); }
+    status.textContent = 'Notifications are off on this device.';
+    show('on');
+  }
+
+  async function save(sub) {
+    const res = await fetch('/api/team/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON(), device: device() }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Could not save');
+  }
+
+  btn('on').addEventListener('click', async () => {
+    btn('on').disabled = true;
+    status.textContent = 'Asking your permission…';
+    try {
+      if ((await Notification.requestPermission()) !== 'granted') return refresh();
+      const r = await reg();
+      const sub = await r.pushManager.getSubscription() || await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes() });
+      await save(sub);
+      status.textContent = "Notifications are on. Tap \"Send me a test\" to check they arrive.";
+      show('test', 'off');
+    } catch (err) {
+      status.textContent = `Couldn't turn them on: ${err.message}. Try again, or tell Chris.`;
+    } finally {
+      btn('on').disabled = false;
+    }
+  });
+
+  btn('test').addEventListener('click', async () => {
+    status.textContent = 'Sending…';
+    const res = await fetch('/api/team/push/test', { method: 'POST' });
+    const body = await res.json().catch(() => ({}));
+    status.textContent = res.ok ? 'Sent. It should arrive in a few seconds (it may not pop up while the app is open).' : body.error || "Couldn't send a test.";
+  });
+
+  btn('off').addEventListener('click', async () => {
+    const sub = await (await reg()).pushManager.getSubscription();
+    if (sub) {
+      await fetch('/api/team/push', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {});
+      await sub.unsubscribe().catch(() => {});
+    }
+    refresh();
+  });
+
+  refresh().catch(() => { status.textContent = "Couldn't check notifications on this device."; });
+</script>
+
+<style>
+  .hp { background: var(--ink); padding-block: clamp(var(--space-8), 6vw, var(--space-12)); min-height: calc(100svh - var(--nav-h)); }
+  .hp__inner { max-width: 52rem; }
+  .hp-heading { font-family: var(--font-display); font-size: var(--text-2xl, 2rem); color: var(--paper); margin: 0 0 var(--space-3); }
+  .hp-intro, .hp p, .hp li { color: var(--body); font-size: var(--text-sm); line-height: 1.55; }
+  .hp-intro { max-width: 60ch; margin: 0 0 var(--space-3); }
+  .hp-toc { font-size: var(--text-sm); margin-bottom: var(--space-6); color: var(--body); }
+  .hp a { color: var(--ember); font-weight: 600; }
+  .hp a:focus-visible, .hp-btn:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .hp strong { color: var(--paper); }
+
+  .hp-block { border-top: 1px solid var(--line); padding-top: var(--space-5); margin-top: var(--space-6); scroll-margin-top: 4rem; }
+  .hp-block__title { font-family: var(--font-body); font-size: var(--text-lg); font-weight: 700; color: var(--paper); margin: 0 0 var(--space-3); }
+  .hp-block ul, .hp-block ol { padding-left: 1.2rem; margin: 0 0 var(--space-3); display: flex; flex-direction: column; gap: 0.35rem; }
+  .hp-status { background: var(--ink-soft); border: 1px solid var(--line); border-left: 3px solid var(--ember); border-radius: var(--radius); padding: var(--space-2) var(--space-3); margin: 0 0 var(--space-3); }
+  .hp-note { font-size: var(--text-xs) !important; }
+
+  .hp-cols { display: grid; grid-template-columns: 1fr; gap: var(--space-3); margin-top: var(--space-3); }
+  @media (min-width: 720px) { .hp-cols { grid-template-columns: 1fr 1fr; } }
+  .hp-card, .hp-page { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-4); }
+  .hp-card h3, .hp-page h3 { font-family: var(--font-body); font-size: var(--text-base); color: var(--paper); margin: 0 0 var(--space-2); }
+  .hp-pages { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+  .hp-page p { margin: 0 0 var(--space-2); }
+  .hp-page ul { margin: 0; }
+
+  .hp-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+  .hp-btn {
+    font: inherit; font-size: var(--text-sm); font-weight: 700; color: var(--paper);
+    background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius-sm);
+    padding: 0.6rem 1rem; min-height: 44px; cursor: pointer;
+  }
+  .hp-btn--primary { color: var(--ink); background: var(--ember); border-color: var(--ember); }
+  .hp-btn:hover { border-color: var(--paper); }
+  .hp-btn[hidden] { display: none; }
+  .hp-btn:disabled { opacity: 0.6; cursor: wait; }
+</style>

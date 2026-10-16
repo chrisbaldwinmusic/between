@@ -1,0 +1,38 @@
+---
+// The help panel at the top of each /team page (content in src/lib/team-help.js). The Help switch
+// in TeamNav shows and hides it on every page; it's on until someone turns it off, and that choice
+// is remembered on the device (html[data-help="off"]).
+import { helpFor, tipsFor } from '../lib/team-help.js';
+import { getEmail, isLead, isCommunity } from '../lib/team-access.js';
+
+const email = getEmail(Astro.request);
+const entry = helpFor(Astro.url.pathname);
+const tips = entry ? tipsFor(entry, { lead: isLead(email), community: isCommunity(email) }) : [];
+const onHelpPage = (Astro.url.pathname.replace(/\/$/, '') || '/') === '/team/help';
+---
+{entry && !onHelpPage && (
+  <aside class="page-help" aria-label={`Help: ${entry.title}`}>
+    <div class="page-help__inner">
+      <p class="page-help__what"><strong>{entry.title}:</strong>{" "}{entry.what}</p>
+      {tips.length > 0 && <ul class="page-help__tips">{tips.map(t => <li>{t}</li>)}</ul>}
+      <p class="page-help__more">
+        <a href="/team/help">How to use this site</a> ·
+        <button type="button" class="page-help__hide" data-help-toggle>Hide help</button>
+      </p>
+    </div>
+  </aside>
+)}
+
+<style>
+  .page-help { background: #241A1A; border-bottom: 1px solid var(--line); border-left: 3px solid var(--ember); font-family: var(--font-body); }
+  :global(html[data-help='off']) .page-help { display: none; }
+  .page-help__inner { max-width: 72rem; margin: 0 auto; padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--body); }
+  .page-help__what { margin: 0 0 var(--space-2); }
+  .page-help__what strong { color: var(--paper); }
+  .page-help__tips { margin: 0 0 var(--space-2); padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+  .page-help__more { margin: 0; font-size: var(--text-xs); }
+  .page-help a, .page-help__hide { color: var(--ember); font-weight: 700; }
+  .page-help__hide { font: inherit; font-weight: 700; background: none; border: 0; padding: 0.5rem 0; cursor: pointer; text-decoration: underline; }
+  .page-help a:focus-visible, .page-help__hide:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  @media print { .page-help { display: none; } }
+</style>

@@ -2,7 +2,8 @@
 // `assets.run_worker_first`, every request comes through here before Astro serves a page or file.
 //
 //  - /team and /api/team: Cloudflare Access (sonicboom.org.uk accounts), not the PIN. See DEPLOY.md §5a.
-//  - /feedback, its endpoints, /privacy, /accessibility and static files: open to everyone, so
+//  - /feedback, its endpoints, /privacy, /accessibility, the team app's manifest and service worker
+//    and static files: open to everyone, so
 //    audiences can do the post-event survey from a QR code.
 //  - Everything else: needs the preview PIN (secret PREVIEW_PIN). Once entered, a strictly
 //    necessary cookie remembers it for 30 days. Remove the secret to switch the gate off at launch.
@@ -20,6 +21,8 @@ const OPEN = [
   /^\/fonts\//,
   /^\/img\//,
   /^\/favicon/,
+  // The team app's manifest, service worker and offline page (no team data; see public/between-ops-sw.js).
+  /^\/between-ops(\.webmanifest|-sw\.js|-offline\.html)$/,
   /^\/robots\.txt$/,
   /^\/api\/attribution$/,
 ];

@@ -50,6 +50,10 @@ const unconfirmedCount = team.filter(p => p.status === 'unconfirmed').length;
         <h1 class="team-heading">Dashboard</h1>
 
         {!lead && <WipNotice />}
+        <p class="app-promo">
+          <strong>Put Between Ops on your phone</strong> and get your reminders as notifications.
+          <a href="/team/help#app">How to</a>
+        </p>
         <MyTodos />
         {community && (
           <section class="cm" aria-labelledby="h-cm">
@@ -165,6 +169,15 @@ const unconfirmedCount = team.filter(p => p.status === 'unconfirmed').length;
 </script>
 
 <style>
+  .app-promo {
+    font-size: var(--text-sm); color: var(--body); margin: 0 0 var(--space-5);
+    background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4);
+  }
+  .app-promo strong { color: var(--paper); }
+  .app-promo a { color: var(--ember); font-weight: 700; margin-left: 0.25rem; }
+  .app-promo a:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  /* Already using the installed app: no need to ask. */
+  @media (display-mode: standalone) { .app-promo { display: none; } }
   .cm { margin-bottom: var(--space-6); }
   .cm-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
   .cm-item {

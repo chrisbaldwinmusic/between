@@ -16,6 +16,7 @@ import { surveyDue, longDate, surveyShareLinks } from './feedback.js';
 import { LEADS } from './team-access.js';
 import { loadAll, eventReport, reviewPeriods } from './metrics.js';
 import { nameMatcher } from './ownership.js';
+import { notify } from './webpush.js';
 
 const SITE = 'https://between.sonicboom.org.uk';
 const FROM = 'Between Ops <hello@sonicboom.org.uk>';
@@ -304,7 +305,16 @@ export async function runAudience(env, audience, { today = ukToday(), force = fa
 
   await db.prepare('INSERT OR REPLACE INTO reminder_log (sent_on, subject, items) VALUES (?, ?, ?)')
     .bind(key, email.subject, built.urgent.length).run();
-  return { sent: true, subject: email.subject, to, ...built };
+
+  // The same reminder as a notification on the phones of anyone who's turned them on in the app.
+  const n = built.urgent.length;
+  const push = await notify(env, to, {
+    title: audience === 'community' ? `Community: ${n} thing${n === 1 ? '' : 's'} today` : `Between: ${n} thing${n === 1 ? '' : 's'} today`,
+    body: built.urgent[0].text.slice(0, 180) + (n > 1 ? ` (+${n - 1} more in your email)` : ''),
+    url: '/team',
+    tag: `daily-${audience}`,
+  }).catch(err => ({ sent: 0, failed: 0, error: String(err) }));
+  return { sent: true, subject: email.subject, to, push, ...built };
 }
 
 /** Both audiences: the daily run. Loads the data once and builds both emails in parallel. */

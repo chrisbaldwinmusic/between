@@ -1,6 +1,7 @@
 ---
 import SiteNav from '../components/SiteNav.astro';
 import TeamNav from '../components/TeamNav.astro';
+import TeamHelp from '../components/TeamHelp.astro';
 import Footer from '../components/Footer.astro';
 import '../styles/tokens.css';
 
@@ -69,6 +70,21 @@ const WEB_ANALYTICS_TOKEN = '691a25c25a2b4921a3554bee800e01ef';
       crossorigin
     />
 
+    {nav === 'internal' && (
+      <>
+        <!-- The team area installs as an app ("Between Ops"): see /team/help and public/between-ops-sw.js. -->
+        <link rel="manifest" href="/between-ops.webmanifest" />
+        <meta name="theme-color" content="#1A1212" />
+        <link rel="apple-touch-icon" href="/img/app/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="Between Ops" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <!-- Apply the Help switch before the page paints (remembered per device; see TeamHelp). -->
+        <script is:inline>try { if (localStorage.getItem('between-ops-help') === 'off') document.documentElement.dataset.help = 'off'; } catch {}</script>
+      </>
+    )}
+
     {WEB_ANALYTICS_TOKEN && (
       <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
         data-cf-beacon={JSON.stringify({ token: WEB_ANALYTICS_TOKEN })}></script>
@@ -77,6 +93,7 @@ const WEB_ANALYTICS_TOKEN = '691a25c25a2b4921a3554bee800e01ef';
   <body class={nav === 'internal' ? 'is-team' : undefined}>
     <a href="#main" class="skip-link">Skip to content</a>
     {nav === 'internal' && <TeamNav authEmail={authEmail} />}
+    {nav === 'internal' && <TeamHelp />}
     {nav === 'public' && <SiteNav />}
     {nav === 'minimal' && (
       <header class="mini-nav" role="banner">

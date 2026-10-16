@@ -13,7 +13,7 @@ export const LEADS = ['chris@sonicboom.org.uk', 'dan@sonicboom.org.uk'];
 export const COMMUNITY = ['vikki@sonicboom.org.uk', 'emma@sonicboom.org.uk'];
 
 // Pages and read-only API routes open to everyone signed in.
-const SHARED_PAGES = ['/team', '/team/schedule', '/team/media'];
+const SHARED_PAGES = ['/team', '/team/schedule', '/team/media', '/team/help'];
 const SHARED_API_READS = ['/api/team/schedule', '/api/team/roster'];
 const COMMUNITY_PAGES = [
   '/team/stories',
@@ -23,8 +23,9 @@ const COMMUNITY_PAGES = [
   '/team/evaluation/qr',
   '/team/evaluation/survey-preview',
 ];
-// Any method; the routes themselves limit deleting to the uploader or a lead.
-const SHARED_API_PREFIXES = ['/api/team/media'];
+// Any method; the routes themselves limit deleting to the uploader or a lead, and push
+// subscriptions to the signed-in person's own devices.
+const SHARED_API_PREFIXES = ['/api/team/media', '/api/team/push'];
 
 export function getEmail(request) {
   return (request.headers.get('Cf-Access-Authenticated-User-Email') || '').toLowerCase() || null;
