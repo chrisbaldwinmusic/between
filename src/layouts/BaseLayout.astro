@@ -87,6 +87,9 @@ const WEB_ANALYTICS_TOKEN = '691a25c25a2b4921a3554bee800e01ef';
       <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
         data-cf-beacon={JSON.stringify({ token: WEB_ANALYTICS_TOKEN })}></script>
     )}
+
+    <!-- Quick Web Analytics (cookieless). Add data-local to test from localhost; remove before committing. -->
+    <script defer src="https://qwa.sonicboom.org.uk/t.js" data-site="between.sonicboom.org.uk"></script>
   </head>
   <body class={nav === 'internal' ? 'is-team' : undefined}>
     <a href="#main" class="skip-link">Skip to content</a>

@@ -194,17 +194,12 @@ The `/team` section (people, schedule, to-dos, ops procedures — `src/pages/tea
 and marked `noindex`. It stays behind Access even after the public marketing pages go live, unless
 you split the Access application to scope it to `/team/*` only.
 
-## 5b. Preview PIN and the open /feedback pages
+## 5b. Open public pages
 
-The public pages sit behind a **preview PIN**, enforced by `worker/gate.js` (wrangler `main`,
-with `assets.run_worker_first = true` so static pages go through it too). The PIN is the Worker
-secret `PREVIEW_PIN` (`npx wrangler secret put PREVIEW_PIN`; locally `.dev.vars`, git-ignored).
-Entering it sets a strictly necessary 30-day cookie. **At launch, delete the secret**
-(`npx wrangler secret delete PREVIEW_PIN`) and the gate switches off.
-
-Always open, no PIN: `/feedback/*` (post-event survey, QR check-in, hub), `/api/feedback/*`,
-`/privacy`, `/accessibility`, and static files. `/team` and `/api/team` are left to Cloudflare
-Access.
+The preview PIN has been removed: every public page is open. `worker/gate.js` (wrangler `main`,
+with `assets.run_worker_first = true`) only counts tracked UTM visits and runs the daily reminder
+cron. If the old secret is still set, tidy it up with `npx wrangler secret delete PREVIEW_PIN`
+(it is no longer read). `/team` and `/api/team` are left to Cloudflare Access.
 
 For this to work, the Cloudflare Access application must cover **only** `/team*` and
 `/api/team*` (on both `between.sonicboom.org.uk` and `between.sonic-boom.workers.dev`), not the
@@ -244,7 +239,7 @@ Reports (leads): `/team/evaluation/community-report`, `/team/evaluation/survey-r
 `/team` installs on phones as **Between Ops** (instructions for the team at `/team/help`). The
 manifest (`public/between-ops.webmanifest`), service worker (`public/between-ops-sw.js`) and offline
 page sit at the site root, outside `/team*`, so Cloudflare Access doesn't block the browser fetching
-them; `worker/gate.js` lets them past the preview PIN. They hold no team data.
+them; they hold no team data.
 
 Notifications are Web Push (`src/lib/webpush.js`, no third-party service): the daily reminder run
 also notifies everyone in that email's audience on each device they've turned notifications on

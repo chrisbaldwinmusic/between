@@ -1,12 +1,12 @@
 name = "between"
-# worker/gate.js puts the pre-launch PIN in front of the Astro worker (dist/_worker.js).
+# worker/gate.js sits in front of the Astro worker (dist/_worker.js) to count tracked visits and run the cron.
 main = "./worker/gate.js"
 compatibility_date = "2026-09-21"
 
 [assets]
 directory = "./dist"
 binding = "ASSETS"
-# Every request goes through worker/gate.js first, so static pages are PIN-gated too.
+# Every request goes through worker/gate.js first (visit counting).
 run_worker_first = true
 
 [[kv_namespaces]]

@@ -2,7 +2,7 @@
 // `npm run deploy` straight after `wrangler deploy`; exits non-zero (and says why) on any surprise.
 const BASE = process.env.SMOKE_BASE || 'https://between.sonicboom.org.uk';
 const checks = [
-  ['/', [200, 401], 'home (PIN page while in preview)'],
+  ['/', [200], 'home (public)'],
   ['/feedback', [200], 'feedback hub (open)'],
   ['/feedback/firelight', [200], 'survey page (open)'],
   ['/privacy', [200], 'privacy notice (open)'],
