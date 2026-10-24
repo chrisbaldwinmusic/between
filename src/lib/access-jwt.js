@@ -36,7 +36,11 @@ function tokenFrom(request) {
 }
 
 /** The verified, lower-cased email of the Access login on this request, or null. */
-export async function verifiedAccessEmail(request) {
+export const verifiedAccessEmail = request => verifyAccessJwt(request, AUD);
+
+/** Same check against a given Access application's audience tag (the MCP Worker has its own). */
+export async function verifyAccessJwt(request, aud) {
+  if (!aud) return null;
   const token = tokenFrom(request);
   if (!token) return null;
   const parts = token.split('.');
@@ -50,8 +54,8 @@ export async function verifiedAccessEmail(request) {
     const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlBytes(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`));
     if (!ok) return null;
     const now = Math.floor(Date.now() / 1000);
-    const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-    if (!aud.includes(AUD) || payload.iss !== TEAM_DOMAIN || (payload.exp && payload.exp < now) || (payload.nbf && payload.nbf > now + 60)) return null;
+    const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (!auds.includes(aud) || payload.iss !== TEAM_DOMAIN || (payload.exp && payload.exp < now) || (payload.nbf && payload.nbf > now + 60)) return null;
     return typeof payload.email === 'string' ? payload.email.toLowerCase() : null;
   } catch {
     return null;

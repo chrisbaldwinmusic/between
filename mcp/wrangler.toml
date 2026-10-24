@@ -1,0 +1,16 @@
+name = "between-mcp"
+main = "./worker.js"
+compatibility_date = "2026-09-21"
+compatibility_flags = ["nodejs_compat"]
+
+# Same database as the site (see ../wrangler.toml). Media (R2) is deliberately not bound.
+[[d1_databases]]
+binding = "OPS_DB"
+database_name = "between-ops"
+database_id = "e7cc1aba-58a7-411d-8809-54b7d5f46baa"
+
+[vars]
+# TODO: the audience (AUD) tag of the "Between MCP" Access application (DEPLOY.md, MCP section).
+ACCESS_AUD = ""
+
+# TODO: custom domain mcp.between.sonicboom.org.uk once the Access app exists (DEPLOY.md).
