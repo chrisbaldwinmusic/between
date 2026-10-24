@@ -266,11 +266,14 @@ budget entries). It shares `OPS_DB` with the site and applies the same rules and
 community and story reads, everyone else gets schedule, roster, events and their own to-dos.
 
 **One-time setup (dashboard):**
-1. **Zero Trust → Access → Applications → Add → Self-hosted.** Name it "Between MCP", domain
+1. **Zero Trust → Access controls → Applications → Add → Self-hosted.** Name it "Between MCP", domain
    `mcp.between.sonicboom.org.uk`, policy: allow emails ending `@sonicboom.org.uk` (same as the site).
    Do the same for the Worker's `workers.dev` hostname if you enable it (a hostname Access doesn't
    cover is served unauthenticated; the Worker still refuses it, as it checks the signed token, but
-   don't rely on that alone). Also turn on **Managed OAuth** for the app so MCP clients can sign in.
+   don't rely on that alone). Then edit the app → **Advanced settings** → turn on **Managed OAuth**, so MCP clients
+   can sign in with a browser (without it they get a login redirect they can't complete). If a client is
+   refused, add its callback URL under **Allowed redirect URIs** (https only). The client gets an opaque
+   token; the Worker still reads the signed `Cf-Access-Jwt-Assertion` header that Access adds.
 2. Copy the application's **Audience (AUD) tag** into `ACCESS_AUD` in `mcp/wrangler.toml`.
 3. Add the custom domain: uncomment/add a `routes` entry in `mcp/wrangler.toml`
    (`{ pattern = "mcp.between.sonicboom.org.uk", custom_domain = true }`) or add it under
