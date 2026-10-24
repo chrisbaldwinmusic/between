@@ -1,4 +1,5 @@
-// Tools the team MCP server offers (stage 1: read-only). Which tools a person sees depends on their
+// Tools the team MCP server offers: reads, and writes that go through src/lib/team-ops.js (the same
+// rules and activity log as the site). No deletes. Which tools a person sees depends on their
 // role, using the same roles as the /team area (src/lib/team-access.js):
 //   leads      everything
 //   community  the community managers: stories, survey, community numbers, tracked links
@@ -11,10 +12,18 @@ import events from '../src/data/events.json';
 import { isLead, isCommunity } from '../src/lib/team-access.js';
 import { loadAll, eventReport, surveySummary, communityReport, TARGETS, PROJECT_START } from '../src/lib/metrics.js';
 import { ukToday } from '../src/lib/dates.js';
+import { nameMatcher, rosterName } from '../src/lib/ownership.js';
+import {
+  createTodo, updateTodo, createScheduleItem, updateScheduleItem,
+  createMember, updateMember, updateStory, createBudgetEntry,
+} from '../src/lib/team-ops.js';
 
 export const roleOf = email => (isLead(email) ? 'lead' : isCommunity(email) ? 'community' : 'member');
 
 const text = data => ({ content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] });
+const done = r => (r.error
+  ? { isError: true, content: [{ type: 'text', text: r.error }] }
+  : text(r.data));
 const all = (db, sql, ...args) => db.prepare(sql).bind(...args).all().then(r => r.results);
 
 export function registerTools(server, { db, email }) {
@@ -59,11 +68,11 @@ export function registerTools(server, { db, email }) {
     annotations: read,
   }, async ({ status, owner }) => {
     const rows = await all(db, 'SELECT id, task, owner, area, done, due_on, created_at, completed_by FROM todos ORDER BY done, due_on IS NULL, due_on');
-    const mine = email.split('@')[0].toLowerCase();
+    const mineName = lead ? null : await rosterName(db, email);
+    const isMine = nameMatcher([mineName]);
     const filtered = rows
       .filter(t => status === 'all' || (status === 'done') === !!t.done)
-      .filter(t => (lead ? !owner || (t.owner ?? '').toLowerCase().includes(owner.toLowerCase())
-        : (t.owner ?? '').toLowerCase().includes(mine)));
+      .filter(t => (lead ? !owner || (t.owner ?? '').toLowerCase().includes(owner.toLowerCase()) : isMine(t.owner)));
     return text(filtered);
   });
 
@@ -134,4 +143,69 @@ export function registerTools(server, { db, email }) {
       return text(lines.map(l => ({ ...l, budget: gbp(l.budget_pence), spent: gbp(l.spent_pence), remaining: gbp(l.budget_pence - l.spent_pence) })));
     });
   }
+
+  // ── Writes ───────────────────────────────────────────────────────────────
+  const write = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+  const idem = { ...write, idempotentHint: true };
+  const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD');
+
+  server.registerTool('set_todo_done', {
+    description: lead ? 'Tick a to-do on or off.' : 'Tick one of your own to-dos on or off.',
+    inputSchema: { id: z.number().int(), done: z.boolean() },
+    annotations: idem,
+  }, async ({ id, done: d }) => done(await updateTodo(db, email, email, id, { done: d })));
+
+  if (!lead) return;
+
+  server.registerTool('add_todo', {
+    description: 'Add a to-do. Owner should be a full roster name.',
+    inputSchema: { task: z.string().min(1), owner: z.string().optional(), area: z.string().optional(), due_on: date.optional() },
+    annotations: write,
+  }, async body => done(await createTodo(db, email, body)));
+
+  server.registerTool('update_todo', {
+    description: 'Edit a to-do (task, owner, area, due date). Use set_todo_done to tick it. Pass due_on null to clear the date.',
+    inputSchema: { id: z.number().int(), task: z.string().optional(), owner: z.string().nullable().optional(), area: z.string().optional(), due_on: date.nullable().optional() },
+    annotations: idem,
+  }, async ({ id, ...body }) => done(await updateTodo(db, email, email, id, body)));
+
+  server.registerTool('add_schedule_item', {
+    description: 'Add a task to the delivery schedule.',
+    inputSchema: { start_date: date, end_date: date, task: z.string().min(1), owner: z.string().optional() },
+    annotations: write,
+  }, async body => done(await createScheduleItem(db, email, body)));
+
+  server.registerTool('update_schedule_item', {
+    description: 'Change a schedule item: task, owner, dates, notes, or status_override ("blocked", "done", or null for automatic).',
+    inputSchema: {
+      id: z.number().int(), task: z.string().optional(), owner: z.string().nullable().optional(),
+      start_date: date.optional(), end_date: date.optional(), notes: z.string().nullable().optional(),
+      status_override: z.enum(['blocked', 'done']).nullable().optional(),
+    },
+    annotations: idem,
+  }, async ({ id, ...body }) => done(await updateScheduleItem(db, email, id, body)));
+
+  server.registerTool('add_team_member', {
+    description: 'Add someone to the roster. This does not give them access: access comes from Cloudflare Access and src/lib/team-access.js.',
+    inputSchema: { name: z.string().min(1), email: z.string().email(), role: z.string().optional(), remit: z.string().optional(), status: z.enum(['confirmed', 'expected', 'unconfirmed']).optional() },
+    annotations: write,
+  }, async body => done(await createMember(db, email, body)));
+
+  server.registerTool('update_team_member', {
+    description: "Change a team member's role, remit or confirmation status.",
+    inputSchema: { id: z.number().int(), role: z.string().optional(), remit: z.string().nullable().optional(), status: z.enum(['confirmed', 'expected', 'unconfirmed']).optional() },
+    annotations: idem,
+  }, async ({ id, ...body }) => done(await updateMember(db, email, id, body)));
+
+  server.registerTool('review_story', {
+    description: "Approve or decline a community story, or tidy its wording or credit. Approving or declining deletes the contributor's email, as promised on the form. Only approve stories with web or social consent (see stories).",
+    inputSchema: { id: z.number().int(), status: z.enum(['approved', 'declined', 'new']).optional(), story: z.string().optional(), credit: z.string().nullable().optional(), about: z.string().nullable().optional() },
+    annotations: idem,
+  }, async ({ id, ...body }) => done(await updateStory(db, email, id, body)));
+
+  server.registerTool('log_budget_entry', {
+    description: 'Log spend (positive pence) or a correction (negative pence) against a budget line from budget_summary.',
+    inputSchema: { line_id: z.number().int(), entry_date: date, description: z.string().min(1), amount_pence: z.number().int().refine(n => n !== 0, 'not zero') },
+    annotations: write,
+  }, async body => done(await createBudgetEntry(db, email, body)));
 }
