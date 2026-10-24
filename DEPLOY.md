@@ -256,6 +256,41 @@ so the installed app rarely asks people to sign in again.
 
 App icons (`public/img/app/`) are placeholders. // TODO: replace with the final brand mark.
 
+## 5e. Team MCP server (`between-mcp`)
+
+A separate Worker (`mcp/`) that lets the team use Claude (or any MCP client) on the team tool: read
+the schedule, survey numbers and stories, and make changes (to-dos, schedule, roster, story review,
+budget entries). It shares `OPS_DB` with the site and applies the same rules and activity log
+(`src/lib/team-ops.js`). No deletes, no media. Tools depend on the signed-in person's role
+(`src/lib/team-access.js`): leads get everything, the community managers get the survey, tracked-link,
+community and story reads, everyone else gets schedule, roster, events and their own to-dos.
+
+**One-time setup (dashboard):**
+1. **Zero Trust → Access → Applications → Add → Self-hosted.** Name it "Between MCP", domain
+   `mcp.between.sonicboom.org.uk`, policy: allow emails ending `@sonicboom.org.uk` (same as the site).
+   Do the same for the Worker's `workers.dev` hostname if you enable it (a hostname Access doesn't
+   cover is served unauthenticated; the Worker still refuses it, as it checks the signed token, but
+   don't rely on that alone). Also turn on **Managed OAuth** for the app so MCP clients can sign in.
+2. Copy the application's **Audience (AUD) tag** into `ACCESS_AUD` in `mcp/wrangler.toml`.
+3. Add the custom domain: uncomment/add a `routes` entry in `mcp/wrangler.toml`
+   (`{ pattern = "mcp.between.sonicboom.org.uk", custom_domain = true }`) or add it under
+   Workers & Pages → between-mcp → Settings → Domains & Routes.
+4. `npm run deploy:mcp` (deploys, then `mcp/smoke.mjs` checks `/health` and that anonymous requests to
+   `/mcp` are refused). Never skip the smoke test.
+
+**Connect a client:** add `https://mcp.between.sonicboom.org.uk/mcp` as a custom connector / remote MCP
+server (in Claude: Settings → Connectors → Add custom connector), sign in with your sonicboom.org.uk
+account, then ask for `whoami` to see your role.
+
+**Local testing:** put `LOCAL_DEV_SKIP_ACCESS_CHECK=1` in `mcp/.dev.vars` (git-ignored; never set it
+as a production variable), run `npx wrangler dev --config mcp/wrangler.toml`, and send a
+`Cf-Access-Authenticated-User-Email` header with each request. Load the local database with the
+`d1/*.sql` files first.
+
+**Safety notes:** `review_story` refuses to approve a story without web or social consent.
+The server returns contributor emails and budget figures only where the site does (leads).
+If the Access application is recreated, update `ACCESS_AUD`.
+
 ## 6. Custom domain + DNS
 
 Already attached: `between.sonicboom.org.uk` → the `between` Worker, via a **Workers Custom

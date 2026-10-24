@@ -47,6 +47,7 @@ Ten events, in order: Firelight (Oct) · Winter Sounds (Dec) · New Year Communi
 | WhatsApp Community invite link | `SignupSection` / `SignupStrip` | Public | MVP | https://chat.whatsapp.com/DTBdI2ur34oKah3pOn2zpm ✓ |
 | Ticket Tailor links | `events.json`, membership | Public | rolling | events.sonicboom.org.uk (general redirect) ✓ — swap for per-event deep links as they go live |
 | Cloudflare Web Analytics token | `WEB_ANALYTICS_TOKEN` in `BaseLayout` (and the PIN page in `worker/gate.js`) | Public | MVP | ✓ done |
+| Team MCP server: `ACCESS_AUD` and custom domain | `mcp/wrangler.toml` (`// TODO`) | Public (not a secret) | team tooling | **TODO** — create the "Between MCP" Access app, paste its AUD tag, add `mcp.between.sonicboom.org.uk` (DEPLOY.md §5e) |
 | KV namespace `VENUE_KV` | `wrangler.toml` binding on the `between` Worker | Binding (not a secret) | step 8 | ✓ done |
 | Custom domain `between.sonicboom.org.uk` | Workers Custom Domain (not Pages) + DNS | — | launch | ✓ done |
 

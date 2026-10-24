@@ -8,7 +8,9 @@
     "preview": "astro preview",
     "astro": "astro",
     "deploy": "astro build && wrangler deploy && node scripts/smoke.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "deploy:mcp": "wrangler deploy --config mcp/wrangler.toml && node mcp/smoke.mjs",
+    "smoke:mcp": "node mcp/smoke.mjs"
   },
   "engines": {
     "node": ">=20"

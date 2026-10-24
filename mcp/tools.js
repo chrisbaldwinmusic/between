@@ -198,10 +198,18 @@ export function registerTools(server, { db, email }) {
   }, async ({ id, ...body }) => done(await updateMember(db, email, id, body)));
 
   server.registerTool('review_story', {
-    description: "Approve or decline a community story, or tidy its wording or credit. Approving or declining deletes the contributor's email, as promised on the form. Only approve stories with web or social consent (see stories).",
+    description: "Approve or decline a community story, or tidy its wording or credit. Approving or declining deletes the contributor's email, as promised on the form. Refuses to approve a story with no web or social consent.",
     inputSchema: { id: z.number().int(), status: z.enum(['approved', 'declined', 'new']).optional(), story: z.string().optional(), credit: z.string().nullable().optional(), about: z.string().nullable().optional() },
     annotations: idem,
-  }, async ({ id, ...body }) => done(await updateStory(db, email, id, body)));
+  }, async ({ id, ...body }) => {
+    if (body.status === 'approved') {
+      const s = await db.prepare('SELECT consent_web, consent_social FROM stories WHERE id = ?').bind(id).first();
+      if (s && !s.consent_web && !s.consent_social) {
+        return done({ error: 'This story has no web or social consent, so it cannot be approved. Decline it, or ask the contributor.', status: 409 });
+      }
+    }
+    return done(await updateStory(db, email, id, body));
+  });
 
   server.registerTool('log_budget_entry', {
     description: 'Log spend (positive pence) or a correction (negative pence) against a budget line from budget_summary.',
