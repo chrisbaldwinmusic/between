@@ -18,6 +18,33 @@ const today = ukToday();
 const er = data && event ? eventReport(data, event) : null;
 const all = data && !event ? surveySummary(data.responses, data.checkins) : null;
 const s = er ? er.survey : all;
+
+// How the surveys were reached, from the tracked-link counts (src/lib/attribution.js). Credited only
+// when the survey is submitted on the page the tracked link opened, so anything else is untagged.
+// The response total (s.n) is the reliable figure; the split just explains it.
+let reach: { qr: number; other: { label: string; n: number }[]; untagged: number; qrVisits: number } | null = null;
+if (db && s && s.n > 0) {
+  const slug = event?.slug ?? '';
+  const { results } = await db
+    .prepare(`SELECT kind, source, medium, SUM(n) AS n FROM attribution
+              WHERE kind IN ('survey', 'visit') AND source != '(direct)'
+                AND (? = '' OR campaign = ? OR campaign = ? || '-survey')
+              GROUP BY kind, source, medium`)
+    .bind(slug, slug, slug)
+    .all()
+    .catch(() => ({ results: [] }));
+  const rows: any[] = results ?? [];
+  const surveys = rows.filter(r => r.kind === 'survey');
+  const qr = surveys.filter(r => r.medium.startsWith('qr')).reduce((t, r) => t + r.n, 0);
+  const other = surveys.filter(r => !r.medium.startsWith('qr')).map(r => ({ label: `${r.source}${r.medium ? ` / ${r.medium}` : ''}`, n: r.n }));
+  const tagged = qr + other.reduce((t, r) => t + r.n, 0);
+  reach = {
+    qr,
+    other,
+    untagged: Math.max(0, s.n - tagged),
+    qrVisits: rows.filter(r => r.kind === 'visit' && r.medium.startsWith('qr')).reduce((t, r) => t + r.n, 0),
+  };
+}
 const pastEvents = events.filter(e => e.date <= today);
 const title = event ? `Survey report: ${event.name}` : 'Survey report: all events';
 ---
@@ -70,6 +97,30 @@ const title = event ? `Survey report: ${event.name}` : 'Survey report: all event
         ))}
       </div>
 
+      {reach && (
+        <section>
+          <h2 class="r-h2">How people reached the survey</h2>
+          <ul class="r-bars" role="list">
+            {[
+              ['QR poster', reach.qr],
+              ...reach.other.map(o => [o.label, o.n]),
+              ['Not tagged (other route)', reach.untagged],
+            ].map(([label, n]: any) => (
+              <li>
+                <span>{label}</span>
+                <span class="track" aria-hidden="true"><span style={`width:${Math.round((n / s.n) * 100)}%`}></span></span>
+                <span class="n">{n} ({Math.round((n / s.n) * 100)}%)</span>
+              </li>
+            ))}
+          </ul>
+          <p class="r-note">
+            {reach.qrVisits > 0 && <>{reach.qrVisits} people opened the survey from the QR poster. </>}
+            The total of {s.n} submitted survey{s.n === 1 ? '' : 's'} is the reliable figure. The split is a guide: a survey only
+            counts towards a link or poster if it was completed on the page that link opened.
+          </p>
+        </section>
+      )}
+
       <h2 class="r-h2">What people want from a venue</h2>
       {s.wants.length === 0 ? <p class="r-note">No written answers.</p> : (
         <ul class="r-quotes" role="list">
@@ -82,7 +133,6 @@ const title = event ? `Survey report: ${event.name}` : 'Survey report: all event
           <h2 class="r-h2">On the night</h2>
           <p>
             Attendance: <strong>{er.attendance ?? 'not recorded yet'}</strong>
-            {event?.ticketing === 'free' && <> · {er.checkedIn} checked in by QR</>}
             {er.row.survey_sent_on && <> · survey sent {fmtDate(er.row.survey_sent_on)}</>}
             {er.row.debrief_on && <> · debrief {fmtDate(er.row.debrief_on)}</>}
           </p>

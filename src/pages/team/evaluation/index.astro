@@ -43,7 +43,6 @@ const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
 const count = (rows: any[], key: string, value: string) => rows.filter(r => r[key] === value).length;
 
 // ── Headline measures ──────────────────────────────────────────────────────
-const peopleCheckedIn = checkins.reduce((s, c) => s + c.party_size, 0);
 const withPostcode = [...responses, ...checkins].filter(r => r.outward_postcode);
 const local = withPostcode.filter(r => LOCAL_OUTWARD.includes(r.outward_postcode)).length;
 const repeat = responses.filter(r => r.prior_events !== 'first').length;
@@ -73,7 +72,6 @@ const allRows = events.map(e => {
     row,
     status: status(e, row),
     responses: count(responses, 'event_slug', e.slug),
-    checkedIn: checkins.filter(c => c.event_slug === e.slug).reduce((s, c) => s + c.party_size, 0),
   };
 });
 // Full checklist cards once an event has happened; upcoming ones get a compact list (their QR
@@ -200,10 +198,6 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
             <span class="stat__label">survey responses</span>
           </li>
           <li class="stat">
-            <span class="stat__n">{peopleCheckedIn}</span>
-            <span class="stat__label">people checked in by QR</span>
-          </li>
-          <li class="stat">
             <span class="stat__n">{responses.length ? `${pct(venueYes, responses.length)}%` : '–'}</span>
             <span class="stat__label">say yes to a venue (survey)</span>
           </li>
@@ -228,7 +222,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
             <p class="ev-empty">Checklists appear here from the day of each event. First up: {upcomingRows[0]?.e.name}, {upcomingRows[0] && eventWhen(upcomingRows[0].e, fmt)}.</p>
           )}
           <ul class="ev-list" role="list">
-            {eventRows.map(({ e, row, status, responses: n, checkedIn }) => (
+            {eventRows.map(({ e, row, status, responses: n }) => (
               <li class={`ev ev--${status.key}`} style={`--accent:${e.accent}`}>
                 <div class="ev__head">
                   <div>
@@ -240,7 +234,6 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
 
                 <p class="ev__counts">
                   <strong>{n}</strong> survey response{n === 1 ? '' : 's'}
-                  {e.ticketing === 'free' && <> · <strong>{checkedIn}</strong> checked in</>}
                 </p>
 
                 <form class={`ev__form${row.locked_at ? ' is-locked' : ''}`} data-event={e.slug} data-kind="event">
