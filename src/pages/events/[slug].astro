@@ -124,7 +124,7 @@ const happened = status === 'past' || status === 'today';
             <div class="event-fact">
               <dt class="event-fact__label">Price</dt>
               <dd class="event-fact__value">
-                {event.ticketing === 'free' ? 'Free' : `From ${event.priceFrom}`}
+                {event.ticketing === 'free' ? 'Free' : event.priceFrom ? `From ${event.priceFrom}` : 'To be announced'}
               </dd>
             </div>
 
