@@ -37,7 +37,7 @@ Everything you need to supply for the build, where it goes, and whether it block
 | Register URL per free event | rolling | events.sonicboom.org.uk (general redirect) ✓ |
 | Access note per event | MVP | |
 
-Ten events, in order: Firelight (Oct) · Winter Sounds (Dec) · New Year Community Sing (Jan) · Love Your Local (Feb) · Family Music Discovery Day (Mar) · Global Sounds (Apr) · Music in the Market (May) · Summer Park Sessions (Jun) · Youth Takeover (Jul) · Community Music Trail (Sep).
+Ten events, in order: Firelight (Oct) · Winter Sounds (Nov) · New Year Community Sing (Jan) · Love Your Local (Feb) · Family Music Discovery Day (Mar) · Global Sounds (Apr) · Music in the Market (May) · Summer Park Sessions (Jun) · Youth Takeover (Jul) · Community Music Trail (Sep).
 
 ## Integrations & keys (the `// TODO` placeholders)
 

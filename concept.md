@@ -69,7 +69,7 @@ Order: hook → meaning → the year (substance) → how to step in → the bigg
 
 **6.4 How it works (ladder).** 1. Come to one (free or from £7.50) · 2. Join the community (hear about the next one first) · 3. Become a Founding Member. Micro-CTA each.
 
-**6.5 Founding Membership.** Honest framing: back the year-round programme AND the venue campaign; not a building. Price (TBC), benefits, launches at Winter Sounds (Dec 2026). CTA Become a Founding Member (Ticket Tailor link). Tone: belonging.
+**6.5 Founding Membership.** Honest framing: back the year-round programme AND the venue campaign; not a building. Price (TBC), benefits, launches at Winter Sounds (Nov 2026). CTA Become a Founding Member (Ticket Tailor link). Tone: belonging.
 
 **6.6 The ambition + demand meter (evidence peak).** Copy: Burton hasn't had a dedicated grassroots venue for a long time; ESBC is exploring the business case; our ambition is to run it; this is how we find out, together, if demand is real. One tap: *"Would you use a permanent grassroots music venue in Burton?"* Yes / Maybe → reveals live count + yes-share + optional postcode/email. Same question as survey Q4 — the site becomes a year-round data source.
 
@@ -108,7 +108,7 @@ Drive everything from one file.
 ]
 ```
 
-Ten events in order: Firelight (Oct) · Winter Sounds (Dec) · New Year Community Sing (Jan) · Love Your Local (Feb) · Family Music Discovery Day (Mar) · Global Sounds (Apr) · Music in the Market (May) · Summer Park Sessions (Jun) · Youth Takeover (Jul) · Community Music Trail (Sep). Use indicative Saturdays until confirmed.
+Ten events in order: Firelight (Oct) · Winter Sounds (Nov) · New Year Community Sing (Jan) · Love Your Local (Feb) · Family Music Discovery Day (Mar) · Global Sounds (Apr) · Music in the Market (May) · Summer Park Sessions (Jun) · Youth Takeover (Jul) · Community Music Trail (Sep). Use indicative Saturdays until confirmed.
 
 ## 8. Data capture & integrations (Cloudflare edition)
 

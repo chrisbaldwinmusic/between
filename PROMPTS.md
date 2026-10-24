@@ -64,7 +64,7 @@ I'll connect to /api/results in step 8.
 ## 4 · The year (events)
 
 ```
-Populate src/data/events.json with all ten events (concept.md §7 schema): Firelight (Oct) → Winter Sounds (Dec) → New Year Community Sing (Jan) → Love Your Local
+Populate src/data/events.json with all ten events (concept.md §7 schema): Firelight (Oct) → Winter Sounds (Nov) → New Year Community Sing (Jan) → Love Your Local
 (Feb) → Family Music Discovery Day (Mar) → Global Sounds (Apr) → Music in the Market (May)
 → Summer Park Sessions (Jun) → Youth Takeover (Jul) → Community Music Trail (Sep). Use the
 indicative Saturday dates as placeholders; ticketUrl/registerUrl null for now. Build
@@ -89,7 +89,7 @@ one first) · 3. Become a Founding Member — each with a micro-CTA.
 ```
 Build four sections plus two pages (concept.md §6.5–6.9). Founding Membership: honest
 framing — backs the year-round programme AND the venue campaign, NOT a building that
-exists; price TBC placeholder; launches at Winter Sounds (Dec 2026); CTA "Become a Founding
+exists; price TBC placeholder; launches at Winter Sounds (Nov 2026); CTA "Become a Founding
 Member" (Ticket Tailor link placeholder). Get involved: audiences (join), artists ("want to
 play?" link), partners/press (hello@sonicboom.org.uk). Accessibility summary: step-free,
 quiet spaces, BSL on request, access fund, Tickets for Good; name Safe Gigs for Women +

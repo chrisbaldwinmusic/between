@@ -26,7 +26,7 @@ Dates show as month only until tickets are on sale or a free event is confirmed.
 - **Our job on the night:** gather Burton's music stories.
 - **Status:** planning questions settled by the team.
 
-## 2. Winter Sounds: December 2026
+## 2. Winter Sounds: November 2026
 
 - **Vision:** the whole community together for winter, and the launch night for Founding
   Membership of The Space Between.
