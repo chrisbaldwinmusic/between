@@ -38,7 +38,7 @@ const lastMonth = recordedMonths[recordedMonths.length - 1] ?? '';
 const emailGrowth = report.growth.email ?? 0;
 const socialGrowth = report.first && latest ? (socialTotal(latest) ?? 0) - (socialTotal(report.first) ?? 0) : 0;
 ---
-<ReportLayout title="Community growth report">
+<ReportLayout title="Community growth report" communityActions>
   <a slot="actions" href="/api/team/evaluation/export?type=community">Download CSV</a>
   <p class="r-eyebrow">The Space Between · Evaluation</p>
   <h1 class="r-title">Community growth</h1>

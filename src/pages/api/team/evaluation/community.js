@@ -1,10 +1,12 @@
 // POST /api/team/evaluation/community — save a month's community numbers
 //   { month: 'YYYY-MM', ...one whole number per COMMUNITY_CHANNELS key }
 // or lock / unlock the month once the numbers are final: { month, lock: true | false }.
-// Locked months can't be edited until unlocked. Returns the saved row. Leads only (src/middleware.js).
+// Locked months can't be edited until unlocked. Returns the saved row. Leads and the community managers
+// (src/middleware.js); only leads can lock or unlock.
 
 import { getDb, getActor, logActivity, jsonOk, jsonErr } from '../../../../lib/ops-db.js';
 import { COMMUNITY_CHANNELS } from '../../../../lib/feedback.js';
+import { getEmail, isLead } from '../../../../lib/team-access.js';
 
 export const prerender = false;
 
@@ -25,6 +27,7 @@ export async function POST(context) {
 
   // Lock / unlock
   if (typeof body.lock === 'boolean') {
+    if (!isLead(getEmail(context.request))) return jsonErr('Only Chris or Dan can lock or unlock a month', 403);
     if (!existing) return jsonErr('Save some numbers before locking the month', 400);
     await db
       .prepare('UPDATE community_counts SET locked_at = ?, locked_by = ? WHERE month = ?')

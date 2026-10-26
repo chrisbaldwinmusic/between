@@ -6,8 +6,9 @@
 // own to-dos, and can upload and manage their own photos and screenshots in /team/media.
 // The community managers (Vikki, Emma) also get what their job needs, read-only: approved stories
 // (no contributor emails) to share, the survey, community-growth and tracked-link reports, the survey
-// preview and the QR posters. Not the budget (it has their own rates), ops, the full to-do list, evaluation
-// admin, reviews or the CSV exports.
+// preview and the QR posters. They can also enter the monthly community numbers on /team/evaluation
+// (not lock or unlock a month) and download the community-growth CSV (counts only). Not the budget (it
+// has their own rates), ops, the full to-do list, the rest of evaluation, reviews or the other exports.
 
 export const LEADS = ['chris@sonicboom.org.uk', 'dan@sonicboom.org.uk'];
 export const COMMUNITY = ['vikki@sonicboom.org.uk', 'emma@sonicboom.org.uk'];
@@ -16,6 +17,7 @@ export const COMMUNITY = ['vikki@sonicboom.org.uk', 'emma@sonicboom.org.uk'];
 const SHARED_PAGES = ['/team', '/team/schedule', '/team/media', '/team/help'];
 const SHARED_API_READS = ['/api/team/schedule', '/api/team/roster'];
 const COMMUNITY_PAGES = [
+  '/team/evaluation',
   '/team/stories',
   '/team/evaluation/survey-report',
   '/team/evaluation/community-report',
@@ -25,6 +27,11 @@ const COMMUNITY_PAGES = [
 ];
 // Any method; the routes themselves limit deleting to the uploader or a lead, and push
 // subscriptions to the signed-in person's own devices.
+// Community managers only. The routes check what they may do: no locking months, community CSV only.
+const COMMUNITY_API = [
+  { method: 'POST', path: '/api/team/evaluation/community' },
+  { method: 'GET', path: '/api/team/evaluation/export' },
+];
 const SHARED_API_PREFIXES = ['/api/team/media', '/api/team/push'];
 
 export function getEmail(request) {
@@ -53,6 +60,7 @@ export function canAccess(email, pathname, method = 'GET') {
     if (SHARED_API_PREFIXES.some(p => path === p || path.startsWith(`${p}/`))) return true;
     // Ticking off their own to-dos (the route checks ownership).
     if (method === 'PATCH' && /^\/api\/team\/todos\/\d+$/.test(path)) return true;
+    if (isCommunity(email) && COMMUNITY_API.some(r => r.method === method && r.path === path)) return true;
     return method === 'GET' && SHARED_API_READS.includes(path);
   }
   return SHARED_PAGES.includes(path) || (isCommunity(email) && COMMUNITY_PAGES.includes(path));

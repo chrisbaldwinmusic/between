@@ -1,7 +1,8 @@
 ---
 // The evaluation cadence from the ACE application, run live: per-event checklist (survey within
 // 48 hours, attendance, debrief), monthly community growth, review checkpoints and live results
-// from the public /feedback survey and check-in. Leads only (src/middleware.js).
+// from the public /feedback survey and check-in. Leads only (src/middleware.js), except that the community
+// managers see just the monthly community numbers and can save them (not lock or unlock).
 export const prerender = false;
 
 import events from '../../../data/events.json';
@@ -10,17 +11,19 @@ import {
   HEARD_FROM, PRIOR_EVENTS, VENUE_USE, VENUE_QUESTION, LOCAL_OUTWARD, COMMUNITY_CHANNELS, label, surveyDue,
 } from '../../../lib/feedback.js';
 import { ukToday, eventWhen, materialsReady } from '../../../lib/dates.js';
+import { getEmail, isLead } from '../../../lib/team-access.js';
 
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 const env = Astro.locals.runtime?.env ?? {};
 const db = env.OPS_DB;
+const lead = isLead(getEmail(Astro.request));
 
 let responses: any[] = [];
 let checkins: any[] = [];
 let evalRows: any[] = [];
 let community: any[] = [];
 let reviews: any[] = [];
-if (db) {
+if (db && lead) {
   const [r, c, e, m, s] = await Promise.all([
     db.prepare('SELECT * FROM feedback_responses ORDER BY created_at DESC').all(),
     db.prepare('SELECT * FROM checkins').all(),
@@ -29,11 +32,13 @@ if (db) {
     db.prepare(`SELECT * FROM schedule_items WHERE task LIKE '%review%' ORDER BY start_date`).all(),
   ]);
   responses = r.results; checkins = c.results; evalRows = e.results; community = m.results; reviews = s.results;
+} else if (db) {
+  community = (await db.prepare('SELECT * FROM community_counts ORDER BY month').all()).results;
 }
 
 // Site venue poll (KV), same question as survey Q4.
 let poll = { total: 0, yes: 0 };
-if (env.VENUE_KV) {
+if (lead && env.VENUE_KV) {
   const [yes, total] = await Promise.all([env.VENUE_KV.get('yes'), env.VENUE_KV.get('total')]);
   poll = { yes: parseInt(yes ?? '0', 10), total: parseInt(total ?? '0', 10) };
 }
@@ -114,6 +119,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
     <section class="ev-section">
       <div class="container">
         <h1 class="ev-heading">Evaluation</h1>
+        {lead ? (<>
         <p class="ev-intro">
           The evaluation plan from the ACE application, run live: a five-question survey within 48 hours of
           every event, attendance at every event, a debrief after each one, monthly community numbers and the
@@ -295,6 +301,10 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
           </section>
         )}
 
+        </>) : (
+          <p class="ev-intro">Enter each month's community numbers here as you go. Chris and Dan lock a month once it's reported. Reports and downloads are under <a href="/team/evaluation/community-report">Community growth</a>.</p>
+        )}
+
         <!-- Community growth -->
         <section class="block" aria-labelledby="h-community">
           <h2 class="block__title" id="h-community">
@@ -332,7 +342,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
                       ))}
                       <td class="save-bar">
                         <button class="ev-btn" type="button" data-role="save" hidden={!!row.locked_at}>Save<span class="visually-hidden"> {monthLabel(m)}</span></button>
-                        <button class="ev-btn" type="button" data-role="lock" hidden={!row.updated_at}>{row.locked_at ? 'Unlock' : 'Lock'}<span class="visually-hidden"> {monthLabel(m)}</span></button>
+                        {lead && <button class="ev-btn" type="button" data-role="lock" hidden={!row.updated_at}>{row.locked_at ? 'Unlock' : 'Lock'}<span class="visually-hidden"> {monthLabel(m)}</span></button>}
                         <span class={`save-state save-state--${stateOf(row).key}`} role="status">{stateOf(row).text}</span>
                       </td>
                     </tr>
@@ -341,9 +351,10 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
               </tbody>
             </table>
           </div>
-          <p class="ev-note">Save each month as you go. Lock a month once its numbers are final and reported, so they can't be changed by accident. Any lead can unlock.</p>
+          <p class="ev-note">Save each month as you go.{lead ? ' Lock a month once its numbers are final and reported, so they can\'t be changed by accident. Any lead can unlock.' : ' Chris or Dan lock a month once its numbers are final and reported; ask them if a locked month needs changing.'}</p>
         </section>
 
+        {lead && (<>
         <!-- Reviews -->
         <section class="block" aria-labelledby="h-reviews">
           <h2 class="block__title" id="h-reviews">Reviews</h2>
@@ -402,6 +413,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
             </div>
           )}
         </section>
+        </>)}
       </div>
     </section>
   </main>

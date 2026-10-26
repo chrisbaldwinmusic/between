@@ -1,7 +1,9 @@
 // GET /api/team/evaluation/export?type=survey|checkins|community — CSV of raw (anonymous) responses
-// and monthly community numbers for reporting. Leads only (src/middleware.js).
+// and monthly community numbers for reporting. Leads only (src/middleware.js), except that the community
+// managers can download type=community (counts only, no personal data).
 
 import { getDb, jsonErr } from '../../../../lib/ops-db.js';
+import { getEmail, isLead } from '../../../../lib/team-access.js';
 
 export const prerender = false;
 
@@ -23,6 +25,8 @@ export async function GET(context) {
 
   const type = new URL(context.request.url).searchParams.get('type');
   if (!QUERIES[type]) return jsonErr('type must be survey, checkins or community', 400);
+
+  if (type !== 'community' && !isLead(getEmail(context.request))) return jsonErr('Not available to your account', 403);
 
   const { results } = await db.prepare(QUERIES[type]).all();
   const cols = QUERIES[type].match(/SELECT (.*) FROM/)[1].split(', ');

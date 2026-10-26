@@ -1,12 +1,12 @@
 ---
 // Printable report pages under /team (survey reports, community growth, quarterly reviews).
 // Light, print-first styling. Access via src/middleware.js: leads, and some reports for the
-// community managers, who get no CSV downloads (the actions slot) and go back to the dashboard.
+// community managers, who get no CSV downloads (the actions slot) unless the page sets communityActions and go back to the dashboard.
 import { getEmail, isLead } from '../lib/team-access.js';
 
-interface Props { title: string; back?: { href: string; label: string } }
+interface Props { title: string; back?: { href: string; label: string }; communityActions?: boolean }
 const lead = isLead(getEmail(Astro.request));
-const { title, back: backProp = { href: '/team/evaluation', label: 'Evaluation' } } = Astro.props;
+const { title, communityActions = false, back: backProp = { href: '/team/evaluation', label: 'Evaluation' } } = Astro.props;
 const back = lead ? backProp : { href: '/team', label: 'Dashboard' };
 ---
 <!doctype html>
@@ -73,7 +73,7 @@ const back = lead ? backProp : { href: '/team', label: 'Dashboard' };
   <body>
     <div class="toolbar">
       <a href={back.href}>← {back.label}</a>
-      <span>{lead && <slot name="actions" />} <button type="button" onclick="window.print()">Print / save as PDF</button></span>
+      <span>{(lead || communityActions) && <slot name="actions" />} <button type="button" onclick="window.print()">Print / save as PDF</button></span>
     </div>
     <main class="report">
       <slot />
