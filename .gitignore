@@ -9,3 +9,6 @@ node_modules/
 
 # The full ACE application (sensitive; keep out of git)
 export.pdf
+
+# Third-party report (licensed for public benefit use; cite via evidence.md)
+Local Insight*.docx
