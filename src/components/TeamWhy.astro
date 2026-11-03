@@ -19,6 +19,42 @@ const points = [
     body: 'Surveys, attendance and community numbers show the demand behind our ambition for a permanent grassroots venue, and feed the report to Arts Council England.',
   },
 ];
+
+// What the East Staffordshire evidence says and how each part of the programme answers it.
+// Source: Culture and Place Data Explorer report (OCSI for Arts Council England, 3 Nov 2026);
+// figures and section references are in evidence.md. Area is East Staffordshire, not Burton alone.
+const needs = [
+  {
+    need: 'Appetite is there, supply is thin',
+    fact: '90.9% took part in the arts in person (England 90.4%), but ACE funding is £0.73 a head and creative jobs are 1.4% of the total (England 5.1%).',
+    response: 'Give people more to come to, and back the local scene: Love Your Local, Summer Park Sessions, Community Music Trail. Show the year as proof for the ACE report.',
+  },
+  {
+    need: 'Not everyone is online',
+    fact: '12.1% of adults have not used the internet in 3 months (England 7.3%).',
+    response: "Meet people where they already are: Music in the Market, the New Year Community Sing (no ticket). Use print, partners and word of mouth, and don't make the web the only way in.",
+  },
+  {
+    need: 'Money is tight for families',
+    fact: '28.1% of children are in low-income families after housing costs (England 26.4%).',
+    response: 'Keep family events free: Family Music Discovery Day, Summer Park Sessions, Youth Takeover. Decide what a low-cost route looks like on ticketed nights.',
+  },
+  {
+    need: 'The audience is varied, and we can only reach it by asking',
+    fact: '13.7% are from non-White ethnic groups (9.3% Asian); 19% are under 16; 19% are 65+.',
+    response: 'Co-curate with the communities (Global Sounds), let young people programme (Youth Takeover), and check who we reach against these numbers.',
+  },
+  {
+    need: 'Getting there',
+    fact: '18.5% of households have no car or van.',
+    response: 'Put public transport and walking information on every event, and weigh town-centre and well-connected venues when we book.',
+  },
+  {
+    need: 'Belonging is average, places to gather are few',
+    fact: '62.3% feel they belong strongly (England 62.2%); the Community Needs Index shows slightly higher need than England.',
+    response: 'Build on a community that already cares: Founding Membership, passports, bring-a-friend, stories. Make each event leave people more connected than it found them.',
+  },
+];
 ---
 <section class="why" aria-labelledby="why-h">
   <h2 class="why__h" id="why-h">Why we're doing this</h2>
@@ -34,6 +70,29 @@ const points = [
       </li>
     ))}
   </ul>
+  <details class="why__local">
+    <summary>The local picture: what the evidence says and how we respond</summary>
+    <ul class="why__needs" role="list">
+      {needs.map(n => (
+        <li>
+          <h3>{n.need}</h3>
+          <p class="why__fact">{n.fact}</p>
+          <p><strong>Our response:</strong> {n.response}</p>
+        </li>
+      ))}
+    </ul>
+    <p class="why__src why__ward">
+      <strong>Where need is highest (IMD 2025, our ward roll-up):</strong> Burton &amp; Eton, Anglesey,
+      Stapenhill, Shobnall and Winshill. 12 of 72 neighbourhoods in East Staffordshire are in the most
+      deprived 20% in England. Use it to focus outreach, venue choice and travel information; it says
+      nothing about who attends. Internal planning only, not public wording. See <code>evidence.md</code>.
+    </p>
+    <p class="why__src">
+      Source: <em>Culture and Place Data Explorer: East Staffordshire</em> (OCSI for Arts Council
+      England, 3 Nov 2026); detail in <code>evidence.md</code>. Figures are for East Staffordshire,
+      not Burton alone. They show the need and the demand, they don't show the venue is confirmed.
+    </p>
+  </details>
   <p class="why__targets">
     By Sept 2027: <strong>1,500+</strong> unique attenders · <strong>500+</strong> in our social
     communities · <strong>500+</strong> email subscribers · a year of audience data, including venue demand.
@@ -77,6 +136,19 @@ const points = [
   .why__list li { border-left: 3px solid var(--ember); padding-left: var(--space-3); }
   .why__list h3 { font-size: var(--text-sm); font-weight: 700; color: var(--paper); margin: 0 0 0.25rem; }
   .why__list p { font-size: var(--text-xs); color: var(--body); line-height: 1.55; margin: 0; max-width: none; }
+  .why__local { border-top: 1px solid var(--line); padding-top: var(--space-3); margin-bottom: var(--space-4); }
+  .why__local summary { cursor: pointer; font-size: var(--text-sm); font-weight: 700; color: var(--paper); }
+  .why__local summary:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+  .why__needs { list-style: none; margin: var(--space-3) 0; padding: 0; display: grid; gap: var(--space-3); }
+  @media (min-width: 760px) { .why__needs { grid-template-columns: 1fr 1fr; } }
+  .why__needs li { border-left: 3px solid var(--red); padding-left: var(--space-3); }
+  .why__needs h3 { font-size: var(--text-sm); font-weight: 700; color: var(--paper); margin: 0 0 0.25rem; }
+  .why__needs p { font-size: var(--text-xs); color: var(--body); line-height: 1.55; margin: 0 0 0.25rem; max-width: none; }
+  .why__needs .why__fact { color: var(--paper); }
+  .why__needs strong { color: var(--ember); }
+  .why__ward { margin-bottom: var(--space-3); }
+  .why__ward strong { color: var(--paper); }
+  .why__src { font-size: var(--text-xs); color: var(--body); margin: 0; max-width: 70ch; }
   .why__targets { font-size: var(--text-xs); color: var(--body); margin: 0; max-width: none; }
   .why__targets strong { color: var(--paper); }
 </style>

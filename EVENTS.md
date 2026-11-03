@@ -13,6 +13,26 @@ build the evidence.
 **For every event.** Book the venue(s), then artists, then technicians. Gather stories with
 permission. Run the check-in or box-office count, then the survey within 48 hours.
 
+**Why these events: the local need they answer.** Drawn from `evidence.md` (East Staffordshire
+report, OCSI for Arts Council England, 3 Nov 2026). Check each event against its row when you plan it.
+
+| Event | Local need it answers | What that means for planning |
+|---|---|---|
+| Firelight (Oct) | Belonging is average, places to gather are few | Gather stories with permission; invite people to bring someone. |
+| Winter Sounds (Nov) | Community that already cares needs a way in | Founding Membership launch: join, bring a friend, tell a story. Decide a low-cost route on the door. |
+| New Year Community Sing (Jan) | 12.1% of adults are offline; first-timers | Free, no ticket: promote in print and through partners, not only online. |
+| Love Your Local (Feb) | Thin supply, creative base 1.4% of jobs (England 5.1%) | Back local musicians and venues; record what the evening does for them. |
+| Family Music Discovery Day (Mar) | 28.1% of children in low-income families; 19% under 16 | Keep it free; baby-changing, quiet space and safeguarding on the venue brief. |
+| Global Sounds (Apr) | 13.7% from non-White ethnic groups (9.3% Asian) | Communities choose; pay ambassadors; check who comes against these figures. |
+| Music in the Market (May) | Offline, passers-by, no-car households (18.5%) | Meet people where they are; capture stories and sign-ups without a screen. |
+| Summer Park Sessions (Jun) | Families on tight budgets; gathering places | Free; Loyalty Passport; transport and access information up front. |
+| Youth Takeover (Jul) | 19% under 16; the next generation of the scene | Young people decide; safeguarding for under-18s is settled first. |
+| Community Music Trail (Sep) | Build the case: demand, not assumption | A clear public summary of the year, framed as "building the case" for our ambition. |
+
+**For every event.** Put public transport and walking information on the listing (18.5% of households
+have no car), keep access details current, and record who came (age band, postcode area if offered,
+first-timer or returning) so we can compare our audience with the area. No personal data in URLs.
+
 Dates show as month only until tickets are on sale or a free event is confirmed.
 
 ---

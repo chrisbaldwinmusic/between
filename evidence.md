@@ -86,6 +86,47 @@ People here already take part in the arts, but investment, creative businesses a
 - 2.43 million day trips a year, worth £129.37 million in spend (Visitor Economy, Great Britain Tourism Survey, April 2021 to March 2023).
 - **Use:** the economic benefit of a place to go, framed as "if the demand is there". Not a forecast.
 
+## Ward-level deprivation (Index of Multiple Deprivation 2025)
+
+**Sources:** MHCLG, *English Indices of Deprivation 2025*, File 1 (LSOA ranks and deciles; gov.uk/government/statistics/english-indices-of-deprivation-2025). Mapped to wards with ONS, *LSOA (2021) to Electoral Ward (2025) to LAD (2025) Best Fit Lookup in EW (V2)*. Fetched 3 Nov 2026.
+
+**How to read it.** The government publishes the index for 72 small neighbourhoods (LSOAs) in East Staffordshire, not for wards. Ward figures here are our own roll-up: each LSOA is assigned to a ward by the ONS best-fit lookup, and the ward figure is the **simple average of its LSOA ranks** (not population-weighted). Rank 1 is the most deprived of 33,755 neighbourhoods in England. Decile 1 is the most deprived 10%. Treat the table as a guide to where to focus outreach, not as a precise ranking. Deprivation is relative disadvantage; it says nothing about who attends or what people value.
+
+| Ward | LSOAs | Most deprived LSOA (national rank) | Average LSOA rank | LSOAs in most deprived 10% / 20% nationally |
+|---|---|---|---|---|
+| Burton & Eton | 6 | 2,098 | 6,929 | 2 / 4 |
+| Anglesey | 4 | 6,153 | 7,322 | 0 / 1 |
+| Stapenhill | 5 | 2,953 | 8,416 | 1 / 2 |
+| Shobnall | 4 | 3,556 | 8,526 | 0 / 3 |
+| Winshill | 5 | 2,369 | 13,863 | 1 / 1 |
+| Horninglow & Outwoods | 6 | 5,746 | 16,796 | 0 / 1 |
+
+The other ten wards (Crown, Heath, Stramshall & Weaver, Blythe, Branston, Town, Dove, Bagots & Needwood, Stretton, Brizlincote) have no neighbourhood in the most deprived 20% nationally; their average ranks are between 18,102 and 30,524.
+
+- **Across the district:** 4 of 72 neighbourhoods are in the most deprived 10% in England, 12 in the most deprived 20%, and 19 in the most deprived 30%.
+- **Four of the five most deprived neighbourhoods are in Burton & Eton, Winshill and Stapenhill** (national ranks 2,098, 2,369, 2,768 and 2,953).
+- **Check before quoting:** the lookup is ONS "best fit", so a neighbourhood can straddle a ward boundary. Some wards (for example "Town") may be Uttoxeter, not Burton. Confirm ward locations before saying "Burton".
+
+**Use for the team**
+- **Outreach:** put print, partner and street-team effort (Leah's team, Music in the Market, Community Sing) where the need is highest: Burton & Eton, Anglesey, Stapenhill, Shobnall and Winshill.
+- **Venues and travel:** when venues are chosen, note how far each is from these wards, and whether public transport links them.
+- **Families and young people:** free family and youth events (Family Music Discovery Day, Youth Takeover) are the strongest fit for these wards. Ask schools and community groups there.
+- **Evaluation:** if people give an optional postcode area, compare who comes with these wards after Winter Sounds. Never put postcode data in URLs.
+- **Wording:** these are internal planning figures. Don't label areas as "deprived" in public copy.
+
+## How the programme answers the evidence
+
+The same mapping is shown to the team on `/team` ("Why we're doing this", "The local picture") and in `EVENTS.md`.
+
+| Need | Evidence | Programme response |
+|---|---|---|
+| Appetite there, supply thin | 90.86% engage in person; £0.73 ACE per head; 1.37% creative jobs | More to come to; back local artists and venues (Love Your Local, Park, Trail); proof for ACE |
+| Offline audience | 12.1% not online in 3 months | Market, Community Sing (no ticket); print, partners, word of mouth |
+| Family money | 28.11% of children low-income after housing costs | Free family events; a low-cost route on ticketed nights (to decide) |
+| Varied audience | 13.68% non-White; 18.96% under 16 | Global Sounds, Youth Takeover; check reach against these figures |
+| Getting there | 18.49% no car | Transport information on every listing; venue choice |
+| Belonging and gathering | Belonging 62.33% (average); Community Needs Index slightly higher need | Founding Membership, passports, stories, bring-a-friend |
+
 ## Suggested uses
 
 1. **Funding bids:** sections 2 and 3. Cite section and source, and state the area as East Staffordshire.
@@ -96,4 +137,4 @@ People here already take part in the arts, but investment, creative businesses a
 ## Open questions
 
 - Who attends our events now, compared with these demographics? Use signup and poll data.
-- Is there Burton-only data (wards or LSOAs) to add? The Local Insight platform can segment below local-authority level.
+- Ward-level IMD is added above. Next: Burton-only figures for the other indicators (child poverty, internet use) from Local Insight.
