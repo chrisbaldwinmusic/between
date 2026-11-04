@@ -294,6 +294,18 @@ as a production variable), run `npx wrangler dev --config mcp/wrangler.toml`, an
 The server returns contributor emails and budget figures only where the site does (leads).
 If the Access application is recreated, update `ACCESS_AUD`.
 
+## 5f. Facebook + Instagram (`/team/social` and the MCP Meta tools)
+
+Chris, Dan, Vikki and Emma can read the Facebook Page and Instagram account, publish, reply to and hide comments from `/team/social`, and through the MCP server (`mcp/meta.js`). Other team members see neither. Both use `src/lib/meta.js`.
+
+1. In Meta Business Suite create a **system user** (admin) and generate a never-expiring token for an app with the Page and Instagram permissions: `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `pages_manage_engagement`, `read_insights`, `instagram_basic`, `instagram_content_publish`, `instagram_manage_comments`, `instagram_manage_insights`. The Instagram account must be a professional account linked to the Page. (Meta app review applies to anyone outside your own business.)
+2. Set the ids in `wrangler.toml` and `mcp/wrangler.toml`: `META_PAGE_ID`, `META_IG_USER_ID`.
+3. Set the token as a secret on **both** Workers (never commit it):
+   `npx wrangler secret put META_ACCESS_TOKEN` and `npx wrangler secret put META_ACCESS_TOKEN --config mcp/wrangler.toml`
+4. `npm run deploy` (and `npm run deploy:mcp` once the MCP is live). Open `/team/social`: it should say "Connected to Meta".
+
+Every send needs an explicit confirm, links must carry UTMs, Instagram images need alt text, and each send is recorded in the activity log. There are no deletes. Until the token is set, the page and tools just say Meta is not connected.
+
 ## 6. Custom domain + DNS
 
 Already attached: `between.sonicboom.org.uk` → the `between` Worker, via a **Workers Custom

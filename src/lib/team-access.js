@@ -9,6 +9,8 @@
 // preview and the QR posters. They can also enter the monthly community numbers on /team/evaluation
 // (not lock or unlock a month) and download the community-growth CSV (counts only). Not the budget (it
 // has their own rates), ops, the full to-do list, the rest of evaluation, reviews or the other exports.
+// Leads and community managers (Chris, Dan, Vikki, Emma) can also use /team/social: read the Facebook
+// Page and Instagram account, and publish, reply and hide comments (src/lib/meta.js).
 
 export const LEADS = ['chris@sonicboom.org.uk', 'dan@sonicboom.org.uk'];
 export const COMMUNITY = ['vikki@sonicboom.org.uk', 'emma@sonicboom.org.uk'];
@@ -24,6 +26,7 @@ const COMMUNITY_PAGES = [
   '/team/evaluation/attribution',
   '/team/evaluation/qr',
   '/team/evaluation/survey-preview',
+  '/team/social',
 ];
 // Any method; the routes themselves limit deleting to the uploader or a lead, and push
 // subscriptions to the signed-in person's own devices.
@@ -31,6 +34,8 @@ const COMMUNITY_PAGES = [
 const COMMUNITY_API = [
   { method: 'POST', path: '/api/team/evaluation/community' },
   { method: 'GET', path: '/api/team/evaluation/export' },
+  { method: 'GET', path: '/api/team/social' },
+  { method: 'POST', path: '/api/team/social' },
 ];
 const SHARED_API_PREFIXES = ['/api/team/media', '/api/team/push'];
 

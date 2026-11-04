@@ -1,0 +1,262 @@
+---
+// Facebook Page + Instagram for Chris, Dan, Vikki and Emma (src/lib/team-access.js). Read the
+// accounts, publish, reply to and hide comments. Everything goes through /api/team/social, which
+// previews first and only sends on an explicit confirm, and logs each send. Remote text is only
+// ever inserted with textContent.
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+---
+<BaseLayout title="Social · Between Ops" nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <section class="sc-section">
+      <div class="container">
+        <h1 class="sc-heading">Social</h1>
+        <p class="sc-intro">
+          The Facebook Page and Instagram account for Sonic Boom Music CIC. Lead with people and their
+          stories. Only share a story marked "OK for social media" (see <a href="/team/stories">Stories</a>),
+          write Sonic Boom Music CIC in full, and never say the permanent venue is confirmed: it is our ambition.
+          Every link needs UTM tags. Nothing is sent until you press <strong>Confirm and send</strong>.
+        </p>
+
+        <p id="sc-status" class="sc-status" role="status" aria-live="polite">Loading…</p>
+        <div id="sc-accounts" class="sc-cards"></div>
+
+        <div class="sc-cols">
+          <form id="fb-form" class="sc-card" novalidate>
+            <h2 class="sc-h2">Post to Facebook</h2>
+            <label for="fb-message">Message</label>
+            <textarea id="fb-message" rows="5" maxlength="5000" required></textarea>
+            <label for="fb-link">Link (optional, with utm_source, utm_medium, utm_campaign)</label>
+            <input id="fb-link" type="url" inputmode="url" placeholder="https://between.sonicboom.org.uk/?utm_source=facebook&utm_medium=social&utm_campaign=…">
+            <label for="fb-when">Schedule for (optional; leave empty to post now)</label>
+            <input id="fb-when" type="datetime-local">
+            <div class="sc-actions"><button type="submit" class="sc-btn">Preview</button></div>
+            <div class="sc-preview" hidden></div>
+          </form>
+
+          <form id="ig-form" class="sc-card" novalidate>
+            <h2 class="sc-h2">Post to Instagram</h2>
+            <label for="ig-image">Image URL (public https JPEG)</label>
+            <input id="ig-image" type="url" inputmode="url" required>
+            <label for="ig-alt">Alt text: describe the image for people who can't see it</label>
+            <textarea id="ig-alt" rows="2" maxlength="1000" required></textarea>
+            <label for="ig-caption">Caption</label>
+            <textarea id="ig-caption" rows="4" maxlength="2200"></textarea>
+            <div class="sc-actions"><button type="submit" class="sc-btn">Preview</button></div>
+            <div class="sc-preview" hidden></div>
+          </form>
+        </div>
+
+        <div class="sc-cols">
+          <div class="sc-card">
+            <h2 class="sc-h2">Facebook posts</h2>
+            <ul id="fb-list" class="sc-list" role="list"></ul>
+          </div>
+          <div class="sc-card">
+            <h2 class="sc-h2">Instagram posts</h2>
+            <ul id="ig-list" class="sc-list" role="list"></ul>
+          </div>
+        </div>
+
+        <div class="sc-card" id="sc-comments" hidden tabindex="-1">
+          <h2 class="sc-h2" id="sc-comments-title">Comments</h2>
+          <ul id="sc-comments-list" class="sc-list" role="list"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  const API = '/api/team/social';
+  const $ = (s: string, el: ParentNode = document) => el.querySelector(s) as HTMLElement;
+  const statusEl = $('#sc-status');
+  const say = (msg: string) => { statusEl.textContent = msg; };
+
+  async function api(view: string, extra = ''): Promise<any> {
+    const r = await fetch(`${API}?view=${view}${extra}`);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Something went wrong.');
+    return d;
+  }
+  async function send(body: object): Promise<any> {
+    const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Something went wrong.');
+    return d;
+  }
+  function el(tag: string, text = '', cls = '') {
+    const e = document.createElement(tag);
+    if (text) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+  const when = (iso?: string) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+  const clip = (s = '', n = 140) => (s.length > n ? s.slice(0, n) + '…' : s);
+
+  // Preview, then confirm: the first request never sends.
+  function wireForm(form: HTMLFormElement, build: () => object | null) {
+    const box = $('.sc-preview', form);
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const body = build();
+      if (!body) return;
+      box.hidden = true;
+      try {
+        const r = await send({ ...body, confirm: false });
+        box.replaceChildren(el('p', 'Check this before it goes out:', 'sc-preview__lead'), el('pre', JSON.stringify(r.preview, null, 2)));
+        const ok = el('button', 'Confirm and send', 'sc-btn sc-btn--go') as HTMLButtonElement;
+        ok.type = 'button';
+        const no = el('button', 'Cancel', 'sc-btn sc-btn--ghost') as HTMLButtonElement;
+        no.type = 'button';
+        no.onclick = () => { box.hidden = true; };
+        ok.onclick = async () => {
+          ok.disabled = true;
+          try {
+            await send({ ...body, confirm: true });
+            say('Sent. It is in the activity log.');
+            form.reset(); box.hidden = true; load();
+          } catch (err: any) { say(err.message); ok.disabled = false; }
+        };
+        const row = el('div', '', 'sc-actions'); row.append(ok, no);
+        box.append(row); box.hidden = false; ok.focus();
+      } catch (err: any) { say(err.message); }
+    });
+  }
+
+  wireForm($('#fb-form') as HTMLFormElement, () => {
+    const message = ($('#fb-message') as HTMLTextAreaElement).value.trim();
+    if (!message) { say('Write a message first.'); return null; }
+    const link = ($('#fb-link') as HTMLInputElement).value.trim();
+    const w = ($('#fb-when') as HTMLInputElement).value;
+    return { action: 'publish_facebook', message, ...(link ? { link } : {}), ...(w ? { schedule_at: new Date(w).toISOString() } : {}) };
+  });
+  wireForm($('#ig-form') as HTMLFormElement, () => {
+    const image_url = ($('#ig-image') as HTMLInputElement).value.trim();
+    const alt_text = ($('#ig-alt') as HTMLTextAreaElement).value.trim();
+    if (!image_url || !alt_text) { say('An image URL and alt text are both needed.'); return null; }
+    return { action: 'publish_instagram', image_url, alt_text, caption: ($('#ig-caption') as HTMLTextAreaElement).value };
+  });
+
+  function showAccounts(o: any) {
+    const wrap = $('#sc-accounts');
+    wrap.replaceChildren();
+    const card = (title: string, a: any, lines: string[]) => {
+      const c = el('div', '', 'sc-card');
+      c.append(el('h2', title, 'sc-h2'));
+      if (a?.error) c.append(el('p', a.error, 'sc-muted'));
+      else lines.forEach(l => c.append(el('p', l)));
+      wrap.append(c);
+    };
+    const fb = o.facebook, ig = o.instagram;
+    card('Facebook Page', fb, [fb.name, `${fb.followers_count ?? fb.fan_count ?? '?'} followers`]);
+    card('Instagram', ig, [`@${ig.username}`, `${ig.followers_count ?? '?'} followers · ${ig.media_count ?? '?'} posts`]);
+  }
+
+  function showPosts(listId: string, items: any[], kind: 'fb' | 'ig') {
+    const ul = $(listId);
+    ul.replaceChildren();
+    if (!items.length) { ul.append(el('li', 'Nothing yet.', 'sc-muted')); return; }
+    for (const p of items) {
+      const li = el('li', '', 'sc-item');
+      li.append(el('p', clip(kind === 'fb' ? p.message : p.caption) || '(no text)'));
+      const n = kind === 'fb'
+        ? `${p.reactions?.summary?.total_count ?? 0} reactions · ${p.comments?.summary?.total_count ?? 0} comments`
+        : `${p.like_count ?? 0} likes · ${p.comments_count ?? 0} comments`;
+      li.append(el('p', `${when(p.created_time || p.timestamp)} · ${n}`, 'sc-muted'));
+      const b = el('button', 'Comments', 'sc-btn sc-btn--small') as HTMLButtonElement;
+      b.type = 'button';
+      b.onclick = () => openComments(kind, p.id);
+      li.append(b);
+      ul.append(li);
+    }
+  }
+
+  async function openComments(kind: 'fb' | 'ig', id: string) {
+    const panel = $('#sc-comments'), ul = $('#sc-comments-list');
+    panel.hidden = false; ul.replaceChildren(el('li', 'Loading…', 'sc-muted')); panel.focus();
+    try {
+      const d = await api(`${kind}_comments`, `&id=${encodeURIComponent(id)}`);
+      ul.replaceChildren();
+      if (!d.data?.length) ul.append(el('li', 'No comments.', 'sc-muted'));
+      for (const c of d.data ?? []) {
+        const platform = kind === 'fb' ? 'facebook' : 'instagram';
+        const hidden = kind === 'fb' ? c.is_hidden : c.hidden;
+        const li = el('li', '', 'sc-item');
+        li.append(el('p', `${kind === 'fb' ? c.from?.name ?? 'Someone' : '@' + c.username}: ${kind === 'fb' ? c.message : c.text}`));
+        li.append(el('p', `${when(c.created_time || c.timestamp)}${hidden ? ' · hidden' : ''}`, 'sc-muted'));
+        const reply = el('button', 'Reply', 'sc-btn sc-btn--small') as HTMLButtonElement;
+        reply.type = 'button';
+        reply.onclick = () => {
+          const form = el('form', '', 'sc-reply') as HTMLFormElement;
+          const lab = el('label', 'Your reply'); const id2 = `r-${c.id}`; lab.setAttribute('for', id2);
+          const ta = el('textarea') as HTMLTextAreaElement; ta.id = id2; ta.rows = 2; ta.maxLength = 2200; ta.required = true;
+          const go = el('button', 'Preview', 'sc-btn sc-btn--small') as HTMLButtonElement; go.type = 'submit';
+          form.append(lab, ta, go);
+          form.onsubmit = async e => {
+            e.preventDefault();
+            const body = { action: 'reply', platform, comment_id: c.id, message: ta.value.trim() };
+            try {
+              const pv = await send({ ...body, confirm: false });
+              if (window.confirm(`Send this reply publicly?\n\n${pv.preview.message}`)) { await send({ ...body, confirm: true }); say('Reply sent.'); form.remove(); }
+            } catch (err: any) { say(err.message); }
+          };
+          reply.after(form); ta.focus();
+        };
+        const hide = el('button', hidden ? 'Unhide' : 'Hide', 'sc-btn sc-btn--small sc-btn--ghost') as HTMLButtonElement;
+        hide.type = 'button';
+        hide.onclick = async () => {
+          const body = { action: 'hide', platform, comment_id: c.id, hidden: !hidden };
+          if (!window.confirm(`${hidden ? 'Unhide' : 'Hide'} this comment? You can reverse it.`)) return;
+          try { await send({ ...body, confirm: true }); say(hidden ? 'Comment unhidden.' : 'Comment hidden.'); openComments(kind, id); }
+          catch (err: any) { say(err.message); }
+        };
+        li.append(reply, hide);
+        ul.append(li);
+      }
+    } catch (err: any) { ul.replaceChildren(el('li', err.message, 'sc-muted')); }
+  }
+
+  async function load() {
+    try {
+      const o = await api('overview');
+      if (!o.status.connected) { say('Meta is not connected yet. Ask Chris to add the access token and the Page and Instagram ids (DEPLOY.md).'); return; }
+      say('Connected to Meta.');
+      showAccounts(o);
+      const [fb, ig] = await Promise.allSettled([api('fb_posts'), api('ig_media')]);
+      showPosts('#fb-list', fb.status === 'fulfilled' ? fb.value.data ?? [] : [], 'fb');
+      showPosts('#ig-list', ig.status === 'fulfilled' ? ig.value.data ?? [] : [], 'ig');
+    } catch (err: any) { say(err.message); }
+  }
+  load();
+</script>
+
+<style>
+  .sc-section { background: var(--ink); padding-block: clamp(var(--space-8), 6vw, var(--space-12)); min-height: calc(100svh - var(--nav-h)); }
+  .sc-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin-bottom: var(--space-2); }
+  .sc-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin-bottom: var(--space-4); }
+  .sc-intro a { color: var(--ember); }
+  .sc-status { color: var(--paper); font-size: var(--text-sm); margin-bottom: var(--space-4); }
+  .sc-cards, .sc-cols { display: grid; gap: var(--space-4); margin-bottom: var(--space-4); }
+  @media (min-width: 900px) { .sc-cards, .sc-cols { grid-template-columns: 1fr 1fr; } }
+  .sc-card { background: var(--ink-soft); border: 1px solid var(--line); border-radius: 8px; padding: var(--space-4); color: var(--body); font-size: var(--text-sm); }
+  .sc-h2 { font-family: var(--font-body); font-size: var(--text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper); margin: 0 0 var(--space-3); }
+  .sc-card label { display: block; color: var(--paper); margin: var(--space-3) 0 var(--space-1); }
+  .sc-card input, .sc-card textarea { width: 100%; background: var(--ink); color: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem; font: inherit; }
+  .sc-card input:focus-visible, .sc-card textarea:focus-visible, .sc-btn:focus-visible, .sc-card:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .sc-actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
+  .sc-btn { background: var(--paper); color: var(--ink); border: 0; border-radius: 6px; padding: 0.65rem 1rem; font: inherit; font-weight: 700; cursor: pointer; min-height: 44px; }
+  .sc-btn--go { background: var(--red); color: #fff; }
+  .sc-btn--ghost { background: transparent; color: var(--paper); border: 1px solid var(--line); }
+  .sc-btn--small { min-height: 36px; padding: 0.35rem 0.75rem; margin: var(--space-2) var(--space-2) 0 0; }
+  .sc-btn:disabled { opacity: 0.6; cursor: progress; }
+  .sc-preview { margin-top: var(--space-3); border-top: 1px solid var(--line); padding-top: var(--space-3); }
+  .sc-preview pre { white-space: pre-wrap; word-break: break-word; color: var(--paper); background: var(--ink); padding: var(--space-3); border-radius: 6px; }
+  .sc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+  .sc-item { border-left: 3px solid var(--line); padding-left: var(--space-3); }
+  .sc-item p { margin: 0 0 var(--space-1); color: var(--paper); }
+  .sc-item p.sc-muted, .sc-muted { color: var(--body); }
+  .sc-reply { margin-top: var(--space-2); }
+</style>

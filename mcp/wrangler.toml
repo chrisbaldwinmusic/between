@@ -13,4 +13,10 @@ database_id = "e7cc1aba-58a7-411d-8809-54b7d5f46baa"
 # TODO: the audience (AUD) tag of the "Between MCP" Access application (DEPLOY.md, MCP section).
 ACCESS_AUD = ""
 
+# Meta (Facebook + Instagram), see mcp/meta.js. Ids only, not secrets. The token is a secret:
+#   npx wrangler secret put META_ACCESS_TOKEN --config mcp/wrangler.toml
+# TODO: Facebook Page id and the linked Instagram professional account id.
+META_PAGE_ID = ""
+META_IG_USER_ID = ""
+
 # TODO: custom domain mcp.between.sonicboom.org.uk: add `routes = [{ pattern = "mcp.between.sonicboom.org.uk", custom_domain = true }]` once the Access app exists (DEPLOY.md §5e).

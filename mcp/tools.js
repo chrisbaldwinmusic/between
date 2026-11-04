@@ -8,6 +8,7 @@
 // emails on stories and budget rates are never included except budget_summary (leads only).
 
 import { z } from 'zod';
+import { registerMetaTools } from './meta.js';
 import events from '../src/data/events.json';
 import { isLead, isCommunity } from '../src/lib/team-access.js';
 import { loadAll, eventReport, surveySummary, communityReport, TARGETS, PROJECT_START } from '../src/lib/metrics.js';
@@ -26,7 +27,7 @@ const done = r => (r.error
   : text(r.data));
 const all = (db, sql, ...args) => db.prepare(sql).bind(...args).all().then(r => r.results);
 
-export function registerTools(server, { db, email }) {
+export function registerTools(server, { db, email, env = {}, fetchImpl }) {
   const role = roleOf(email);
   const lead = role === 'lead';
   const community = lead || role === 'community';
@@ -143,6 +144,9 @@ export function registerTools(server, { db, email }) {
       return text(lines.map(l => ({ ...l, budget: gbp(l.budget_pence), spent: gbp(l.spent_pence), remaining: gbp(l.budget_pence - l.spent_pence) })));
     });
   }
+
+  // Facebook + Instagram (mcp/meta.js): reads and writes for community managers and leads.
+  registerMetaTools(server, { env, db, email, lead, community, fetchImpl });
 
   // ── Writes ───────────────────────────────────────────────────────────────
   const write = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };

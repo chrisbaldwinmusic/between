@@ -31,8 +31,8 @@ export default {
     if (!email) return json({ error: 'Please sign in through Cloudflare Access.' }, 401);
     if (!env.OPS_DB) return json({ error: 'Database unavailable' }, 503);
 
-    const server = new McpServer({ name: 'between-team', version: '0.1.0' });
-    registerTools(server, { db: env.OPS_DB, email });
+    const server = new McpServer({ name: 'between-team', version: '0.2.0' });
+    registerTools(server, { db: env.OPS_DB, email, env });
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
     return transport.handleRequest(request);

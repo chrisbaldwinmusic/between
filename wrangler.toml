@@ -21,6 +21,13 @@ database_id = "e7cc1aba-58a7-411d-8809-54b7d5f46baa"
 
 # Daily reminder digest for the leads (src/lib/reminders.js), 07:00 UTC = 8am BST / 7am GMT.
 # Sends through Resend; needs the RESEND_API_KEY secret.
+# Facebook + Instagram for /team/social (src/lib/meta.js). Ids only; the token is a secret:
+#   npx wrangler secret put META_ACCESS_TOKEN
+# TODO: Facebook Page id and the linked Instagram professional account id.
+[vars]
+META_PAGE_ID = ""
+META_IG_USER_ID = ""
+
 [triggers]
 crons = ["0 7 * * *"]
 
