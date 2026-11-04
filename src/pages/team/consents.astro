@@ -1,0 +1,111 @@
+---
+// Photo, video, audio and words permissions people have given at /feedback/consent. Leads and the
+// community managers can read them (so they know what they may share); leads mark one withdrawn when
+// someone asks. Check here before using a photo or recording of an identifiable person.
+export const prerender = false;
+
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import events from '../../data/events.json';
+import { getEmail, isLead } from '../../lib/team-access.js';
+
+const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
+const lead = isLead(getEmail(Astro.request));
+const db = Astro.locals.runtime?.env?.OPS_DB;
+let rows: any[] = [];
+if (db) {
+  const r = await db.prepare('SELECT * FROM media_consents ORDER BY withdrawn_at IS NOT NULL, created_at DESC').all().catch(() => ({ results: [] }));
+  rows = r.results;
+}
+const eventName = (slug: string | null) => events.find(e => e.slug === slug)?.name;
+const when = (iso: string) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const list = (r: any, keys: [string, string][]) => keys.filter(([k]) => r[k]).map(([, l]) => l).join(', ') || 'none';
+const MEDIA: [string, string][] = [['photo', 'photos'], ['video', 'video'], ['audio', 'audio'], ['words', 'words']];
+const USES: [string, string][] = [['use_web', 'website'], ['use_social', 'social media'], ['use_print', 'print and press'], ['use_funders', 'funder reports']];
+const active = rows.filter(r => !r.withdrawn_at);
+const withdrawn = rows.filter(r => r.withdrawn_at);
+---
+<BaseLayout title="Media permissions · Between Ops" nav="internal" authEmail={authEmail}>
+  <main id="main">
+    <section class="mc-section">
+      <div class="container">
+        <h1 class="mc-heading">Media permissions</h1>
+        <p class="mc-intro">
+          People who have said yes to photos, video, audio or their words, and where we can use them.
+          Only use what is ticked, and check this list before sharing anything with an identifiable
+          person in it. Someone under 16 is covered only where a parent or carer has signed for them.
+          Share the form with the <a href="/team/evaluation/qr?t=consent">QR poster</a> or send people to
+          <a href="/feedback/consent">/feedback/consent</a>.
+          {lead && ' If someone asks us to stop, mark it withdrawn and stop using it.'}
+        </p>
+
+        <h2 class="mc-group" id="h-active">Permission given <span>{active.length}</span></h2>
+        <ul class="mc-list" role="list" aria-labelledby="h-active">
+          {active.length === 0 && <li class="mc-empty">None yet.</li>}
+          {active.map(r => (
+            <li class="mc" data-id={r.id}>
+              <p class="mc__name">{r.name}{r.child_names && <> <span class="mc__child">for {r.child_names} (under 16, parent or carer)</span></>}</p>
+              <p class="mc__line"><strong>Can use:</strong> {list(r, MEDIA)}</p>
+              <p class="mc__line"><strong>Where:</strong> {list(r, USES)}</p>
+              <p class="mc__meta">
+                {when(r.created_at)}{eventName(r.event_slug) && <> · {eventName(r.event_slug)}</>}
+                {r.email && <> · <a href={`mailto:${r.email}?subject=Your%20permission%20-%20The%20Space%20Between`}>{r.email}</a></>}
+              </p>
+              {lead && <button class="mc__btn" type="button" data-withdrawn="true">Mark withdrawn</button>}
+              <span class="mc__msg" role="status"></span>
+            </li>
+          ))}
+        </ul>
+
+        {withdrawn.length > 0 && (
+          <>
+            <h2 class="mc-group" id="h-wd">Withdrawn: do not use <span>{withdrawn.length}</span></h2>
+            <ul class="mc-list" role="list" aria-labelledby="h-wd">
+              {withdrawn.map(r => (
+                <li class="mc mc--withdrawn" data-id={r.id}>
+                  <p class="mc__name">{r.name}{r.child_names && <> <span class="mc__child">for {r.child_names}</span></>}</p>
+                  <p class="mc__meta">Withdrawn {when(r.withdrawn_at)}</p>
+                  {lead && <button class="mc__btn" type="button" data-withdrawn="false">Reinstate</button>}
+                  <span class="mc__msg" role="status"></span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  document.addEventListener('click', async e => {
+    const btn = (e.target as HTMLElement).closest('button.mc__btn') as HTMLButtonElement | null;
+    const li = btn?.closest('li.mc') as HTMLLIElement | null;
+    if (!btn || !li) return;
+    const withdrawn = btn.dataset.withdrawn === 'true';
+    if (withdrawn && !confirm('Mark this permission withdrawn? Stop using their photos, video, audio and words.')) return;
+    btn.disabled = true;
+    const res = await fetch(`/api/team/consents/${li.dataset.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ withdrawn }) });
+    if (res.ok) location.reload();
+    else { (li.querySelector('.mc__msg') as HTMLElement).textContent = 'Could not save'; btn.disabled = false; }
+  });
+</script>
+
+<style>
+  .mc-section { background: var(--ink); padding-block: clamp(var(--space-8), 6vw, var(--space-12)); min-height: calc(100svh - var(--nav-h)); }
+  .mc-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin-bottom: var(--space-2); }
+  .mc-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin-bottom: var(--space-8); }
+  .mc-intro a, .mc__meta a { color: var(--ember); }
+  .mc-group { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--body); margin: 0 0 var(--space-3); }
+  .mc-group span { color: var(--ember); margin-left: 0.3rem; }
+  .mc-list { list-style: none; margin: 0 0 var(--space-8); padding: 0; display: grid; gap: var(--space-3); }
+  .mc-empty { font-size: var(--text-sm); color: var(--body); }
+  .mc { background: var(--ink-soft); border: 1px solid var(--line); border-left: 3px solid #4caf50; border-radius: 6px; padding: var(--space-3) var(--space-4); font-size: var(--text-sm); color: var(--body); }
+  .mc--withdrawn { border-left-color: var(--red); opacity: 0.8; }
+  .mc p { margin: 0 0 var(--space-1); }
+  .mc__name { color: var(--paper); font-weight: 700; }
+  .mc__child { font-weight: 400; color: var(--ember); }
+  .mc__line strong { color: var(--paper); }
+  .mc__btn { margin-top: var(--space-2); background: transparent; color: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 0.45rem 0.9rem; font: inherit; cursor: pointer; min-height: 40px; }
+  .mc__btn:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .mc__msg { margin-left: var(--space-2); color: var(--ember); }
+</style>

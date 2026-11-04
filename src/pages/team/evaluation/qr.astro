@@ -1,6 +1,8 @@
 ---
-// Printable QR poster for an event's survey or check-in (/team/evaluation/qr?e=slug&t=survey|checkin).
-// Ready from the 1st of the event's month (materialsReady). Leads and the community managers
+// Printable QR poster for an event's survey or check-in (/team/evaluation/qr?e=slug&t=survey|checkin),
+// or for the photo/video/audio/words permission form (?t=consent, with an optional &e=slug). Survey
+// and check-in posters are ready from the 1st of the event's month (materialsReady); the consent
+// poster is always available. Leads and the community managers
 // (src/middleware.js). The QR code points at the public, PIN-free /feedback page.
 export const prerender = false;
 
@@ -12,23 +14,29 @@ import { materialsReady } from '../../../lib/dates.js';
 const back = isLead(getEmail(Astro.request)) ? { href: '/team/evaluation', label: 'Evaluation' } : { href: '/team', label: 'Dashboard' };
 const params = Astro.url.searchParams;
 const event = eventBySlug(params.get('e'));
-const type = params.get('t') === 'checkin' ? 'checkin' : 'survey';
-if (!event || !materialsReady(event) || (type === 'checkin' && event.ticketing !== 'free')) return Astro.redirect(back.href);
+const t = params.get('t');
+const type = t === 'consent' ? 'consent' : t === 'checkin' ? 'checkin' : 'survey';
+if (type !== 'consent' && (!event || !materialsReady(event) || (type === 'checkin' && event.ticketing !== 'free'))) return Astro.redirect(back.href);
 
-const medium = type === 'checkin' ? 'qr-checkin' : 'qr-survey';
-const path = type === 'checkin' ? `/feedback/${event.slug}/checkin` : `/feedback/${event.slug}`;
-const url = `https://between.sonicboom.org.uk${path}?utm_source=between&utm_medium=${medium}&utm_campaign=${event.slug}`;
+const medium = `qr-${type}`;
+const campaign = event?.slug ?? 'general';
+const path = type === 'consent' ? '/feedback/consent' : type === 'checkin' ? `/feedback/${event.slug}/checkin` : `/feedback/${event.slug}`;
+const extra = type === 'consent' && event ? `&event=${event.slug}` : '';
+const url = `https://between.sonicboom.org.uk${path}?utm_source=between&utm_medium=${medium}&utm_campaign=${campaign}${extra}`;
 const shortUrl = `between.sonicboom.org.uk${path}`;
+const accent = event?.accent ?? '#E8A23D';
 
 const qr = qrcode(0, 'M');
 qr.addData(url);
 qr.make();
 const svg = qr.createSvgTag({ cellSize: 10, margin: 2, scalable: true, alt: `QR code linking to ${shortUrl}` });
 
-const heading = type === 'checkin' ? 'Check in' : 'How was it?';
-const sub = type === 'checkin'
-  ? 'Scan to check in. Ten seconds, no names or emails.'
-  : 'Scan to tell us. Five quick questions, about two minutes.';
+const heading = type === 'consent' ? 'Photos, video, audio and words' : type === 'checkin' ? 'Check in' : 'How was it?';
+const sub = type === 'consent'
+  ? 'Happy for us to share pictures, film, sound or your words? Scan to tell us, and to choose where. Not for you? Just tell the person with the camera.'
+  : type === 'checkin'
+    ? 'Scan to check in. Ten seconds, no names or emails.'
+    : 'Scan to tell us. Five quick questions, about two minutes.';
 ---
 <!doctype html>
 <html lang="en">
@@ -36,7 +44,7 @@ const sub = type === 'checkin'
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>QR: {heading} · {event.name}</title>
+    <title>QR: {heading}{event ? ` · ${event.name}` : ''}</title>
     <style>
       @font-face { font-family: 'Fraunces'; src: url('/fonts/fraunces/fraunces-normal-latin.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
       @font-face { font-family: 'Fraunces'; font-style: italic; src: url('/fonts/fraunces/fraunces-italic-latin.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
@@ -100,8 +108,8 @@ const sub = type === 'checkin'
       <a href={back.href}>← {back.label}</a>
       <button type="button" onclick="window.print()">Print</button>
     </div>
-    <main class="poster" style={`--accent:${event.accent}`}>
-      <p class="eyebrow">The Space Between · {event.name}</p>
+    <main class="poster" style={`--accent:${accent}`}>
+      <p class="eyebrow">The Space Between{event && <> · {event.name}</>}</p>
       <h1>{heading}</h1>
       <p class="sub">{sub}</p>
       <div class="qr" set:html={svg} />

@@ -214,3 +214,5 @@
 .fb-q__hint--after { margin-top: var(--space-3); }
 .fb-choice:has(input[type="checkbox"]) { align-items: flex-start; }
 .fb-choice input[type="checkbox"] { margin-top: 0.15rem; }
+
+.fb-q__label--sub { display: block; margin-top: var(--space-4); }

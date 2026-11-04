@@ -1,0 +1,115 @@
+---
+// Public photo / video / audio / words permission form, reached from the QR code on event posters.
+// Plain HTML form post, open to everyone. Prerendered per request so ?event= can preselect an event.
+export const prerender = false;
+
+import events from '../../data/events.json';
+import { eventBySlug } from '../../lib/feedback.js';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/feedback.css';
+
+const chosen = eventBySlug(Astro.url.searchParams.get('event'))?.slug ?? '';
+---
+<BaseLayout
+  title="Photo, video and audio permission · The Space Between"
+  description="Say yes (or not) to being photographed, filmed, recorded or quoted at a Space Between event."
+  nav="minimal"
+>
+  <main id="main">
+    <div class="fb-hero">
+      <div class="container fb-hero__inner">
+        <p class="fb-hero__eyebrow">The Space Between</p>
+        <h1 class="fb-hero__title">Photos, video, audio and words</h1>
+        <p class="fb-hero__sub">
+          We tell the story of live music in Burton through the people who make it and come to it.
+          If you're happy for us to share pictures, film, sound or your words, tell us here. It takes
+          a minute, and you can change your mind any time.
+        </p>
+      </div>
+    </div>
+
+    <div class="fb-body">
+      <div class="container fb-body__inner">
+        <p class="fb-p">
+          Not for you? That's absolutely fine: you don't need to fill this in. Just tell the person
+          with the camera and we'll keep you out of shot.
+        </p>
+        <form class="fb-form" method="post" action="/api/feedback/consent">
+          <div class="fb-hp" aria-hidden="true">
+            <label for="website">Leave this empty</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <fieldset class="fb-q">
+            <legend class="fb-q__legend">What can Sonic Boom Music CIC use?</legend>
+            <p class="fb-q__hint" id="media-hint">Tick everything you're happy with. Tick at least one.</p>
+            <div class="fb-choices" aria-describedby="media-hint">
+              <label class="fb-choice"><input type="checkbox" name="photo" value="1" /> <span><strong>Photos</strong> of me</span></label>
+              <label class="fb-choice"><input type="checkbox" name="video" value="1" /> <span><strong>Video</strong> that I'm in</span></label>
+              <label class="fb-choice"><input type="checkbox" name="audio" value="1" /> <span><strong>Audio</strong> recordings of me, such as an interview or my voice in a crowd</span></label>
+              <label class="fb-choice"><input type="checkbox" name="words" value="1" /> <span><strong>My words</strong>: things I say or write to us, quoted with the name I choose</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="fb-q">
+            <legend class="fb-q__legend">Where can it be used?</legend>
+            <p class="fb-q__hint" id="use-hint">Tick at least one.</p>
+            <div class="fb-choices" aria-describedby="use-hint">
+              <label class="fb-choice"><input type="checkbox" name="use_web" value="1" /> <span>On The Space Between website</span></label>
+              <label class="fb-choice"><input type="checkbox" name="use_social" value="1" /> <span>On Sonic Boom Music CIC's social media, such as Facebook and Instagram</span></label>
+              <label class="fb-choice"><input type="checkbox" name="use_print" value="1" /> <span>On printed posters and leaflets, and in the press</span></label>
+              <label class="fb-choice"><input type="checkbox" name="use_funders" value="1" /> <span>In reports and applications to the people who fund us, such as Arts Council England</span></label>
+            </div>
+          </fieldset>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="name">Your name</label>
+            <p class="fb-q__hint" id="name-hint">So we know who gave permission. We never publish it unless you ask us to credit you.</p>
+            <input class="fb-input" id="name" name="name" type="text" required maxlength="120" autocomplete="name" aria-describedby="name-hint" />
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="event">Which event? <span class="fb-q__opt-tag">(optional)</span></label>
+            <select class="fb-select" id="event" name="event">
+              <option value="">Not sure, or more than one</option>
+              {events.map(e => <option value={e.slug} selected={e.slug === chosen}>{e.name} ({e.month})</option>)}
+            </select>
+          </div>
+
+          <div class="fb-q">
+            <label class="fb-q__label" for="email">Your email <span class="fb-q__opt-tag">(optional)</span></label>
+            <p class="fb-q__hint" id="email-hint">
+              Only so we can check with you, or act on it if you change your mind. We never publish it
+              or add it to a mailing list.
+            </p>
+            <input class="fb-input" id="email" name="email" type="email" maxlength="200" autocomplete="email" aria-describedby="email-hint" />
+          </div>
+
+          <fieldset class="fb-q">
+            <legend class="fb-q__legend">Children</legend>
+            <div class="fb-choices">
+              <label class="fb-choice"><input type="checkbox" name="for_child" value="1" /> <span>I'm a parent or carer, and I'm giving this permission for a child or children under 16</span></label>
+            </div>
+            <label class="fb-q__label fb-q__label--sub" for="child_names">Their first name(s) <span class="fb-q__opt-tag">(only if you ticked the box above)</span></label>
+            <input class="fb-input" id="child_names" name="child_names" type="text" maxlength="200" autocomplete="off" />
+          </fieldset>
+
+          <fieldset class="fb-q">
+            <legend class="fb-q__legend">Please confirm</legend>
+            <div class="fb-choices">
+              <label class="fb-choice"><input type="checkbox" name="age_ok" value="1" required /> <span>I'm 16 or over, or I'm the parent or carer of anyone under 16 named above</span></label>
+            </div>
+            <p class="fb-q__hint fb-q__hint--after">
+              We'll use what you've ticked, and nothing more. Changed your mind later? Email
+              hello@sonicboom.org.uk and we'll stop using it. We can't unprint something already
+              printed, but we won't use it again.
+            </p>
+          </fieldset>
+
+          <button class="btn btn-primary fb-submit" type="submit">Give my permission</button>
+          <p class="fb-note">See our <a href="/privacy#media-consent">privacy notice</a> for how we look after this.</p>
+        </form>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

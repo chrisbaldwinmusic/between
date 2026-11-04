@@ -9,6 +9,7 @@
 // preview and the QR posters. They can also enter the monthly community numbers on /team/evaluation
 // (not lock or unlock a month) and download the community-growth CSV (counts only). Not the budget (it
 // has their own rates), ops, the full to-do list, the rest of evaluation, reviews or the other exports.
+// They can also read /team/consents (photo, video, audio and words permissions; leads mark one withdrawn).
 // Leads and community managers (Chris, Dan, Vikki, Emma) can also use /team/social: read the Facebook
 // Page and Instagram account, and publish, reply and hide comments (src/lib/meta.js).
 
@@ -27,6 +28,7 @@ const COMMUNITY_PAGES = [
   '/team/evaluation/qr',
   '/team/evaluation/survey-preview',
   '/team/social',
+  '/team/consents',
 ];
 // Any method; the routes themselves limit deleting to the uploader or a lead, and push
 // subscriptions to the signed-in person's own devices.

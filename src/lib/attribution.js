@@ -8,7 +8,7 @@
 
 import { ukToday } from './dates.js';
 
-export const KINDS = ['visit', 'signup', 'vote', 'survey', 'checkin', 'story', 'whatsapp'];
+export const KINDS = ['visit', 'signup', 'vote', 'survey', 'checkin', 'story', 'consent', 'whatsapp'];
 
 const clean = v => (typeof v === 'string' ? v.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) : '');
 

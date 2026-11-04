@@ -5,7 +5,7 @@
 --   npx wrangler d1 execute between-ops --remote --file=d1/attribution.sql
 CREATE TABLE IF NOT EXISTS attribution (
   day TEXT NOT NULL,               -- YYYY-MM-DD (UK)
-  kind TEXT NOT NULL,              -- visit | signup | vote | survey | checkin | story | whatsapp
+  kind TEXT NOT NULL,              -- visit | signup | vote | survey | checkin | story | consent | whatsapp
   source TEXT NOT NULL,            -- utm_source, or '(direct)' for actions without one
   medium TEXT NOT NULL DEFAULT '',
   campaign TEXT NOT NULL DEFAULT '',
