@@ -70,6 +70,13 @@ export function metaClient(env = {}, fetchImpl = fetch) {
 }
 
 const checkId = id => { if (!ID.test(String(id ?? ''))) throw new MetaError('Invalid id.'); return String(id); };
+// Every image we publish: a public https URL, alt text, and a consent check (CLAUDE.md rule 3; photo
+// consents live at /team/consents).
+function imageChecks(image_url, alt_text, consent_ok) {
+  if (!/^https:\/\//.test(image_url || '')) throw new MetaError('image_url must be a public https URL to a JPEG.');
+  if (!alt_text?.trim()) throw new MetaError('Add alt text: every image needs a description.');
+  if (consent_ok !== true) throw new MetaError('Confirm that anyone you can recognise in the image has given photo consent (see /team/consents), or that nobody is recognisable.');
+}
 const gate = async (ok, action, payload, go) =>
   ok ? { sent: true, ...(await go()) }
      : { sent: false, preview: { action, ...payload }, note: 'Nothing was sent. Confirm to go ahead.' };
@@ -91,18 +98,25 @@ export function metaOps(m) {
     fbComments: ({ id, limit = 20 }) => m.get(`${checkId(id)}/comments`, { limit, order: 'reverse_chronological', fields: 'id,message,created_time,from,like_count,comment_count,is_hidden' }),
     igComments: ({ id, limit = 20 }) => m.get(`${checkId(id)}/comments`, { limit, fields: 'id,text,username,timestamp,like_count,hidden,replies{id,text,username,timestamp}' }),
 
-    publishFacebook: async ({ message, link, schedule_at, confirm }) => {
+    publishFacebook: async ({ message, link, image_url, alt_text, consent_ok, schedule_at, confirm }) => {
       if (!message?.trim() || message.length > 5000) throw new MetaError('Write a message (up to 5000 characters).');
       utmCheck(message, link);
+      if (image_url) {
+        imageChecks(image_url, alt_text, consent_ok);
+        if (link) throw new MetaError('A photo post can\'t also carry a link: put the link (with UTMs) in the message instead.');
+      }
       const when = schedule_at ? Math.floor(new Date(schedule_at).getTime() / 1000) : null;
       if (schedule_at && (!when || when < Date.now() / 1000 + 600)) throw new MetaError('Schedule at least 10 minutes ahead.');
-      return gate(confirm, 'Publish to Facebook Page', { message, link, scheduled_for: schedule_at ?? 'now' },
-        () => m.post(`${m.pageId()}/feed`, { message, link, ...(when ? { published: 'false', scheduled_publish_time: when } : {}) }));
+      const sched = when ? { published: 'false', scheduled_publish_time: when } : {};
+      return gate(confirm, image_url ? 'Publish a photo to Facebook Page' : 'Publish to Facebook Page',
+        { message, link, image_url, alt_text, scheduled_for: schedule_at ?? 'now' },
+        () => (image_url
+          ? m.post(`${m.pageId()}/photos`, { url: image_url, caption: message, alt_text_custom: alt_text, ...sched })
+          : m.post(`${m.pageId()}/feed`, { message, link, ...sched })));
     },
-    publishInstagram: async ({ image_url, caption = '', alt_text, confirm }) => {
-      if (!/^https:\/\//.test(image_url || '')) throw new MetaError('image_url must be a public https URL to a JPEG.');
+    publishInstagram: async ({ image_url, caption = '', alt_text, consent_ok, confirm }) => {
+      imageChecks(image_url, alt_text, consent_ok);
       if (caption.length > 2200) throw new MetaError('Instagram captions are up to 2200 characters.');
-      if (!alt_text?.trim()) throw new MetaError('Add alt text: every image needs a description.');
       utmCheck(caption);
       return gate(confirm, 'Publish to Instagram', { image_url, caption, alt_text }, async () => {
         const container = await m.post(`${m.igId()}/media`, { image_url, caption, alt_text });

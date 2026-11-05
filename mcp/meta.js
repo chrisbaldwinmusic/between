@@ -105,13 +105,13 @@ export function registerMetaTools(server, { env, db, email, lead, community, fet
 
   server.registerTool('fb_publish_post', {
     description: 'Publish, or schedule, a post on the Facebook Page. Tone: warm, local, Burton; write Sonic Boom Music CIC in full; never imply the permanent venue is confirmed; only share a story marked OK for social media. Links must carry UTMs. Preview unless confirm: true.',
-    inputSchema: { message: z.string().min(1).max(5000), link: z.string().url().optional(), schedule_at: z.string().datetime().optional().describe('ISO time at least 10 minutes ahead; omit to publish now'), confirm },
+    inputSchema: { message: z.string().min(1).max(5000), link: z.string().url().optional(), image_url: z.string().url().optional().describe('Optional public https image: posts it as a photo (no separate link)'), alt_text: z.string().max(1000).optional(), consent_ok: z.boolean().optional().describe('Required with an image: true only if everyone recognisable has photo consent'), schedule_at: z.string().datetime().optional().describe('ISO time at least 10 minutes ahead; omit to publish now'), confirm },
     annotations: write,
   }, logged(a => (a.schedule_at ? 'scheduled a Facebook post' : 'published a Facebook post'), a => ops.publishFacebook({ ...a, confirm: a.confirm })));
 
   server.registerTool('ig_publish_image', {
     description: 'Publish a single image to Instagram from a public https JPEG URL. alt_text is required. Caption links are not clickable, but any URL must still carry UTMs. Preview unless confirm: true.',
-    inputSchema: { image_url: z.string().url(), caption: z.string().max(2200).default(''), alt_text: z.string().max(1000), confirm },
+    inputSchema: { image_url: z.string().url(), caption: z.string().max(2200).default(''), alt_text: z.string().max(1000), consent_ok: z.boolean().describe('True only if everyone recognisable in the image has given photo consent (see /team/consents), or nobody is recognisable'), confirm },
     annotations: write,
   }, logged(() => 'published an Instagram post', a => ops.publishInstagram(a)));
 

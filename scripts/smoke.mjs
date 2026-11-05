@@ -11,6 +11,7 @@ const checks = [
   ['/between-ops.webmanifest', [200], 'team app manifest (open)'],
   ['/between-ops-sw.js', [200], 'team app service worker (open)'],
   ['/api/team/push', [302], 'push subscriptions (behind Cloudflare Access)'],
+  ['/social-media/00000000-0000-0000-0000-000000000000.jpg', [404], 'social image route reachable without Access (404 = no such image)'],
   ['/api/team/budget', [302], 'team API (behind Cloudflare Access)'],
 ];
 let failed = 0;

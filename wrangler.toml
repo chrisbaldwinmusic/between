@@ -25,8 +25,8 @@ database_id = "e7cc1aba-58a7-411d-8809-54b7d5f46baa"
 #   npx wrangler secret put META_ACCESS_TOKEN
 # TODO: Facebook Page id and the linked Instagram professional account id.
 [vars]
-META_PAGE_ID = ""
-META_IG_USER_ID = ""
+META_PAGE_ID = "324865194048984"
+META_IG_USER_ID = "17841467325593092"
 
 [triggers]
 crons = ["0 7 * * *"]

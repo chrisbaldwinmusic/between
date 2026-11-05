@@ -38,6 +38,7 @@ const COMMUNITY_API = [
   { method: 'GET', path: '/api/team/evaluation/export' },
   { method: 'GET', path: '/api/team/social' },
   { method: 'POST', path: '/api/team/social' },
+  { method: 'POST', path: '/api/team/social-media' },
 ];
 const SHARED_API_PREFIXES = ['/api/team/media', '/api/team/push'];
 

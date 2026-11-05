@@ -304,6 +304,8 @@ Chris, Dan, Vikki and Emma can read the Facebook Page and Instagram account, pub
    `npx wrangler secret put META_ACCESS_TOKEN` and `npx wrangler secret put META_ACCESS_TOKEN --config mcp/wrangler.toml`
 4. `npm run deploy` (and `npm run deploy:mcp` once the MCP is live). Open `/team/social`: it should say "Connected to Meta".
 
+**Uploading images:** `/team/social` takes a photo from the device, resizes it to 1440px, re-encodes it as JPEG (dropping location and camera data) and stores it in R2 under `social/`. Meta fetches it from the public, unlisted `/social-media/<uuid>.jpg` route, which sits outside `/team` so Access doesn't block it. The same Facebook post form can attach a photo. Every image needs alt text and a photo-consent tick (see `/team/consents`).
+
 Every send needs an explicit confirm, links must carry UTMs, Instagram images need alt text, and each send is recorded in the activity log. There are no deletes. Until the token is set, the page and tools just say Meta is not connected.
 
 ## 6. Custom domain + DNS
