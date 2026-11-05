@@ -92,9 +92,9 @@ export function metaOps(m) {
     fbPage: () => m.get(m.pageId(), { fields: 'id,name,about,category,followers_count,fan_count,website,link,instagram_business_account{id,username}' }),
     igAccount: () => m.get(m.igId(), { fields: 'id,username,name,biography,followers_count,follows_count,media_count,website' }),
     fbPosts: ({ limit = 10, scheduled = false } = {}) => m.get(`${m.pageId()}/${scheduled ? 'scheduled_posts' : 'posts'}`, {
-      limit, fields: 'id,message,created_time,scheduled_publish_time,permalink_url,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)',
+      limit, fields: 'id,message,created_time,scheduled_publish_time,permalink_url,full_picture,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)',
     }),
-    igMedia: ({ limit = 10 } = {}) => m.get(`${m.igId()}/media`, { limit, fields: 'id,caption,media_type,media_product_type,permalink,timestamp,like_count,comments_count' }),
+    igMedia: ({ limit = 10 } = {}) => m.get(`${m.igId()}/media`, { limit, fields: 'id,caption,media_type,media_product_type,permalink,media_url,thumbnail_url,timestamp,like_count,comments_count' }),
     fbComments: ({ id, limit = 20 }) => m.get(`${checkId(id)}/comments`, { limit, order: 'reverse_chronological', fields: 'id,message,created_time,from,like_count,comment_count,is_hidden' }),
     igComments: ({ id, limit = 20 }) => m.get(`${checkId(id)}/comments`, { limit, fields: 'id,text,username,timestamp,like_count,hidden,replies{id,text,username,timestamp}' }),
 

@@ -1,8 +1,7 @@
 ---
-// Facebook Page + Instagram for Chris, Dan, Vikki and Emma (src/lib/team-access.js). Read the
-// accounts, publish, reply to and hide comments. Everything goes through /api/team/social, which
-// previews first and only sends on an explicit confirm, and logs each send. Remote text is only
-// ever inserted with textContent.
+// Facebook Page + Instagram for Chris, Dan, Vikki and Emma (src/lib/team-access.js). One composer
+// posts to either or both; everything goes through /api/team/social, which validates first, only
+// sends on an explicit confirm, and logs each send. Remote text is only ever inserted with textContent.
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
@@ -12,70 +11,97 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   <main id="main">
     <section class="sc-section">
       <div class="container">
-        <h1 class="sc-heading">Social</h1>
-        <p class="sc-intro">
-          The Facebook Page and Instagram account for Sonic Boom Music CIC. Lead with people and their
-          stories. Only share a story marked "OK for social media" (see <a href="/team/stories">Stories</a>),
-          write Sonic Boom Music CIC in full, and never say the permanent venue is confirmed: it is our ambition.
-          Every link needs UTM tags. Nothing is sent until you press <strong>Confirm and send</strong>.
-        </p>
+        <div class="sc-top">
+          <h1 class="sc-heading">Social</h1>
+          <p id="sc-status" class="sc-pill" role="status" aria-live="polite">Loading…</p>
+        </div>
+        <p class="sc-intro">Posts for the Facebook Page and Instagram account of Sonic Boom Music CIC. Nothing is sent until you press <strong>Confirm and send</strong>.</p>
 
-        <p id="sc-status" class="sc-status" role="status" aria-live="polite">Loading…</p>
-        <div id="sc-accounts" class="sc-cards"></div>
+        <details class="sc-rules">
+          <summary>Posting rules</summary>
+          <ul>
+            <li>Lead with people and their stories. Only share a story marked "OK for social media" (<a href="/team/stories">Stories</a>).</li>
+            <li>Write Sonic Boom Music CIC in full. The permanent venue is our ambition: never say it is confirmed.</li>
+            <li>Every link needs UTM tags (<code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>).</li>
+            <li>Every image needs alt text, and anyone you can recognise needs photo consent (<a href="/team/consents">Consents</a>).</li>
+          </ul>
+        </details>
 
-        <div class="sc-cols">
-          <form id="fb-form" class="sc-card" novalidate>
-            <h2 class="sc-h2">Post to Facebook</h2>
-            <label for="fb-message">Message</label>
-            <textarea id="fb-message" rows="5" maxlength="5000" required></textarea>
-            <label for="fb-file">Photo (optional)</label>
-            <input id="fb-file" type="file" accept="image/*" data-target="fb">
-            <input id="fb-image" type="hidden">
-            <p class="sc-hint" id="fb-file-note">A photo post can't carry a separate link: put the link, with UTM tags, in the message.</p>
-            <div class="sc-img" id="fb-img" hidden>
-              <img id="fb-thumb" alt="" width="120"><label for="fb-alt">Alt text: describe the photo for people who can't see it</label>
-              <textarea id="fb-alt" rows="2" maxlength="1000"></textarea>
-              <label class="sc-check"><input id="fb-consent" type="checkbox"> Anyone recognisable in this photo has given photo consent (<a href="/team/consents">check consents</a>), or nobody is recognisable.</label>
+        <div id="sc-accounts" class="sc-accounts"></div>
+
+        <div class="sc-layout">
+          <form id="composer" class="sc-card" novalidate>
+            <h2 class="sc-h2">New post</h2>
+
+            <div class="sc-field">
+              <span class="sc-label" id="photo-label">Photo (optional for Facebook, needed for Instagram)</span>
+              <div class="sc-photo">
+                <label class="sc-btn sc-btn--ghost sc-pick" for="photo-file">Add a photo</label>
+                <input id="photo-file" class="sc-visually-hidden" type="file" accept="image/*" aria-describedby="photo-hint">
+                <figure class="sc-thumbwrap" id="photo-wrap" hidden>
+                  <img id="photo-thumb" alt="Preview of the photo you chose" width="96">
+                  <button type="button" class="sc-btn sc-btn--small sc-btn--ghost" id="photo-remove">Remove</button>
+                </figure>
+              </div>
+              <p id="photo-hint" class="sc-hint">Resized and saved as a JPEG here, which also removes location data.</p>
+              <details class="sc-url">
+                <summary>Use an image URL instead</summary>
+                <label for="photo-url">Public https JPEG</label>
+                <input id="photo-url" type="url" inputmode="url" placeholder="https://…">
+              </details>
             </div>
-            <label for="fb-link">Link (optional, with utm_source, utm_medium, utm_campaign)</label>
-            <input id="fb-link" type="url" inputmode="url" placeholder="https://between.sonicboom.org.uk/?utm_source=facebook&utm_medium=social&utm_campaign=…">
-            <label for="fb-when">Schedule for (optional; leave empty to post now)</label>
-            <input id="fb-when" type="datetime-local">
-            <div class="sc-actions"><button type="submit" class="sc-btn">Preview</button></div>
-            <div class="sc-preview" hidden></div>
+
+            <div class="sc-field" id="alt-field" hidden>
+              <label for="alt">Alt text: describe the photo for people who can't see it</label>
+              <textarea id="alt" rows="2" maxlength="1000"></textarea>
+              <label class="sc-check" for="consent"><input id="consent" type="checkbox"><span>Anyone recognisable in this photo has given photo consent, or nobody is recognisable.</span></label>
+            </div>
+
+            <div class="sc-field">
+              <label for="text">Message</label>
+              <textarea id="text" rows="6" maxlength="5000" aria-describedby="count"></textarea>
+              <p id="count" class="sc-hint" aria-live="off"></p>
+            </div>
+
+            <fieldset class="sc-field sc-where">
+              <legend class="sc-label">Post to</legend>
+              <label class="sc-check" for="to-fb"><input id="to-fb" type="checkbox" checked><span>Facebook</span></label>
+              <label class="sc-check" for="to-ig"><input id="to-ig" type="checkbox"><span>Instagram</span></label>
+              <p id="where-hint" class="sc-hint"></p>
+            </fieldset>
+
+            <details class="sc-more" id="fb-options">
+              <summary>Facebook options: link, schedule</summary>
+              <div class="sc-field">
+                <label for="link">Link (with UTM tags)</label>
+                <input id="link" type="url" inputmode="url" placeholder="https://between.sonicboom.org.uk/?utm_source=facebook&utm_medium=social&utm_campaign=…">
+                <p id="link-hint" class="sc-hint">A photo post can't carry a separate link. Put it, with UTM tags, in the message instead.</p>
+              </div>
+              <div class="sc-field">
+                <label for="when">Schedule for (leave empty to post now)</label>
+                <input id="when" type="datetime-local">
+                <p class="sc-hint">Scheduling is Facebook only, at least 10 minutes ahead.</p>
+              </div>
+            </details>
+
+            <div class="sc-actions"><button type="submit" class="sc-btn" id="preview-btn">Preview</button></div>
+            <div class="sc-preview" id="preview" hidden tabindex="-1"></div>
           </form>
 
-          <form id="ig-form" class="sc-card" novalidate>
-            <h2 class="sc-h2">Post to Instagram</h2>
-            <label for="ig-file">Photo (JPEG, PNG or HEIC; it is resized and converted to JPEG here)</label>
-            <input id="ig-file" type="file" accept="image/*" data-target="ig">
-            <label for="ig-image">…or the URL of a public https JPEG</label>
-            <input id="ig-image" type="url" inputmode="url">
-            <img id="ig-thumb" class="sc-thumb" alt="" width="120" hidden>
-            <label for="ig-alt">Alt text: describe the image for people who can't see it</label>
-            <textarea id="ig-alt" rows="2" maxlength="1000" required></textarea>
-            <label class="sc-check"><input id="ig-consent" type="checkbox"> Anyone recognisable in this image has given photo consent (<a href="/team/consents">check consents</a>), or nobody is recognisable.</label>
-            <label for="ig-caption">Caption</label>
-            <textarea id="ig-caption" rows="4" maxlength="2200"></textarea>
-            <div class="sc-actions"><button type="submit" class="sc-btn">Preview</button></div>
-            <div class="sc-preview" hidden></div>
-          </form>
-        </div>
-
-        <div class="sc-cols">
-          <div class="sc-card">
-            <h2 class="sc-h2">Facebook posts</h2>
-            <ul id="fb-list" class="sc-list" role="list"></ul>
+          <div class="sc-side">
+            <div class="sc-card">
+              <div class="sc-tabs" role="group" aria-label="Recent posts">
+                <button type="button" class="sc-tab" id="tab-fb" aria-pressed="true">Facebook</button>
+                <button type="button" class="sc-tab" id="tab-ig" aria-pressed="false">Instagram</button>
+              </div>
+              <ul id="fb-list" class="sc-list" role="list"></ul>
+              <ul id="ig-list" class="sc-list" role="list" hidden></ul>
+            </div>
+            <div class="sc-card" id="sc-comments" hidden tabindex="-1">
+              <h2 class="sc-h2" id="sc-comments-title">Comments</h2>
+              <ul id="sc-comments-list" class="sc-list" role="list"></ul>
+            </div>
           </div>
-          <div class="sc-card">
-            <h2 class="sc-h2">Instagram posts</h2>
-            <ul id="ig-list" class="sc-list" role="list"></ul>
-          </div>
-        </div>
-
-        <div class="sc-card" id="sc-comments" hidden tabindex="-1">
-          <h2 class="sc-h2" id="sc-comments-title">Comments</h2>
-          <ul id="sc-comments-list" class="sc-list" role="list"></ul>
         </div>
       </div>
     </section>
@@ -85,8 +111,10 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
 <script>
   const API = '/api/team/social';
   const $ = (s: string, el: ParentNode = document) => el.querySelector(s) as HTMLElement;
+  const inp = (s: string) => $(s) as HTMLInputElement;
+  const ta = (s: string) => $(s) as HTMLTextAreaElement;
   const statusEl = $('#sc-status');
-  const say = (msg: string) => { statusEl.textContent = msg; };
+  const say = (msg: string, ok = false) => { statusEl.textContent = msg; statusEl.classList.toggle('is-ok', ok); };
 
   async function api(view: string, extra = ''): Promise<any> {
     const r = await fetch(`${API}?view=${view}${extra}`);
@@ -108,55 +136,32 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   }
   const when = (iso?: string) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
   const clip = (s = '', n = 140) => (s.length > n ? s.slice(0, n) + '…' : s);
+  const safeImg = (u?: string) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : '');
 
-  // Preview, then confirm: the first request never sends.
-  function wireForm(form: HTMLFormElement, build: () => object | null) {
-    const box = $('.sc-preview', form);
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const body = build();
-      if (!body) return;
-      box.hidden = true;
-      try {
-        const r = await send({ ...body, confirm: false });
-        box.replaceChildren(el('p', 'Check this before it goes out:', 'sc-preview__lead'), el('pre', JSON.stringify(r.preview, null, 2)));
-        const ok = el('button', 'Confirm and send', 'sc-btn sc-btn--go') as HTMLButtonElement;
-        ok.type = 'button';
-        const no = el('button', 'Cancel', 'sc-btn sc-btn--ghost') as HTMLButtonElement;
-        no.type = 'button';
-        no.onclick = () => { box.hidden = true; };
-        ok.onclick = async () => {
-          ok.disabled = true;
-          try {
-            await send({ ...body, confirm: true });
-            say('Sent. It is in the activity log.');
-            form.reset(); form.querySelectorAll<HTMLInputElement>('input[type=hidden]').forEach(i => { i.value = ''; }); form.querySelectorAll<HTMLElement>('img').forEach(i => { i.hidden = true; }); const fbImg = form.querySelector<HTMLElement>('#fb-img'); if (fbImg) fbImg.hidden = true; box.hidden = true; load();
-          } catch (err: any) { say(err.message); ok.disabled = false; }
-        };
-        const row = el('div', '', 'sc-actions'); row.append(ok, no);
-        box.append(row); box.hidden = false; ok.focus();
-      } catch (err: any) { say(err.message); }
-    });
+  // ── Composer ──────────────────────────────────────────────────────────────
+  let imageUrl = '';
+  const hasImage = () => !!(imageUrl || inp('#photo-url').value.trim());
+  const currentImage = () => imageUrl || inp('#photo-url').value.trim();
+
+  function sync() {
+    const img = hasImage();
+    const scheduled = !!inp('#when').value;
+    $('#alt-field').hidden = !img;
+    // Instagram needs an image and can't be scheduled from here.
+    const ig = inp('#to-ig');
+    ig.disabled = !img || scheduled;
+    if (ig.disabled) ig.checked = false;
+    $('#where-hint').textContent = !img ? 'Instagram needs a photo.' : scheduled ? 'Scheduled posts go to Facebook only. Instagram posts publish straight away.' : '';
+    const link = inp('#link');
+    link.disabled = img;
+    if (img) link.value = '';
+    $('#link-hint').hidden = !img;
+    const limit = ig.checked ? 2200 : 5000;
+    ta('#text').maxLength = limit;
+    $('#count').textContent = `${ta('#text').value.length} of ${limit} characters${ig.checked ? ' (Instagram limit)' : ''}`;
   }
-
-  wireForm($('#fb-form') as HTMLFormElement, () => {
-    const message = ($('#fb-message') as HTMLTextAreaElement).value.trim();
-    if (!message) { say('Write a message first.'); return null; }
-    const link = ($('#fb-link') as HTMLInputElement).value.trim();
-    const w = ($('#fb-when') as HTMLInputElement).value;
-    const image_url = ($('#fb-image') as HTMLInputElement).value;
-    const img = image_url ? { image_url, alt_text: ($('#fb-alt') as HTMLTextAreaElement).value.trim(), consent_ok: ($('#fb-consent') as HTMLInputElement).checked } : {};
-    if (image_url && !(img as any).alt_text) { say('Add alt text for the photo.'); return null; }
-    if (image_url && !(img as any).consent_ok) { say('Tick the photo consent box first.'); return null; }
-    return { action: 'publish_facebook', message, ...img, ...(link ? { link } : {}), ...(w ? { schedule_at: new Date(w).toISOString() } : {}) };
-  });
-  wireForm($('#ig-form') as HTMLFormElement, () => {
-    const image_url = ($('#ig-image') as HTMLInputElement).value.trim();
-    const alt_text = ($('#ig-alt') as HTMLTextAreaElement).value.trim();
-    if (!image_url || !alt_text) { say('An image URL and alt text are both needed.'); return null; }
-    if (!($('#ig-consent') as HTMLInputElement).checked) { say('Tick the photo consent box first.'); return null; }
-    return { action: 'publish_instagram', image_url, alt_text, consent_ok: true, caption: ($('#ig-caption') as HTMLTextAreaElement).value };
-  });
+  ['#text', '#to-ig', '#to-fb', '#when', '#photo-url'].forEach(s => $(s).addEventListener('input', sync));
+  $('#to-ig').addEventListener('change', sync);
 
   // Resize to at most 1440px on the long side and re-encode as JPEG. Re-encoding drops location and
   // camera data (EXIF), which matters for photos of people. Then upload to our own storage; Meta
@@ -171,40 +176,112 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
     if (!blob) throw new Error('Could not read that image.');
     return { blob, w, h };
   }
-  async function onFile(input: HTMLInputElement) {
-    const file = input.files?.[0];
+  let ratio = 1;
+  const clearPhoto = () => {
+    imageUrl = ''; inp('#photo-file').value = ''; $('#photo-wrap').hidden = true; sync();
+  };
+  inp('#photo-file').addEventListener('change', async () => {
+    const file = inp('#photo-file').files?.[0];
     if (!file) return;
-    const t = input.dataset.target;
     try {
-      say('Preparing and uploading the image…');
+      say('Preparing and uploading the photo…');
       const { blob, w, h } = await toJpeg(file);
-      if (t === 'ig' && (w / h < 0.8 || w / h > 1.91)) { say('Instagram needs an image between 4:5 (portrait) and 1.91:1 (landscape). Crop it and try again.'); input.value = ''; return; }
+      ratio = w / h;
       const fd = new FormData(); fd.append('file', blob, 'image.jpg');
       const r = await fetch('/api/team/social-media', { method: 'POST', body: fd });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || 'Upload failed.');
-      ($(`#${t}-image`) as HTMLInputElement).value = d.url;
-      ($(`#${t}-thumb`) as HTMLImageElement).src = URL.createObjectURL(blob);
-      ($(`#${t}-thumb`) as HTMLImageElement).hidden = false;
-      if (t === 'fb') $('#fb-img').hidden = false;
-      say('Image uploaded. Add alt text, tick the consent box and preview.');
-    } catch (err: any) { say(err.message); input.value = ''; }
-  }
-  document.querySelectorAll<HTMLInputElement>('input[type=file][data-target]').forEach(i => i.addEventListener('change', () => onFile(i)));
+      imageUrl = d.url;
+      (document.getElementById('photo-thumb') as HTMLImageElement).src = URL.createObjectURL(blob);
+      $('#photo-wrap').hidden = false;
+      sync(); say('Photo added. Add alt text and tick the consent box.', true);
+      ta('#alt').focus();
+    } catch (err: any) { say(err.message); inp('#photo-file').value = ''; }
+  });
+  $('#photo-remove').addEventListener('click', () => { clearPhoto(); $('.sc-pick').focus(); });
 
+  function build() {
+    const message = ta('#text').value.trim();
+    const img = currentImage();
+    const toFb = inp('#to-fb').checked, toIg = inp('#to-ig').checked;
+    if (!toFb && !toIg) { say('Choose Facebook, Instagram or both.'); return null; }
+    if (!message && !toIg) { say('Write a message first.'); return null; }
+    if (img) {
+      if (!ta('#alt').value.trim()) { say('Add alt text for the photo.'); ta('#alt').focus(); return null; }
+      if (!inp('#consent').checked) { say('Tick the photo consent box first.'); inp('#consent').focus(); return null; }
+      if (toIg && (ratio < 0.8 || ratio > 1.91) && imageUrl) { say('Instagram needs a photo between 4:5 (portrait) and 1.91:1 (landscape). Crop it and add it again.'); return null; }
+    }
+    const alt_text = ta('#alt').value.trim();
+    const w = inp('#when').value;
+    const posts: { platform: string; body: any }[] = [];
+    if (toFb) {
+      const link = inp('#link').value.trim();
+      posts.push({ platform: 'Facebook', body: { action: 'publish_facebook', message, ...(img ? { image_url: img, alt_text, consent_ok: true } : {}), ...(link && !img ? { link } : {}), ...(w ? { schedule_at: new Date(w).toISOString() } : {}) } });
+    }
+    if (toIg) posts.push({ platform: 'Instagram', body: { action: 'publish_instagram', image_url: img, alt_text, consent_ok: true, caption: message } });
+    return { posts, message, img, alt_text, when: w };
+  }
+
+  $('#composer').addEventListener('submit', async e => {
+    e.preventDefault();
+    const b = build();
+    if (!b) return;
+    const box = $('#preview');
+    box.hidden = true;
+    const btn = $('#preview-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    try {
+      // Dry run each destination first: this validates (UTMs, alt text, schedule time) and sends nothing.
+      for (const p of b.posts) await send({ ...p.body, confirm: false });
+      box.replaceChildren(el('p', 'Check this before it goes out', 'sc-preview__lead'));
+      const dl = el('dl', '', 'sc-dl');
+      const row = (k: string, v: string | Node) => { dl.append(el('dt', k)); const dd = el('dd'); dd.append(v); dl.append(dd); };
+      row('Going to', b.posts.map(p => p.platform).join(' and '));
+      row('When', b.when ? `Facebook: ${when(new Date(b.when).toISOString())}${b.posts.length > 1 ? ' · Instagram: now' : ''}` : 'Straight away');
+      if (b.img) {
+        const t = document.createElement('img'); t.src = (document.getElementById('photo-thumb') as HTMLImageElement).src || b.img; t.alt = b.alt_text; t.width = 120; t.className = 'sc-thumb';
+        row('Photo', t); row('Alt text', b.alt_text);
+      }
+      row(b.posts.some(p => p.platform === 'Instagram') && !b.posts.some(p => p.platform === 'Facebook') ? 'Caption' : 'Message', b.message || '(none)');
+      if (b.posts[0].body.link) row('Link', b.posts[0].body.link);
+      box.append(dl);
+      const ok = el('button', 'Confirm and send', 'sc-btn sc-btn--go') as HTMLButtonElement; ok.type = 'button';
+      const no = el('button', 'Cancel', 'sc-btn sc-btn--ghost') as HTMLButtonElement; no.type = 'button';
+      no.onclick = () => { box.hidden = true; inp('#text').focus(); };
+      ok.onclick = async () => {
+        ok.disabled = no.disabled = true;
+        const done: string[] = [], failed: string[] = [];
+        for (const p of b.posts) {
+          try { await send({ ...p.body, confirm: true }); done.push(p.platform); }
+          catch (err: any) { failed.push(`${p.platform}: ${err.message}`); }
+        }
+        if (!failed.length) {
+          say(`Sent to ${done.join(' and ')}. It is in the activity log.`, true);
+          (document.getElementById('composer') as HTMLFormElement).reset(); clearPhoto(); box.hidden = true; sync(); load();
+        } else {
+          say(`${done.length ? `Sent to ${done.join(' and ')}. ` : ''}Not sent: ${failed.join(' · ')}`);
+          ok.disabled = no.disabled = false; if (done.length) { box.hidden = true; load(); }
+        }
+      };
+      const act = el('div', '', 'sc-actions'); act.append(ok, no);
+      box.append(act); box.hidden = false; box.focus();
+    } catch (err: any) { say(err.message); }
+    finally { btn.disabled = false; }
+  });
+
+  // ── Accounts and recent posts ────────────────────────────────────────────
   function showAccounts(o: any) {
     const wrap = $('#sc-accounts');
     wrap.replaceChildren();
-    const card = (title: string, a: any, lines: string[]) => {
-      const c = el('div', '', 'sc-card');
-      c.append(el('h2', title, 'sc-h2'));
-      if (a?.error) c.append(el('p', a.error, 'sc-muted'));
-      else lines.forEach(l => c.append(el('p', l)));
+    const chip = (title: string, a: any, line: string) => {
+      const c = el('div', '', 'sc-chip');
+      c.append(el('strong', title));
+      c.append(el('span', a?.error ? a.error : line, a?.error ? 'sc-warn' : ''));
       wrap.append(c);
     };
     const fb = o.facebook, ig = o.instagram;
-    card('Facebook Page', fb, [fb.name, `${fb.followers_count ?? fb.fan_count ?? '?'} followers`]);
-    card('Instagram', ig, [`@${ig.username}`, `${ig.followers_count ?? '?'} followers · ${ig.media_count ?? '?'} posts`]);
+    chip('Facebook', fb, `${fb.name} · ${fb.followers_count ?? fb.fan_count ?? '?'} followers`);
+    chip('Instagram', ig, `@${ig.username} · ${ig.followers_count ?? '?'} followers · ${ig.media_count ?? '?'} posts`);
   }
 
   function showPosts(listId: string, items: any[], kind: 'fb' | 'ig') {
@@ -213,18 +290,36 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
     if (!items.length) { ul.append(el('li', 'Nothing yet.', 'sc-muted')); return; }
     for (const p of items) {
       const li = el('li', '', 'sc-item');
-      li.append(el('p', clip(kind === 'fb' ? p.message : p.caption) || '(no text)'));
+      const pic = safeImg(kind === 'fb' ? p.full_picture : p.thumbnail_url || p.media_url);
+      if (pic) { const i = document.createElement('img'); i.src = pic; i.alt = ''; i.width = 56; i.height = 56; i.loading = 'lazy'; i.className = 'sc-pic'; li.append(i); }
+      const body = el('div', '', 'sc-item__body');
+      body.append(el('p', clip(kind === 'fb' ? p.message : p.caption) || '(no text)'));
       const n = kind === 'fb'
         ? `${p.reactions?.summary?.total_count ?? 0} reactions · ${p.comments?.summary?.total_count ?? 0} comments`
         : `${p.like_count ?? 0} likes · ${p.comments_count ?? 0} comments`;
-      li.append(el('p', `${when(p.created_time || p.timestamp)} · ${n}`, 'sc-muted'));
+      body.append(el('p', `${p.scheduled_publish_time ? 'Scheduled ' + when(new Date(p.scheduled_publish_time * 1000).toISOString()) : when(p.created_time || p.timestamp)} · ${n}`, 'sc-muted'));
       const b = el('button', 'Comments', 'sc-btn sc-btn--small') as HTMLButtonElement;
       b.type = 'button';
       b.onclick = () => openComments(kind, p.id);
-      li.append(b);
+      body.append(b);
+      const href = p.permalink_url || p.permalink;
+      if (typeof href === 'string' && /^https:\/\//.test(href)) {
+        const a = el('a', 'Open', 'sc-btn sc-btn--small sc-btn--ghost') as HTMLAnchorElement;
+        a.href = href; a.target = '_blank'; a.rel = 'noopener';
+        a.setAttribute('aria-label', `Open this ${kind === 'fb' ? 'Facebook' : 'Instagram'} post in a new tab`);
+        body.append(a);
+      }
+      li.append(body);
       ul.append(li);
     }
   }
+
+  function tab(which: 'fb' | 'ig') {
+    $('#fb-list').hidden = which !== 'fb'; $('#ig-list').hidden = which !== 'ig';
+    $('#tab-fb').setAttribute('aria-pressed', String(which === 'fb')); $('#tab-ig').setAttribute('aria-pressed', String(which === 'ig'));
+  }
+  $('#tab-fb').addEventListener('click', () => tab('fb'));
+  $('#tab-ig').addEventListener('click', () => tab('ig'));
 
   async function openComments(kind: 'fb' | 'ig', id: string) {
     const panel = $('#sc-comments'), ul = $('#sc-comments-list');
@@ -275,45 +370,82 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
     try {
       const o = await api('overview');
       if (!o.status.connected) { say('Meta is not connected yet. Ask Chris to add the access token and the Page and Instagram ids (DEPLOY.md).'); return; }
-      say('Connected to Meta.');
+      say('Connected to Meta', true);
       showAccounts(o);
       const [fb, ig] = await Promise.allSettled([api('fb_posts'), api('ig_media')]);
       showPosts('#fb-list', fb.status === 'fulfilled' ? fb.value.data ?? [] : [], 'fb');
       showPosts('#ig-list', ig.status === 'fulfilled' ? ig.value.data ?? [] : [], 'ig');
     } catch (err: any) { say(err.message); }
   }
+  sync();
   load();
 </script>
 
 <style>
-  .sc-section { background: var(--ink); padding-block: clamp(var(--space-8), 6vw, var(--space-12)); min-height: calc(100svh - var(--nav-h)); }
-  .sc-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin-bottom: var(--space-2); }
-  .sc-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin-bottom: var(--space-4); }
-  .sc-intro a { color: var(--ember); }
-  .sc-status { color: var(--paper); font-size: var(--text-sm); margin-bottom: var(--space-4); }
-  .sc-cards, .sc-cols { display: grid; gap: var(--space-4); margin-bottom: var(--space-4); }
-  @media (min-width: 900px) { .sc-cards, .sc-cols { grid-template-columns: 1fr 1fr; } }
-  .sc-card { background: var(--ink-soft); border: 1px solid var(--line); border-radius: 8px; padding: var(--space-4); color: var(--body); font-size: var(--text-sm); }
+  .sc-section { background: var(--ink); padding-block: clamp(var(--space-6), 5vw, var(--space-10)); min-height: calc(100svh - var(--nav-h)); }
+  .sc-section [hidden] { display: none !important; }
+  .sc-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+  .sc-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-2xl); margin: 0; }
+  .sc-pill { margin: 0; padding: 0.2rem 0.7rem; border-radius: 999px; border: 1px solid var(--line); color: var(--paper); font-size: var(--text-sm); }
+  .sc-pill.is-ok { border-color: var(--ember); color: var(--ember); }
+  .sc-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin: 0 0 var(--space-3); }
+  .sc-rules { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin-bottom: var(--space-4); }
+  .sc-rules summary, .sc-more summary, .sc-url summary { cursor: pointer; color: var(--paper); min-height: 32px; }
+  .sc-rules ul { margin: var(--space-2) 0 0; padding-left: 1.2rem; }
+  .sc-rules a, .sc-card a { color: var(--ember); }
+  .sc-accounts { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .sc-chip { display: grid; gap: 2px; background: var(--ink-soft); border: 1px solid var(--line); border-radius: 8px; padding: var(--space-2) var(--space-3); font-size: var(--text-sm); color: var(--body); min-width: 0; }
+  .sc-chip strong { color: var(--paper); }
+  .sc-warn { color: #ff9a9a; }
+  .sc-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); align-items: start; }
+  @media (min-width: 960px) { .sc-layout { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+  .sc-side { display: grid; gap: var(--space-4); min-width: 0; }
+  .sc-card { background: var(--ink-soft); border: 1px solid var(--line); border-radius: 8px; padding: var(--space-4); color: var(--body); font-size: var(--text-sm); min-width: 0; }
   .sc-h2 { font-family: var(--font-body); font-size: var(--text-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--paper); margin: 0 0 var(--space-3); }
-  .sc-card label { display: block; color: var(--paper); margin: var(--space-3) 0 var(--space-1); }
-  .sc-card input, .sc-card textarea { width: 100%; background: var(--ink); color: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem; font: inherit; }
-  .sc-card input:focus-visible, .sc-card textarea:focus-visible, .sc-btn:focus-visible, .sc-card:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .sc-field { margin: 0 0 var(--space-4); padding: 0; border: 0; min-width: 0; }
+  .sc-card label, .sc-label { display: block; color: var(--paper); margin: 0 0 var(--space-1); padding: 0; }
+  .sc-card input[type=url], .sc-card input[type=datetime-local], .sc-card textarea { width: 100%; max-width: 100%; box-sizing: border-box; background: var(--ink); color: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 0.6rem; font: inherit; }
+  .sc-card input:disabled { opacity: 0.5; }
+  .sc-card input:focus-visible, .sc-card textarea:focus-visible, .sc-btn:focus-visible, .sc-tab:focus-visible, .sc-card:focus-visible, .sc-preview:focus-visible, summary:focus-visible, .sc-visually-hidden:focus-visible + * { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .sc-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .sc-visually-hidden:focus-visible ~ .sc-pick, .sc-photo:focus-within .sc-pick { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .sc-photo { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; position: relative; }
+  .sc-pick { display: inline-flex; align-items: center; margin: 0; }
+  .sc-thumbwrap { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+  .sc-thumbwrap img, .sc-thumb { border-radius: 6px; max-width: 120px; height: auto; display: block; }
+  .sc-url { margin-top: var(--space-2); }
+  .sc-url input { margin-top: var(--space-1); }
+  .sc-more { margin-bottom: var(--space-4); }
+  .sc-more[open] summary { margin-bottom: var(--space-3); }
+  .sc-hint { color: var(--body); margin: var(--space-1) 0 0; }
+  .sc-where { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); }
+  .sc-where legend { width: 100%; }
+  .sc-where .sc-hint { width: 100%; margin: 0; }
+  .sc-where .sc-hint:empty { display: none; }
+  .sc-card label.sc-check { display: flex; gap: var(--space-2); align-items: flex-start; margin: var(--space-3) 0 0; cursor: pointer; }
+  .sc-where label.sc-check { margin: 0; align-items: center; }
+  .sc-check input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--red); }
   .sc-actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); flex-wrap: wrap; }
-  .sc-btn { background: var(--paper); color: var(--ink); border: 0; border-radius: 6px; padding: 0.65rem 1rem; font: inherit; font-weight: 700; cursor: pointer; min-height: 44px; }
+  .sc-btn { display: inline-block; background: var(--paper); color: var(--ink); border: 0; border-radius: 6px; padding: 0.65rem 1rem; font: inherit; font-weight: 700; cursor: pointer; min-height: 44px; text-decoration: none; box-sizing: border-box; }
+  .sc-card a.sc-btn { color: var(--ink); }
+  .sc-card a.sc-btn--ghost, .sc-btn--ghost { background: transparent; color: var(--paper); border: 1px solid var(--line); }
   .sc-btn--go { background: var(--red); color: #fff; }
-  .sc-btn--ghost { background: transparent; color: var(--paper); border: 1px solid var(--line); }
   .sc-btn--small { min-height: 36px; padding: 0.35rem 0.75rem; margin: var(--space-2) var(--space-2) 0 0; }
   .sc-btn:disabled { opacity: 0.6; cursor: progress; }
-  .sc-preview { margin-top: var(--space-3); border-top: 1px solid var(--line); padding-top: var(--space-3); }
-  .sc-preview pre { white-space: pre-wrap; word-break: break-word; color: var(--paper); background: var(--ink); padding: var(--space-3); border-radius: 6px; }
+  .sc-preview { margin-top: var(--space-4); border-top: 1px solid var(--line); padding-top: var(--space-3); }
+  .sc-preview__lead { color: var(--paper); font-weight: 700; margin: 0 0 var(--space-2); }
+  .sc-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; }
+  .sc-dl dt { color: var(--body); }
+  .sc-dl dd { margin: 0; color: var(--paper); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .sc-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-3); }
+  .sc-tab { background: transparent; color: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 0.4rem 1rem; font: inherit; min-height: 40px; cursor: pointer; }
+  .sc-tab[aria-pressed=true] { background: var(--paper); color: var(--ink); font-weight: 700; }
   .sc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
-  .sc-item { border-left: 3px solid var(--line); padding-left: var(--space-3); }
-  .sc-item p { margin: 0 0 var(--space-1); color: var(--paper); }
+  .sc-item { display: flex; gap: var(--space-3); border-left: 3px solid var(--line); padding-left: var(--space-3); min-width: 0; }
+  .sc-item__body { min-width: 0; }
+  .sc-item p { margin: 0 0 var(--space-1); color: var(--paper); overflow-wrap: anywhere; }
   .sc-item p.sc-muted, .sc-muted { color: var(--body); }
+  .sc-pic { flex: none; border-radius: 6px; object-fit: cover; }
   .sc-reply { margin-top: var(--space-2); }
-  .sc-hint { color: var(--body); margin: var(--space-1) 0 0; }
-  .sc-thumb, #fb-thumb { display: block; margin-top: var(--space-2); border-radius: 6px; max-width: 120px; height: auto; }
-  .sc-card label.sc-check { display: flex; gap: var(--space-2); align-items: flex-start; }
-  .sc-card .sc-check input { width: auto; margin-top: 0.2rem; min-width: 20px; min-height: 20px; }
-  .sc-card a { color: var(--ember); }
+  @media (prefers-reduced-motion: no-preference) { .sc-btn, .sc-tab { transition: background-color 0.15s; } }
 </style>
