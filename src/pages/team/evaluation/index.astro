@@ -311,6 +311,10 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
             Community growth
             <span class="block__total">monthly, reported quarterly</span>
           </h2>
+          <p class="cg-live">
+            <button class="ev-btn" type="button" id="cg-fill">Fill {monthLabel(thisMonth)} from connected accounts</button>
+            <span id="cg-fill-msg" role="status"></span>
+          </p>
           <div class="table-wrap">
             <table class="cg">
               <caption class="visually-hidden">Community members by month and channel</caption>
@@ -495,6 +499,33 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
   });
   window.addEventListener('beforeunload', (e) => {
     if (document.querySelector('[data-kind].is-dirty')) e.preventDefault();
+  });
+
+  // ── Fill this month from the connected accounts (mailer list, Facebook Page, Instagram) ──
+  // Pre-fills only; nothing is saved until Save is pressed. Channels with no connection stay manual.
+  const fillBtn = document.getElementById('cg-fill') as HTMLButtonElement | null;
+  fillBtn?.addEventListener('click', async () => {
+    const msg = document.getElementById('cg-fill-msg')!;
+    const row = document.querySelector<HTMLElement>('tr[data-kind="month"].is-now');
+    if (!row) { msg.textContent = 'This month is outside the programme.'; return; }
+    if (row.classList.contains('is-locked')) { msg.textContent = 'This month is locked. Unlock it first.'; return; }
+    fillBtn.disabled = true; msg.textContent = 'Reading the connected accounts…';
+    try {
+      const res = await fetch('/api/team/evaluation/community-live');
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || 'Could not read the connected accounts.');
+      const filled: string[] = [], missed: string[] = [];
+      for (const [key, src] of Object.entries<any>(d.sources)) {
+        const input = row.querySelector<HTMLInputElement>(`input[name="${key}"]`);
+        if (src.ok && input) {
+          input.value = String(d.values[key]);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          filled.push(src.label);
+        } else missed.push(`${src.label ?? key}: ${src.error}`);
+      }
+      msg.textContent = `${filled.length ? `Filled from ${filled.join(', ')}. Check, then press Save. ` : ''}${missed.length ? `Not filled: ${missed.join(' · ')}` : ''}`;
+    } catch (err: any) { msg.textContent = err.message; }
+    finally { fillBtn.disabled = false; }
   });
 
   document.querySelectorAll<HTMLFormElement>('form[data-kind="event"]').forEach(form => {
@@ -691,6 +722,7 @@ const eventName = (slug: string) => events.find(e => e.slug === slug)?.name ?? s
 
   /* Community table */
   .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--ink-soft); }
+  .cg-live { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 0 0 0.75rem; font-size: var(--text-sm); color: var(--body); }
   .cg { width: 100%; border-collapse: collapse; font-size: var(--text-sm); min-width: 56rem; }
   .cg__unit { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--body); opacity: 0.8; }
   .cg th, .cg td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); text-align: left; }

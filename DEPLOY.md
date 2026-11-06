@@ -308,6 +308,17 @@ Chris, Dan, Vikki and Emma can read the Facebook Page and Instagram account, pub
 
 Every send needs an explicit confirm, links must carry UTMs, Instagram images need alt text, and each send is recorded in the activity log. There are no deletes. Until the token is set, the page and tools just say Meta is not connected.
 
+## 5g. Mailer subscriber count (`/team/evaluation`)
+
+The "Fill from connected accounts" button on the monthly community form counts active email subscribers straight
+from the mailer's live D1 (`MAILER_DB`, same `database_id` as the Mailer repo's `wrangler.jsonc`), plus Facebook Page
+and Instagram followers from Meta (§5f). It only pre-fills; someone still presses Save.
+
+- No secret needed; deploying this site with the binding is enough. D1 bindings can't be read-only, so
+  `src/lib/mailer.js` must stay a single aggregate `COUNT` (never select names or emails).
+- The mailer repo's `GET /api/public/stats` route was not needed and has been removed.
+- WhatsApp, Facebook group, Instagram channel and TikTok have no connection and stay manual.
+
 ## 6. Custom domain + DNS
 
 Already attached: `between.sonicboom.org.uk` → the `between` Worker, via a **Workers Custom

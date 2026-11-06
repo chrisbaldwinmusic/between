@@ -28,6 +28,14 @@ database_id = "e7cc1aba-58a7-411d-8809-54b7d5f46baa"
 META_PAGE_ID = "324865194048984"
 META_IG_USER_ID = "17841467325593092"
 
+# The shared mailer's live D1 (sibling Mailer repo, database "mailer"). Used ONLY for a COUNT of active
+# subscribers in src/lib/mailer.js (/team/evaluation fill button). D1 bindings can't be read-only, so keep
+# every query against it to aggregate counts: never select names or emails.
+[[d1_databases]]
+binding = "MAILER_DB"
+database_name = "mailer"
+database_id = "2819811e-6b22-4f12-8b7e-81ca5b1d0354"
+
 [triggers]
 crons = ["0 7 * * *"]
 

@@ -35,6 +35,7 @@ const COMMUNITY_PAGES = [
 // Community managers only. The routes check what they may do: no locking months, community CSV only.
 const COMMUNITY_API = [
   { method: 'POST', path: '/api/team/evaluation/community' },
+  { method: 'GET', path: '/api/team/evaluation/community-live' },
   { method: 'GET', path: '/api/team/evaluation/export' },
   { method: 'GET', path: '/api/team/social' },
   { method: 'POST', path: '/api/team/social' },
