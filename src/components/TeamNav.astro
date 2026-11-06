@@ -1,12 +1,15 @@
 ---
 // Team-area navigation: a sidebar with icons on desktop; on phones a slim top bar whose Menu
 // button slides the same sidebar in. Links are filtered to what each person can open.
-import { canAccess } from '../lib/team-access.js';
+import { canAccess, isLead } from '../lib/team-access.js';
+import { MAILER_URL } from '../lib/mailer.js';
 
 interface Props {
   authEmail?: string | null;
 }
 const { authEmail = null } = Astro.props;
+// The Mailer is its own app behind its own Access login: leads get a link, as on the festival site.
+const showMailer = isLead(authEmail?.toLowerCase() ?? null);
 
 // Simple 24px stroke icons (drawn for this project).
 const ICONS: Record<string, string> = {
@@ -20,6 +23,7 @@ const ICONS: Record<string, string> = {
   consents: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/>',
   media: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-8.5 9"/>',
   ops: '<path d="M9 4h6v3H9z"/><path d="M15 5.5h2.5A1.5 1.5 0 0 1 19 7v12.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5V7a1.5 1.5 0 0 1 1.5-1.5H9"/><path d="M8.5 11.5h7M8.5 15h7M8.5 18.5h4"/>',
+  mailer: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.8"/><path d="M12 17.2v.1"/>',
   site: '<path d="M14 4h6v6M20 4l-8.5 8.5"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>',
 };
@@ -76,6 +80,14 @@ const initials = authEmail
           </a>
         </li>
       ))}
+      {showMailer && (
+        <li>
+          <a href={MAILER_URL} class="tside__link" target="_blank" rel="noopener noreferrer">
+            <svg class="tside__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" set:html={ICONS.mailer} />
+            <span>Mailer<span class="visually-hidden"> (opens in new tab)</span></span>
+          </a>
+        </li>
+      )}
     </ul>
   </nav>
 

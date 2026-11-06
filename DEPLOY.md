@@ -310,14 +310,16 @@ Every send needs an explicit confirm, links must carry UTMs, Instagram images ne
 
 ## 5g. Mailer subscriber count (`/team/evaluation`)
 
-The "Fill from connected accounts" button on the monthly community form counts active email subscribers straight
-from the mailer's live D1 (`MAILER_DB`, same `database_id` as the Mailer repo's `wrangler.jsonc`), plus Facebook Page
-and Instagram followers from Meta (§5f). It only pre-fills; someone still presses Save.
+There is one Sonic Boom Mailer: its own Worker (`mailer`, mailer.sonicboom.org.uk) with its own database. This site
+neither copies it nor binds its D1; it links to it for leads (team nav) and asks it for a count.
 
-- No secret needed; deploying this site with the binding is enough. D1 bindings can't be read-only, so
-  `src/lib/mailer.js` must stay a single aggregate `COUNT` (never select names or emails).
-- The mailer repo's `GET /api/public/stats` route was not needed and has been removed.
-- WhatsApp, Facebook group, Instagram channel and TikTok have no connection and stay manual.
+The "Fill from connected accounts" button on the monthly community form gets active email subscribers from the
+mailer (`GET /api/public/stats`, counts only) over the `MAILER` service binding, plus Facebook Page and Instagram
+followers from Meta (§5f). It only pre-fills; someone still presses Save.
+
+1. Set the same random `STATS_TOKEN` on both Workers: `npx wrangler secret put STATS_TOKEN` here and in the Mailer repo.
+2. Deploy the Mailer first (the route is closed until `STATS_TOKEN` is set), then this site.
+3. WhatsApp, Facebook group, Instagram channel and TikTok have no connection and stay manual.
 
 ## 6. Custom domain + DNS
 
