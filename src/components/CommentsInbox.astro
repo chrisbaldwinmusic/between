@@ -5,6 +5,7 @@
 import events from '../data/events.json';
 import { getEmail, isLead } from '../lib/team-access.js';
 import { THEMES, commentSummary, RETENTION_MONTHS } from '../lib/comments.js';
+import { CTAS, replyText, suggestCta } from '../lib/reply-templates.js';
 
 const lead = isLead(getEmail(Astro.request));
 const db = Astro.locals.runtime?.env?.OPS_DB;
@@ -24,7 +25,7 @@ if (db) {
     if (event === 'none') where.push('event_slug IS NULL');
     else if (event) { where.push('event_slug = ?'); args.push(event); }
     const { results } = await db
-      .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, suggested_themes, status, ask_to_share, quote_ok, replied_at
+      .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, suggested_themes, status, ask_to_share, quote_ok, replied_at, replied_cta
                 FROM social_comments WHERE ${where.join(' AND ')} ORDER BY posted_at DESC LIMIT 200`)
       .bind(...args).all();
     comments = results;
@@ -35,8 +36,10 @@ if (db) {
 const eventName = (slug: string | null) => events.find(e => e.slug === slug)?.name ?? 'Not tied to an event';
 const when = (iso: string) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const platformName = (p: string) => (p === 'facebook' ? 'Facebook' : 'Instagram');
-const INVITE = 'Thank you, that means a lot. If you would like to tell us more, you can share your story here: https://between.sonicboom.org.uk/feedback/story?utm_source=social&utm_medium=comment-reply&utm_campaign=story-invite. It is optional and you choose whether we share it. Believe in the Power of Music.';
-const draft = (platform: string) => `Thank you, that means a lot. If you'd like to tell us more, you can share your story here: https://between.sonicboom.org.uk/feedback/story?utm_source=${platform}&utm_medium=comment-reply&utm_campaign=story-invite It's optional, and you choose whether we share it. Believe in the Power of Music.`;
+// Suggested replies per call to action and platform, for the reply box (the client swaps them when the picker changes).
+const templates = Object.fromEntries(CTAS.map(c => [c.key, { facebook: replyText(c.key, 'facebook'), instagram: replyText(c.key, 'instagram') }]));
+// The call to action that fits a comment, from its saved or suggested themes and its words ('own' = write your own).
+const defaultCta = (c: any) => suggestCta(c.themes || c.suggested_themes, c.text) ?? 'own';
 const tab = (key: string, label: string) => ({ key, label, href: `?status=${key}${event ? `&event=${event}` : ''}` });
 const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged')];
 ---
@@ -91,13 +94,6 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
           </p>
         )}
 
-        <details class="cm-invite">
-          <summary>Reply wording to invite someone to share their story</summary>
-          <p id="cm-invite-text">{INVITE}</p>
-          <button class="ev-btn" type="button" id="cm-copy">Copy</button>
-          <p class="cm-hint">Post it from <a href="/team/social">Social</a> or the app. Only invite people who sound like adults; if a commenter may be under 16, use "Don't use" and leave it.</p>
-        </details>
-
         <ul class="cm-list" role="list">
           {comments.length === 0 && !missing && <li class="cm-empty">No comments here yet. They appear after the next daily refresh, or press "Refresh comments".</li>}
           {comments.map(c => (
@@ -124,18 +120,7 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
                 {c.suggested_themes && c.status !== 'reviewed' && !c.themes && (
                   <p class="cm__suggest">Ticked from an AI assistant's suggestion. <strong>Not counted until you check them and press Save tags.</strong></p>
                 )}
-                <label class="cm__check"><input type="checkbox" name="ask_to_share" checked={!!c.ask_to_share} /> Worth inviting to share their story</label>
-                {c.replied_at && <p class="cm__meta"><strong>Story invitation sent</strong> {when(c.replied_at)}.</p>}
-                {c.ask_to_share && c.status === 'reviewed' && !c.replied_at && (
-                  <details class="cm__reply">
-                    <summary>Reply with a story invitation</summary>
-                    <label class="visually-hidden" for={`rp-${c.id}`}>Reply</label>
-                    <textarea id={`rp-${c.id}`} name="reply_message" rows="4">{draft(c.platform)}</textarea>
-                    <label class="cm__check"><input type="checkbox" name="adult_ok" /> I've read it and the commenter sounds like an adult</label>
-                    <p class="cm-hint">This posts publicly from our {platformName(c.platform)} account and can't be unsent. Edit it to answer what they said.</p>
-                    <button class="ev-btn ev-btn--primary" type="button" data-act="reply">Send reply</button>
-                  </details>
-                )}
+                <label class="cm__check"><input type="checkbox" name="ask_to_share" checked={!!c.ask_to_share} /> Story lead: worth inviting to share their story</label>
                 {lead && <label class="cm__check"><input type="checkbox" name="quote_ok" checked={!!c.quote_ok} /> They've agreed we can quote it word for word</label>}
                 {!lead && c.quote_ok ? <p class="cm__meta"><strong>OK to quote word for word.</strong></p> : null}
                 <div class="cm__actions">
@@ -145,11 +130,32 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
                   <span class="cm-msg" role="status"></span>
                 </div>
               </form>
+              {c.replied_at ? (
+                <p class="cm__meta cm__sent"><strong>Replied</strong> ({CTAS.find(x => x.key === c.replied_cta)?.label ?? 'reply'}), {when(c.replied_at)}.</p>
+              ) : (
+                <div class="cm__reply" data-platform={c.platform}>
+                  <div class="f">
+                    <label for={`cta-${c.id}`}>Reply with</label>
+                    <select id={`cta-${c.id}`} class="cm__cta">
+                      {CTAS.map(x => <option value={x.key} selected={defaultCta(c) === x.key}>{x.label}</option>)}
+                    </select>
+                  </div>
+                  <label class="visually-hidden" for={`rp-${c.id}`}>Reply</label>
+                  <textarea id={`rp-${c.id}`} class="cm__msg" rows="3" maxlength="2000">{defaultCta(c) === 'own' ? '' : templates[defaultCta(c)][c.platform as 'facebook' | 'instagram']}</textarea>
+                  {defaultCta(c) === 'own' && <p class="cm-hint">This one needs a personal reply, so there's no suggestion. Write it here.</p>}
+                  <div class="cm__actions">
+                    <button class="ev-btn ev-btn--primary" type="button" data-act="reply">Send reply</button>
+                    <span class="cm-msg" role="status"></span>
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>
   </div>
 </section>
+
+<script type="application/json" id="cm-templates" is:inline set:html={JSON.stringify(templates)} />
 
 <script>
   // Reload but stay at the inbox (the page above it is long).
@@ -204,10 +210,32 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
     } else { msg.textContent = j.error || 'Could not refresh comments'; btn.disabled = false; }
   });
 
-  document.getElementById('cm-copy')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget as HTMLButtonElement;
-    try { await navigator.clipboard.writeText(document.getElementById('cm-invite-text')!.textContent || ''); btn.textContent = 'Copied'; }
-    catch { btn.textContent = 'Select the text and copy'; }
+  // Replies: pick a call to action, the box fills with suggested text, edit it if you like, send.
+  const templates = JSON.parse(document.getElementById('cm-templates')?.textContent || '{}');
+  document.addEventListener('change', (e) => {
+    const sel = (e.target as HTMLElement).closest('select.cm__cta') as HTMLSelectElement | null;
+    const block = sel?.closest('.cm__reply') as HTMLElement | null;
+    if (!sel || !block) return;
+    const box = block.querySelector('textarea') as HTMLTextAreaElement;
+    box.value = templates[sel.value]?.[block.dataset.platform || ''] ?? '';
+    box.focus();
+  });
+  document.addEventListener('click', async (e) => {
+    const rbtn = (e.target as HTMLElement).closest('button[data-act="reply"]') as HTMLButtonElement | null;
+    if (!rbtn) return;
+    const block = rbtn.closest('.cm__reply') as HTMLElement;
+    const li = rbtn.closest('li.cm') as HTMLLIElement;
+    const msg = block.querySelector('.cm-msg')!;
+    const cta = (block.querySelector('select') as HTMLSelectElement).value;
+    const message = (block.querySelector('textarea') as HTMLTextAreaElement).value.trim();
+    const platform = block.dataset.platform === 'facebook' ? 'Facebook' : 'Instagram';
+    if (!message) { msg.textContent = 'Write a reply first.'; return; }
+    const asks = cta !== 'thanks';
+    if (!confirm(`Post this reply publicly from our ${platform} account? It can't be unsent.${asks ? '\n\nOnly send it if the commenter sounds like an adult.' : ''}\n\n${message}`)) return;
+    rbtn.disabled = true; msg.textContent = 'Sending…';
+    const res = await send(`/api/team/comments/${li.dataset.id}/reply`, 'POST', { message, cta, adult_ok: asks });
+    if (res.ok) { msg.textContent = 'Sent. Reloading…'; setTimeout(() => stayOnInbox(), 800); }
+    else { const j = await res.json().catch(() => ({})); msg.textContent = j.error || 'Could not send'; rbtn.disabled = false; }
   });
 
   document.addEventListener('click', async (e) => {
@@ -222,17 +250,6 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
       const picks = (li.querySelector('fieldset')?.getAttribute('data-suggested') || '').split(',');
       li.querySelectorAll<HTMLInputElement>('input[name="themes"]').forEach(i => { i.checked = picks.includes(i.value); });
       msg.textContent = 'Ticked. Check them, then Save tags.';
-      return;
-    }
-    if (btn.dataset.act === 'reply') {
-      const message = (form.elements.namedItem('reply_message') as HTMLTextAreaElement).value;
-      const adult = (form.elements.namedItem('adult_ok') as HTMLInputElement).checked;
-      if (!adult) { msg.textContent = 'Tick the box to confirm they sound like an adult.'; return; }
-      if (!confirm('Post this reply publicly? It can\'t be unsent.')) return;
-      btn.disabled = true; msg.textContent = 'Sending…';
-      const res = await send(`/api/team/comments/${id}/reply`, 'POST', { message, adult_ok: true });
-      if (res.ok) { msg.textContent = 'Sent. Reloading…'; setTimeout(() => stayOnInbox(), 800); }
-      else { const j = await res.json().catch(() => ({})); msg.textContent = j.error || 'Could not send'; btn.disabled = false; }
       return;
     }
     if (btn.dataset.act === 'delete') {
@@ -279,9 +296,6 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   .cm-filter label, .f label { font-size: 0.7rem; font-weight: 600; color: var(--body); }
   select { font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; max-width: 100%; }
   select:focus-visible, .ev-btn:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
-  .cm-invite { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-6); color: var(--body); font-size: var(--text-sm); }
-  .cm-invite summary { cursor: pointer; color: var(--paper); font-weight: 600; }
-  .cm-invite p { margin: var(--space-3) 0; }
   .cm-hint { font-size: var(--text-xs); }
   .cm-last { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin: 0 0 var(--space-4); color: var(--body); font-size: var(--text-xs); overflow-wrap: anywhere; }
   .cm-last strong { color: var(--paper); }
@@ -293,9 +307,9 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   .cm--reviewed { border-left-color: #4caf50; }
   .cm__form { display: flex; flex-direction: column; gap: var(--space-3); }
   .cm__text { margin: 0; color: var(--paper); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
-  .cm__reply { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
-  .cm__reply summary { cursor: pointer; color: var(--paper); font-size: var(--text-sm); font-weight: 600; }
-  .cm__reply textarea { font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.65rem; width: 100%; margin-top: var(--space-2); }
+  .cm__reply { border-top: 1px solid var(--line); margin-top: var(--space-3); padding-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+  .cm__sent { margin-top: var(--space-3); }
+  .cm__reply textarea, .cm__cta { font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.65rem; width: 100%; margin-top: var(--space-2); }
   .cm__reply textarea:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
   .cm__suggest { margin: 0; font-size: var(--text-xs); color: var(--body); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
   .cm__suggest strong { color: var(--ember); }

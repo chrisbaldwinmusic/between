@@ -10,6 +10,7 @@
 import events from '../data/events.json';
 import { metaClient, metaOps, MetaError } from './meta.js';
 import { logActivity } from './ops-db.js';
+import { CTA_KEYS, linksOutsideSite, needsAdultCheck } from './reply-templates.js';
 
 export const RETENTION_MONTHS = 12;
 const POSTS = 25;          // most recent posts per platform to read comments from
@@ -207,29 +208,35 @@ export async function updateComment(db, actor, id, body, lead) {
   return { data: { ok: true } };
 }
 
-// A person sends the story-invite reply to a comment they have tagged "worth inviting". One reply per
-// comment, and the sender must confirm the commenter sounds like an adult (we never invite anyone who may
-// be under 16). Goes through metaOps.reply, so the message must carry UTM links.
+// A person sends a reply to a comment. The inbox pre-fills it from a call to action (src/lib/reply-templates.js)
+// and the sender can edit it. One reply per comment. A reply that asks someone to share something (a story,
+// a vote, an email address) needs the sender to confirm the commenter sounds like an adult: we never invite
+// anyone who may be under 16. Links must be to our own site and carry UTMs (metaOps.reply checks the UTMs).
 export async function replyToComment(env, actor, id, body) {
   const db = env.OPS_DB;
   const b = body ?? {};
-  if (b.adult_ok !== true) return { error: 'Confirm the commenter sounds like an adult before replying.', status: 400 };
+  const cta = b.cta ?? 'thanks';
+  if (!CTA_KEYS.includes(cta)) return { error: 'Unknown call to action.', status: 400 };
+  if (needsAdultCheck(cta) && b.adult_ok !== true) return { error: 'Confirm the commenter sounds like an adult before replying.', status: 400 };
   const message = typeof b.message === 'string' ? b.message.trim() : '';
   if (!message) return { error: 'Write a reply.', status: 400 };
+  const outside = linksOutsideSite(message);
+  if (outside.length) return { error: `Replies can only link to our own site. Remove: ${outside.join(', ')}`, status: 400 };
   const row = await db.prepare('SELECT * FROM social_comments WHERE id = ?').bind(id).first();
   if (!row) return { error: 'Not found', status: 404 };
-  if (row.status !== 'reviewed' || !row.ask_to_share || !row.text) return { error: 'Only comments tagged "worth inviting to share their story" can be replied to.', status: 409 };
+  if (row.status === 'excluded' || !row.text) return { error: 'This comment is marked not to be used.', status: 409 };
   // Claim it first so a double click can't send twice; hand it back if Meta refuses.
-  const claim = await db.prepare(`UPDATE social_comments SET replied_at = datetime('now') WHERE id = ? AND replied_at IS NULL`).bind(id).run();
+  const claim = await db.prepare(`UPDATE social_comments SET replied_at = datetime('now'), replied_cta = ? WHERE id = ? AND replied_at IS NULL`).bind(cta, id).run();
   if (!claim.meta?.changes) return { error: 'This comment has already had a reply.', status: 409 };
   try {
     const r = await metaOps(metaClient(env)).reply({ platform: row.platform, comment_id: row.platform_id, message, confirm: true });
     if (!r.sent) throw new MetaError('Meta did not send the reply.', 502);
   } catch (err) {
-    await db.prepare('UPDATE social_comments SET replied_at = NULL WHERE id = ?').bind(id).run();
+    await db.prepare('UPDATE social_comments SET replied_at = NULL, replied_cta = NULL WHERE id = ?').bind(id).run();
     return { error: err instanceof MetaError ? err.message : 'Could not send the reply.', status: err.status ?? 500 };
   }
-  await logActivity(db, actor, `replied to a ${row.platform} comment with a story invitation`, null).catch(() => {});
+  if (cta === 'story') await db.prepare('UPDATE social_comments SET ask_to_share = 1 WHERE id = ?').bind(id).run();
+  await logActivity(db, actor, `replied to a ${row.platform} comment (${cta})`, null).catch(() => {});
   return { data: { ok: true } };
 }
 

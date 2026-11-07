@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS social_comments (
   quote_ok INTEGER NOT NULL DEFAULT 0,
   synced_at TEXT NOT NULL DEFAULT (datetime('now')),
   checked_at TEXT NOT NULL DEFAULT (datetime('now')),
-  replied_at TEXT,                     -- set when a person sent the story-invite reply (once only)
+  replied_at TEXT,                     -- set when a person sent a reply (once only)
+  replied_cta TEXT,                    -- which call to action it carried: story | poll | join | thanks
   reviewed_at TEXT,
   reviewed_by TEXT
 );

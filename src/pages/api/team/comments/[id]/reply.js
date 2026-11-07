@@ -1,5 +1,5 @@
-// POST /api/team/comments/:id/reply — { message, adult_ok: true } sends the story-invite reply to a comment
-// tagged "worth inviting". Public and hard to undo, so a person sends each one. Leads and community managers.
+// POST /api/team/comments/:id/reply — { message, cta: 'story'|'poll'|'join'|'thanks', adult_ok? } sends a reply to a
+// comment. Public and hard to undo, so a person sends each one. Leads and community managers.
 
 import { getActor, jsonOk, jsonErr } from '../../../../../lib/ops-db.js';
 import { replyToComment } from '../../../../../lib/comments.js';
