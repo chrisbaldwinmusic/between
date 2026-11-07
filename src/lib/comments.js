@@ -83,7 +83,7 @@ async function allComments(m, platform, postId, own = {}) {
 }
 
 // Read recent comments, drop copies that were deleted on the platform or are past retention.
-export async function syncComments(env, now = new Date()) {
+export async function syncComments(env, now = new Date(), actor = 'daily refresh') {
   const db = env.OPS_DB;
   const m = metaClient(env);
   if (!db) return { ok: false, reason: 'Database unavailable.' };
@@ -149,6 +149,11 @@ export async function syncComments(env, now = new Date()) {
   stats.purged = purged.meta?.changes ?? 0;
   stats.by = Object.fromEntries(['facebook', 'instagram'].map(p => [p, { posts: posts.filter(x => x.platform === p).length, comments: 0 }]));
   for (const r of (await db.prepare('SELECT platform, count(*) AS n FROM social_comments GROUP BY platform').all()).results) if (stats.by[r.platform]) stats.by[r.platform].comments = r.n;
+  // Saved so the page can always show the latest result, including Meta's error text (no tokens: scrubbed in meta.js).
+  const by = p => `${p === 'facebook' ? 'Facebook' : 'Instagram'} ${stats.by[p].posts} posts, ${stats.by[p].comments} comments kept`;
+  const detail = `${by('facebook')}; ${by('instagram')}; ${stats.read} read, ${stats.removed} removed, ${stats.purged} past retention`
+    + (stats.errors.length ? `. Problems: ${stats.errors.join(' | ')}` : '');
+  await logActivity(db, actor, 'synced social comments', detail.slice(0, 900)).catch(() => {});
   return stats;
 }
 

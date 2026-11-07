@@ -19,6 +19,7 @@ const event = q.get('event') ?? '';
 let comments: any[] = [];
 let summary: any = null;
 let missing = false;
+let lastRefresh: { actor: string; detail: string; created_at: string } | null = null;
 if (db) {
   try {
     const where = [`status != 'excluded'`];
@@ -32,6 +33,7 @@ if (db) {
       .bind(...args).all();
     comments = results;
     summary = await commentSummary(db);
+    lastRefresh = await db.prepare(`SELECT actor, detail, created_at FROM activity_log WHERE action = 'synced social comments' ORDER BY id DESC LIMIT 1`).first();
   } catch { missing = true; }
 }
 const eventName = (slug: string | null) => events.find(e => e.slug === slug)?.name ?? 'Not tied to an event';
@@ -87,6 +89,12 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
           {comments.some(c => c.status === 'new') && <button class="ev-btn" type="button" id="cm-save-all">Save all as shown</button>}
           <span class="cm-msg" id="cm-sync-msg" role="status"></span>
         </div>
+
+        {lastRefresh && (
+          <p class="cm-last" role="status">
+            <strong>Last refresh:</strong> {when(lastRefresh.created_at)} {new Date(lastRefresh.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })}, {lastRefresh.actor.replace(/@.*/, '')}. {lastRefresh.detail}
+          </p>
+        )}
 
         <details class="cm-invite">
           <summary>Reply wording to invite someone to share their story</summary>
@@ -255,6 +263,8 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   .cm-invite summary { cursor: pointer; color: var(--paper); font-weight: 600; }
   .cm-invite p { margin: var(--space-3) 0; }
   .cm-hint { font-size: var(--text-xs); }
+  .cm-last { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin: 0 0 var(--space-4); color: var(--body); font-size: var(--text-xs); overflow-wrap: anywhere; }
+  .cm-last strong { color: var(--paper); }
   .cm-empty, .cm-msg { font-size: var(--text-sm); color: var(--body); }
   .cm-msg { font-size: var(--text-xs); }
   .cm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
