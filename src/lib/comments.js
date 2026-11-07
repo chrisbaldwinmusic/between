@@ -47,16 +47,20 @@ export function guessEvent(text = '') {
 }
 const gone = err => err instanceof MetaError && /code (100|803)\b|does not exist|unsupported get request/i.test(err.message);
 
-async function allComments(m, platform, postId) {
+// `own` says who we are ({ facebook: page id, instagram: our username }) so our own comments (like the
+// prompt "Tell us what you want from a venue") aren't counted as audience. The author is compared in memory
+// and thrown away: it is never stored.
+async function allComments(m, platform, postId, own = {}) {
   const fields = platform === 'facebook'
-    ? 'id,message,created_time,like_count,is_hidden'
-    : 'id,text,timestamp,like_count,hidden';
+    ? 'id,message,created_time,like_count,is_hidden,from{id}'
+    : 'id,text,timestamp,like_count,hidden,username';
   const out = [];
   let after;
   for (let i = 0; i < MAX_PAGES; i++) {
     const r = await m.get(`${postId}/comments`, { limit: PAGE, fields, after });
     for (const c of r.data ?? []) {
       if (c.is_hidden || c.hidden) continue;              // hidden by us (e.g. abusive): not kept
+      if (platform === 'facebook' ? (own.facebook && c.from?.id === own.facebook) : (own.instagram && c.username?.toLowerCase() === own.instagram)) continue;
       const text = (platform === 'facebook' ? c.message : c.text)?.trim();
       const at = toDbTime(platform === 'facebook' ? c.created_time : c.timestamp);
       if (c.id && text && at) out.push({ id: String(c.id), text, at, likes: c.like_count ?? 0 });
@@ -77,6 +81,9 @@ export async function syncComments(env, now = new Date()) {
   const min = cutoff(now);
   const stats = { ok: true, posts: 0, read: 0, removed: 0, purged: 0, rechecked: 0, errors: [] };
 
+  const own = { facebook: m.ids.page, instagram: null };
+  try { own.instagram = (await m.get(m.igId(), { fields: 'username' })).username?.toLowerCase() ?? null; }
+  catch (err) { stats.errors.push(`Instagram username: ${err.message}`); }
   const posts = [];
   const [fb, ig] = await Promise.allSettled([
     m.get(`${m.pageId()}/posts`, { limit: POSTS, fields: 'id,message,permalink_url,comments.summary(true).limit(0)' }),
@@ -91,7 +98,7 @@ export async function syncComments(env, now = new Date()) {
     try {
       // Instagram's count is reliable. Facebook reports 0 when the token lacks permission to see comments, so always ask it.
       const skip = post.platform === 'instagram' && post.count === 0;
-      const { comments, complete } = skip ? { comments: [], complete: true } : await allComments(m, post.platform, post.id);
+      const { comments, complete } = skip ? { comments: [], complete: true } : await allComments(m, post.platform, post.id, own);
       stats.posts++;
       const slug = guessEvent(post.text);
       const writes = comments.filter(c => c.at >= min).map(c => db
@@ -146,7 +153,7 @@ export async function updateComment(db, actor, id, body, lead) {
   const b = body ?? {};
 
   if (b.status === 'excluded') {
-    await db.prepare(`UPDATE social_comments SET status = 'excluded', text = '', themes = '', ask_to_share = 0, quote_ok = 0,
+    await db.prepare(`UPDATE social_comments SET status = 'excluded', text = '', themes = '', suggested_themes = '', ask_to_share = 0, quote_ok = 0,
                       reviewed_at = datetime('now'), reviewed_by = ? WHERE id = ?`).bind(actor, id).run();
     await logActivity(db, actor, `marked a ${row.platform} comment as not to be used`, null).catch(() => {});
     return { data: { ok: true } };
@@ -155,6 +162,7 @@ export async function updateComment(db, actor, id, body, lead) {
   if (b.status !== undefined && !['new', 'reviewed'].includes(b.status)) return { error: 'Invalid status', status: 400 };
 
   const themes = Array.isArray(b.themes) ? THEME_KEYS.filter(k => b.themes.includes(k)).join(',') : row.themes;
+  // Suggestions are guesses until a person saves tags: saving clears them, and only `themes` is ever counted.
   const slug = b.event_slug === undefined ? row.event_slug : (b.event_slug === null || b.event_slug === '' ? null : String(b.event_slug));
   if (slug && !events.some(e => e.slug === slug)) return { error: 'Unknown event', status: 400 };
   const ask = b.ask_to_share === undefined ? row.ask_to_share : flag(b.ask_to_share);
@@ -163,7 +171,7 @@ export async function updateComment(db, actor, id, body, lead) {
     if (!lead) return { error: 'Only a lead can mark a comment as OK to quote.', status: 403 };
     quote = flag(b.quote_ok);
   }
-  await db.prepare(`UPDATE social_comments SET themes = ?, event_slug = ?, status = ?, ask_to_share = ?, quote_ok = ?,
+  await db.prepare(`UPDATE social_comments SET themes = ?, suggested_themes = '', event_slug = ?, status = ?, ask_to_share = ?, quote_ok = ?,
                     reviewed_at = datetime('now'), reviewed_by = ? WHERE id = ?`)
     .bind(themes, slug, b.status ?? 'reviewed', ask, quote, actor, id).run();
   return { data: { ok: true } };

@@ -17,7 +17,7 @@ export async function GET(context) {
   if (status) { where.push('status = ?'); args.push(status); }
   if (event) { where.push(event === 'none' ? 'event_slug IS NULL' : 'event_slug = ?'); if (event !== 'none') args.push(event); }
   const { results } = await db
-    .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, status, ask_to_share, quote_ok
+    .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, suggested_themes, status, ask_to_share, quote_ok
               FROM social_comments WHERE ${where.join(' AND ')} ORDER BY posted_at DESC LIMIT 200`)
     .bind(...args).all();
   return jsonOk({ comments: results, summary: await commentSummary(db) });

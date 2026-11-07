@@ -27,7 +27,7 @@ if (db) {
     if (event === 'none') where.push('event_slug IS NULL');
     else if (event) { where.push('event_slug = ?'); args.push(event); }
     const { results } = await db
-      .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, status, ask_to_share, quote_ok
+      .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, suggested_themes, status, ask_to_share, quote_ok
                 FROM social_comments WHERE ${where.join(' AND ')} ORDER BY posted_at DESC LIMIT 200`)
       .bind(...args).all();
     comments = results;
@@ -111,12 +111,16 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
                     {events.map(e => <option value={e.slug} selected={c.event_slug === e.slug}>{e.name}</option>)}
                   </select>
                 </div>
-                <fieldset class="cm__themes">
+                <fieldset class="cm__themes" data-suggested={c.suggested_themes}>
                   <legend>What it shows</legend>
                   {THEMES.map(([k, l]) => (
                     <label class="cm__check"><input type="checkbox" name="themes" value={k} checked={c.themes.split(',').includes(k)} /> {l}</label>
                   ))}
                 </fieldset>
+                {c.suggested_themes && c.status !== 'reviewed' && (
+                  <p class="cm__suggest">Suggested by an AI assistant (not counted until you save): <strong>{c.suggested_themes.split(',').map((k: string) => THEMES.find(([x]) => x === k)?.[1] ?? k).join(', ')}</strong>
+                    <button class="ev-btn" type="button" data-act="suggest">Use suggestion</button></p>
+                )}
                 <label class="cm__check"><input type="checkbox" name="ask_to_share" checked={!!c.ask_to_share} /> Worth inviting to share their story</label>
                 {lead && <label class="cm__check"><input type="checkbox" name="quote_ok" checked={!!c.quote_ok} /> They've agreed we can quote it word for word</label>}
                 {!lead && c.quote_ok ? <p class="cm__meta"><strong>OK to quote word for word.</strong></p> : null}
@@ -167,6 +171,12 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
     const id = li.dataset.id;
     const form = li.querySelector('form') as HTMLFormElement;
 
+    if (btn.dataset.act === 'suggest') {
+      const picks = (li.querySelector('fieldset')?.getAttribute('data-suggested') || '').split(',');
+      li.querySelectorAll<HTMLInputElement>('input[name="themes"]').forEach(i => { i.checked = picks.includes(i.value); });
+      msg.textContent = 'Ticked. Check them, then Save tags.';
+      return;
+    }
     if (btn.dataset.act === 'delete') {
       if (!confirm('Delete our copy of this comment? Use this if someone asks us to.')) return;
       const res = await send(`/api/team/comments/${id}`, 'DELETE');
@@ -229,6 +239,8 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   .cm--reviewed { border-left-color: #4caf50; }
   .cm__form { display: flex; flex-direction: column; gap: var(--space-3); }
   .cm__text { margin: 0; color: var(--paper); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+  .cm__suggest { margin: 0; font-size: var(--text-xs); color: var(--body); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .cm__suggest strong { color: var(--ember); }
   .cm__meta { margin: 0; font-size: var(--text-xs); color: var(--body); }
   .cm__themes { border: 0; margin: 0; padding: 0; display: grid; gap: var(--space-1) var(--space-4); grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
   .cm__themes legend { font-size: 0.7rem; font-weight: 600; color: var(--body); padding: 0; margin-bottom: var(--space-1); }

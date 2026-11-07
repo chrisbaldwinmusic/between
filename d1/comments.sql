@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS social_comments (
   posted_at TEXT NOT NULL,             -- UTC, 'YYYY-MM-DD HH:MM:SS'
   likes INTEGER NOT NULL DEFAULT 0,
   event_slug TEXT,                     -- guessed from the post, editable
-  themes TEXT NOT NULL DEFAULT '',     -- comma-separated, from THEMES in src/lib/comments.js
+  themes TEXT NOT NULL DEFAULT '',     -- comma-separated, from THEMES in src/lib/comments.js; set by a person, the only ones counted
+  suggested_themes TEXT NOT NULL DEFAULT '', -- an AI assistant's guess, shown as a suggestion until a person saves tags
   status TEXT NOT NULL DEFAULT 'new',  -- 'new' | 'reviewed' | 'excluded'
   ask_to_share INTEGER NOT NULL DEFAULT 0,
   quote_ok INTEGER NOT NULL DEFAULT 0,
