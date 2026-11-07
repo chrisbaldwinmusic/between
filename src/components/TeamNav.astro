@@ -110,6 +110,7 @@ const initials = authEmail
         <span class="tside__email tside__email--warn">No Access identity (local dev)</span>
       )}
     </div>
+    <p class="tside__build">Version {__BUILD__}</p>
   </div>
 </aside>
 
@@ -145,6 +146,7 @@ const initials = authEmail
 </style>
 
 <style>
+  .tside__build { margin: var(--space-2) 0 0; font-size: 0.7rem; color: var(--body); opacity: 0.8; }
   .tbar, .tside { font-family: var(--font-body); }
   .tbar__menu svg, .tside__icon { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
