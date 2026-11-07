@@ -28,7 +28,7 @@ const top = rep ? THEMES.filter(([k]) => rep!.all.themes[k] > 0).sort((a, b) => 
   </p>
 
   {missing && <p class="r-note">The comments table isn't set up yet.</p>}
-  {rep && rep.all.total === 0 && <p style="margin-top:1.5rem">No comments yet. They arrive with the daily refresh at <a href="/team/comments">/team/comments</a>.</p>}
+  {rep && rep.all.total === 0 && <p style="margin-top:1.5rem">No comments yet. They arrive with the daily refresh at <a href="/team/social#comments">/team/social#comments</a>.</p>}
 
   {rep && rep.all.total > 0 && (
     <>
@@ -40,7 +40,7 @@ const top = rep ? THEMES.filter(([k]) => rep!.all.themes[k] > 0).sort((a, b) => 
         <li><strong>{rep.storyLeads}</strong><span>worth inviting to share their story ({rep.invited} invited)</span></li>
       </ul>
       {rep.all.tagged < rep.all.total && (
-        <p class="r-note">{rep.all.total - rep.all.tagged} comment{rep.all.total - rep.all.tagged === 1 ? ' is' : 's are'} not tagged yet and not counted in the themes below. Tag them in <a href="/team/comments">Comments</a>.</p>
+        <p class="r-note">{rep.all.total - rep.all.tagged} comment{rep.all.total - rep.all.tagged === 1 ? ' is' : 's are'} not tagged yet and not counted in the themes below. Tag them in <a href="/team/social#comments">Comments</a>.</p>
       )}
 
       <h2 class="r-h2">Themes</h2>

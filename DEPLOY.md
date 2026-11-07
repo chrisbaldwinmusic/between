@@ -308,7 +308,7 @@ Chris, Dan, Vikki and Emma can read the Facebook Page and Instagram account, pub
 
 Every send needs an explicit confirm, links must carry UTMs, Instagram images need alt text, and each send is recorded in the activity log. There are no deletes. Until the token is set, the page and tools just say Meta is not connected.
 
-## 5f-2. Social comments and retention (`/team/comments`, `/team/evaluation/social-report`)
+## 5f-2. Social comments and retention (the inbox on `/team/social`, `/team/evaluation/social-report`)
 
 Public comments on our own Facebook and Instagram posts are read daily by the cron (and by **Refresh comments**) into D1, with no names kept. One-off setup, in order: `d1/comments.sql`, then (only if you created the table before 7 November 2026) `d1/comments-suggested.sql` and `d1/comments-replied.sql`. Facebook reads and replies use a **Page access token** that `src/lib/comments.js` mints from `META_ACCESS_TOKEN`; the token needs `pages_read_user_content` to see other people's comments. The latest result (including Meta's error text) is shown at the top of `/team/comments`. See the privacy notice for what we promise: 12-month copies, deleted when removed on the platform.
 

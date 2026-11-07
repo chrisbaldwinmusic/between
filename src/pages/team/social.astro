@@ -5,6 +5,7 @@
 export const prerender = false;
 
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import CommentsInbox from '../../components/CommentsInbox.astro';
 const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email');
 ---
 <BaseLayout title="Social · Between Ops" nav="internal" authEmail={authEmail}>
@@ -99,16 +100,22 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
               <div class="sc-tabs" role="group" aria-label="Recent posts">
                 <button type="button" class="sc-tab" id="tab-fb" aria-pressed="true">Facebook</button>
                 <button type="button" class="sc-tab" id="tab-ig" aria-pressed="false">Instagram</button>
+                <button type="button" class="sc-tab" id="sc-refresh">Refresh</button>
               </div>
               <ul id="fb-list" class="sc-list" role="list"></ul>
               <ul id="ig-list" class="sc-list" role="list" hidden></ul>
             </div>
             <div class="sc-card" id="sc-comments" hidden tabindex="-1">
-              <h2 class="sc-h2" id="sc-comments-title">Comments</h2>
+              <div class="sc-top">
+                <h2 class="sc-h2" id="sc-comments-title">Comments on this post (live)</h2>
+                <button type="button" class="sc-btn sc-btn--small sc-btn--ghost" id="sc-comments-refresh">Refresh</button>
+              </div>
               <ul id="sc-comments-list" class="sc-list" role="list"></ul>
             </div>
           </div>
         </div>
+
+        <CommentsInbox />
       </div>
     </section>
   </main>
@@ -482,7 +489,9 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   $('#tab-fb').addEventListener('click', () => tab('fb'));
   $('#tab-ig').addEventListener('click', () => tab('ig'));
 
+  let openOne: ['fb' | 'ig', string] | null = null;
   async function openComments(kind: 'fb' | 'ig', id: string) {
+    openOne = [kind, id];
     const panel = $('#sc-comments'), ul = $('#sc-comments-list');
     panel.hidden = false; ul.replaceChildren(el('li', 'Loading…', 'sc-muted')); panel.focus();
     try {
@@ -526,6 +535,9 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
       }
     } catch (err: any) { ul.replaceChildren(el('li', err.message, 'sc-muted')); }
   }
+
+  $('#sc-refresh').addEventListener('click', async () => { say('Refreshing…'); await load(); if (openOne && !$('#sc-comments').hidden) openComments(...openOne); });
+  $('#sc-comments-refresh').addEventListener('click', () => { if (openOne) openComments(...openOne); });
 
   async function load() {
     try {
