@@ -89,7 +89,9 @@ export async function syncComments(env, now = new Date()) {
 
   for (const post of posts) {
     try {
-      const { comments, complete } = post.count > 0 ? await allComments(m, post.platform, post.id) : { comments: [], complete: true };
+      // Instagram's count is reliable. Facebook reports 0 when the token lacks permission to see comments, so always ask it.
+      const skip = post.platform === 'instagram' && post.count === 0;
+      const { comments, complete } = skip ? { comments: [], complete: true } : await allComments(m, post.platform, post.id);
       stats.posts++;
       const slug = guessEvent(post.text);
       const writes = comments.filter(c => c.at >= min).map(c => db
@@ -127,6 +129,8 @@ export async function syncComments(env, now = new Date()) {
 
   const purged = await db.prepare('DELETE FROM social_comments WHERE posted_at < ?').bind(min).run();
   stats.purged = purged.meta?.changes ?? 0;
+  stats.by = Object.fromEntries(['facebook', 'instagram'].map(p => [p, { posts: posts.filter(x => x.platform === p).length, comments: 0 }]));
+  for (const r of (await db.prepare('SELECT platform, count(*) AS n FROM social_comments GROUP BY platform').all()).results) if (stats.by[r.platform]) stats.by[r.platform].comments = r.n;
   return stats;
 }
 

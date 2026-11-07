@@ -11,6 +11,6 @@ export async function POST(context) {
   const r = await syncComments(env);
   if (!r.ok) return jsonErr(r.reason, 503);
   const db = getDb(context);
-  if (db) await logActivity(db, getActor(context.request), 'synced social comments', `${r.read} read, ${r.removed} removed, ${r.purged} past retention`).catch(() => {});
+  if (db) await logActivity(db, getActor(context.request), 'synced social comments', `${r.read} read, ${r.removed} removed, ${r.purged} past retention${r.errors.length ? `, ${r.errors.length} errors` : ''}`).catch(() => {});
   return jsonOk(r);
 }
