@@ -28,6 +28,7 @@ const COMMUNITY_PAGES = [
   '/team/evaluation/qr',
   '/team/evaluation/survey-preview',
   '/team/social',
+  '/team/comments',
   '/team/consents',
 ];
 // Any method; the routes themselves limit deleting to the uploader or a lead, and push
@@ -38,6 +39,8 @@ const COMMUNITY_API = [
   { method: 'GET', path: '/api/team/evaluation/community-live' },
   { method: 'GET', path: '/api/team/evaluation/export' },
   { method: 'GET', path: '/api/team/social' },
+  { method: 'GET', path: '/api/team/comments' },
+  { method: 'POST', path: '/api/team/comments/sync' },
   { method: 'POST', path: '/api/team/social' },
   { method: 'POST', path: '/api/team/social-media' },
   { method: 'POST', path: '/api/team/social-video' },
@@ -70,6 +73,8 @@ export function canAccess(email, pathname, method = 'GET') {
     if (SHARED_API_PREFIXES.some(p => path === p || path.startsWith(`${p}/`))) return true;
     // Ticking off their own to-dos (the route checks ownership).
     if (method === 'PATCH' && /^\/api\/team\/todos\/\d+$/.test(path)) return true;
+    // Tagging comments (the route stops them marking one OK to quote).
+    if (isCommunity(email) && method === 'PATCH' && /^\/api\/team\/comments\/\d+$/.test(path)) return true;
     if (isCommunity(email) && COMMUNITY_API.some(r => r.method === method && r.path === path)) return true;
     return method === 'GET' && SHARED_API_READS.includes(path);
   }
