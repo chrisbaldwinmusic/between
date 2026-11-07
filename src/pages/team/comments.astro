@@ -84,6 +84,7 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
             <noscript><button class="ev-btn" type="submit">Filter</button></noscript>
           </form>
           <button class="ev-btn" type="button" id="cm-sync">Refresh comments</button>
+          {comments.some(c => c.status === 'new') && <button class="ev-btn" type="button" id="cm-save-all">Save all as shown</button>}
           <span class="cm-msg" id="cm-sync-msg" role="status"></span>
         </div>
 
@@ -142,6 +143,37 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   const send = (url: string, method: string, body?: unknown) =>
     fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
 
+  // What a comment's form currently shows, as the tags to save.
+  function formBody(form: HTMLFormElement) {
+    const fd = new FormData(form);
+    const body: Record<string, unknown> = {
+      status: 'reviewed',
+      event_slug: fd.get('event_slug') || null,
+      themes: fd.getAll('themes'),
+      ask_to_share: fd.get('ask_to_share') === 'on',
+    };
+    if (form.elements.namedItem('quote_ok')) body.quote_ok = fd.get('quote_ok') === 'on';
+    return body;
+  }
+
+  // Saves every comment still waiting, exactly as its form shows now (suggested ticks included).
+  document.getElementById('cm-save-all')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const msg = document.getElementById('cm-sync-msg')!;
+    const items = Array.from(document.querySelectorAll<HTMLLIElement>('li.cm--new'));
+    if (!items.length) return;
+    if (!confirm(`Save tags for ${items.length} comments exactly as shown? Ticked suggestions will count as tags, so skim them first.`)) return;
+    btn.disabled = true;
+    let done = 0, failed = 0;
+    for (const li of items) {
+      msg.textContent = `Saving ${done + failed + 1} of ${items.length}…`;
+      const res = await send(`/api/team/comments/${li.dataset.id}`, 'PATCH', formBody(li.querySelector('form') as HTMLFormElement));
+      if (res.ok) done++; else failed++;
+    }
+    msg.textContent = failed ? `Saved ${done}, ${failed} failed. Reload and try again.` : `Saved ${done}. Reloading…`;
+    if (failed) btn.disabled = false; else setTimeout(() => location.reload(), 800);
+  });
+
   document.getElementById('cm-sync')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget as HTMLButtonElement;
     const msg = document.getElementById('cm-sync-msg')!;
@@ -188,14 +220,7 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
       if (res.ok) li.remove(); else msg.textContent = 'Could not save';
       return;
     }
-    const fd = new FormData(form);
-    const body: Record<string, unknown> = {
-      status: 'reviewed',
-      event_slug: fd.get('event_slug') || null,
-      themes: fd.getAll('themes'),
-      ask_to_share: fd.get('ask_to_share') === 'on',
-    };
-    if (form.elements.namedItem('quote_ok')) body.quote_ok = fd.get('quote_ok') === 'on';
+    const body = formBody(form);
     btn.disabled = true; msg.textContent = 'Saving…';
     const res = await send(`/api/team/comments/${id}`, 'PATCH', body);
     if (res.ok) { msg.textContent = 'Saved'; li.classList.remove('cm--new'); li.classList.add('cm--reviewed'); btn.disabled = false; }
