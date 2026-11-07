@@ -9,12 +9,15 @@
 import astro from '../dist/_worker.js/index.js';
 import { runReminders } from '../src/lib/reminders.js';
 import { syncComments } from '../src/lib/comments.js';
+import { runRetention } from '../src/lib/retention.js';
 import { utmFrom, record, isBot } from '../src/lib/attribution.js';
 
 export default {
   // Daily cron (wrangler.toml, 07:00 UTC): the leads' and community managers' reminder emails.
   async scheduled(_event, env, ctx) {
     ctx.waitUntil(runReminders(env).then(r => console.log('reminders', r.sent, r.reason ?? r.subject)));
+    // Same visit: remove survey free text and postcodes 24 months after they were given (src/lib/retention.js).
+    ctx.waitUntil(runRetention(env.OPS_DB).then(r => console.log('retention', r.survey, r.checkins), e => console.log('retention failed', e.message)));
     // Same visit: read new social comments, drop deleted ones and anything past 12 months (src/lib/comments.js).
     ctx.waitUntil(syncComments(env).then(r => console.log('comments', r.ok ? `${r.read} read, ${r.removed} removed, ${r.purged} purged` : r.reason), e => console.log('comments failed', e.message)));
   },

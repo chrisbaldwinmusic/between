@@ -308,6 +308,12 @@ Chris, Dan, Vikki and Emma can read the Facebook Page and Instagram account, pub
 
 Every send needs an explicit confirm, links must carry UTMs, Instagram images need alt text, and each send is recorded in the activity log. There are no deletes. Until the token is set, the page and tools just say Meta is not connected.
 
+## 5f-2. Social comments and retention (`/team/comments`, `/team/evaluation/social-report`)
+
+Public comments on our own Facebook and Instagram posts are read daily by the cron (and by **Refresh comments**) into D1, with no names kept. One-off setup, in order: `d1/comments.sql`, then (only if you created the table before 7 November 2026) `d1/comments-suggested.sql` and `d1/comments-replied.sql`. Facebook reads and replies use a **Page access token** that `src/lib/comments.js` mints from `META_ACCESS_TOKEN`; the token needs `pages_read_user_content` to see other people's comments. The latest result (including Meta's error text) is shown at the top of `/team/comments`. See the privacy notice for what we promise: 12-month copies, deleted when removed on the platform.
+
+The same cron (`src/lib/retention.js`) removes survey free text and postcode halves 24 months after they were given, to match both privacy notices.
+
 ## 5g. Mailer subscriber count (`/team/evaluation`)
 
 There is one Sonic Boom Mailer: its own Worker (`mailer`, mailer.sonicboom.org.uk) with its own database. This site
@@ -380,3 +386,14 @@ Delete project**); it isn't wired to anything and costs nothing left as-is.
 - [ ] Custom domain resolves on HTTPS
 - [ ] Test the full journey on a real phone: land → understand → join → see the year → answer the poll
 - [ ] When the public marketing pages are ready to go live, scope the "Between (Sonic Boom)" Access application to `/team/*` only (Zero Trust → Access → Applications), so `/team` stays private but the rest of the site opens up
+
+## 8. Winding down (the programme runs to September 2027)
+
+The privacy notices promise deletions that **depend on this Worker's daily cron**: survey free text and postcodes after 24 months (last responses: September 2029), social comment copies after 12 months (last: September 2028), email subscribers per the mailer. Don't retire the Worker, the D1 database or the R2 bucket until:
+
+- [ ] `social_comments` is empty (`DELETE FROM social_comments;`) or the 12 months have passed
+- [ ] `feedback_responses.venue_wants` / `outward_postcode` and `checkins.outward_postcode` are cleared (`UPDATE ... SET ... = NULL`) or 24 months have passed. The tick-box answers can stay, or be exported as totals first
+- [ ] `stories` emails are already cleared on review; delete any story someone has asked us to take down
+- [ ] `media_consents` are reviewed: delete forms whose material is no longer used
+- [ ] Photos and screenshots in the `between-evidence` R2 bucket are deleted or moved
+- [ ] The org privacy notice (sibling `SonicBoom.org.uk Website/privacy.html`) and `/privacy` still describe what is held
