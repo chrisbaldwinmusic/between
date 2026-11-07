@@ -114,12 +114,11 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
                 <fieldset class="cm__themes" data-suggested={c.suggested_themes}>
                   <legend>What it shows</legend>
                   {THEMES.map(([k, l]) => (
-                    <label class="cm__check"><input type="checkbox" name="themes" value={k} checked={c.themes.split(',').includes(k)} /> {l}</label>
+                    <label class="cm__check"><input type="checkbox" name="themes" value={k} checked={(c.themes || (c.status !== 'reviewed' ? c.suggested_themes : '')).split(',').includes(k)} /> {l}</label>
                   ))}
                 </fieldset>
-                {c.suggested_themes && c.status !== 'reviewed' && (
-                  <p class="cm__suggest">Suggested by an AI assistant (not counted until you save): <strong>{c.suggested_themes.split(',').map((k: string) => THEMES.find(([x]) => x === k)?.[1] ?? k).join(', ')}</strong>
-                    <button class="ev-btn" type="button" data-act="suggest">Use suggestion</button></p>
+                {c.suggested_themes && c.status !== 'reviewed' && !c.themes && (
+                  <p class="cm__suggest">Ticked from an AI assistant's suggestion. <strong>Not counted until you check them and press Save tags.</strong></p>
                 )}
                 <label class="cm__check"><input type="checkbox" name="ask_to_share" checked={!!c.ask_to_share} /> Worth inviting to share their story</label>
                 {lead && <label class="cm__check"><input type="checkbox" name="quote_ok" checked={!!c.quote_ok} /> They've agreed we can quote it word for word</label>}
