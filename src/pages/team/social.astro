@@ -31,6 +31,14 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
         <div class="sc-tabs sc-views" role="group" aria-label="Social views">
           <button type="button" class="sc-tab" id="view-posts" aria-pressed="true">Posts</button>
           <button type="button" class="sc-tab" id="view-comments" aria-pressed="false">Comments <span id="view-comments-n" class="sc-badge" hidden></span></button>
+          <span class="sc-pref">
+            <label for="view-pref">Open on</label>
+            <select id="view-pref">
+              <option value="auto">Most pressing</option>
+              <option value="posts">Posts</option>
+              <option value="comments">Comments</option>
+            </select>
+          </span>
         </div>
 
         <div id="sc-view-posts">
@@ -561,8 +569,23 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   $('#view-comments').addEventListener('click', () => view('comments'));
   const waiting = Number(document.getElementById('comments')?.dataset.waiting || 0);
   if (waiting > 0) { const n = $('#view-comments-n'); n.textContent = String(waiting); n.hidden = false; }
+  // Which view to open on. A link that asks for comments (#comments or an inbox filter) always wins. Otherwise the
+  // person's own choice, kept in this browser only; "Most pressing" (the default) opens on Comments when some are
+  // waiting to be tagged, and on Posts when not.
+  const PREF = 'social-open-on';
+  const readPref = () => { try { const v = localStorage.getItem(PREF); return v === 'posts' || v === 'comments' ? v : 'auto'; } catch { return 'auto'; } };
   const sp = new URLSearchParams(location.search);
-  if (location.hash === '#comments' || sp.has('status') || sp.has('event')) view('comments', false);
+  const asked = location.hash === '#comments' || sp.has('status') || sp.has('event');
+  const pref = readPref();
+  (document.getElementById('view-pref') as HTMLSelectElement).value = pref;
+  view(asked ? 'comments' : pref === 'auto' ? (waiting > 0 ? 'comments' : 'posts') : pref, false);
+  // A link to #comments clicked while already on this page.
+  window.addEventListener('hashchange', () => { if (location.hash === '#comments') view('comments', false); });
+  document.getElementById('view-pref')!.addEventListener('change', (e) => {
+    const v = (e.target as HTMLSelectElement).value;
+    try { v === 'auto' ? localStorage.removeItem(PREF) : localStorage.setItem(PREF, v); } catch { /* choice just won't be remembered */ }
+    say(v === 'auto' ? 'Social will open on whichever needs you most.' : `Social will open on ${v === 'posts' ? 'Posts' : 'Comments'}.`, true);
+  });
 
   async function load() {
     try {
@@ -643,7 +666,10 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   .sc-dl dt { color: var(--body); }
   .sc-dl dd { margin: 0; color: var(--paper); white-space: pre-wrap; overflow-wrap: anywhere; }
   .sc-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
-  .sc-views { margin: var(--space-4) 0 var(--space-5); }
+  .sc-views { margin: var(--space-4) 0 var(--space-5); align-items: center; }
+  .sc-pref { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--body); }
+  .sc-pref select { font: inherit; font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.4rem 0.5rem; min-height: 40px; }
+  .sc-pref select:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
   .sc-badge { display: inline-block; min-width: 1.4em; padding: 0 0.4em; margin-left: 0.3em; border-radius: 999px; background: var(--red); color: #fff; font-size: 0.75rem; font-weight: 700; text-align: center; }
   .sc-tab { background: transparent; color: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 0.4rem 1rem; font: inherit; min-height: 40px; cursor: pointer; }
   .sc-tab[aria-pressed=true] { background: var(--paper); color: var(--ink); font-weight: 700; }
