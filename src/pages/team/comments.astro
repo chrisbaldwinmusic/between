@@ -28,7 +28,7 @@ if (db) {
     if (event === 'none') where.push('event_slug IS NULL');
     else if (event) { where.push('event_slug = ?'); args.push(event); }
     const { results } = await db
-      .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, suggested_themes, status, ask_to_share, quote_ok
+      .prepare(`SELECT id, platform, post_url, text, posted_at, likes, event_slug, themes, suggested_themes, status, ask_to_share, quote_ok, replied_at
                 FROM social_comments WHERE ${where.join(' AND ')} ORDER BY posted_at DESC LIMIT 200`)
       .bind(...args).all();
     comments = results;
@@ -40,6 +40,7 @@ const eventName = (slug: string | null) => events.find(e => e.slug === slug)?.na
 const when = (iso: string) => new Date(iso.replace(' ', 'T') + 'Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const platformName = (p: string) => (p === 'facebook' ? 'Facebook' : 'Instagram');
 const INVITE = 'Thank you, that means a lot. If you would like to tell us more, you can share your story here: https://between.sonicboom.org.uk/feedback/story?utm_source=social&utm_medium=comment-reply&utm_campaign=story-invite. It is optional and you choose whether we share it. Believe in the Power of Music.';
+const draft = (platform: string) => `Thank you, that means a lot. If you'd like to tell us more, you can share your story here: https://between.sonicboom.org.uk/feedback/story?utm_source=${platform}&utm_medium=comment-reply&utm_campaign=story-invite It's optional, and you choose whether we share it. Believe in the Power of Music.`;
 const tab = (key: string, label: string) => ({ key, label, href: `?status=${key}${event ? `&event=${event}` : ''}` });
 const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged')];
 ---
@@ -130,6 +131,17 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
                   <p class="cm__suggest">Ticked from an AI assistant's suggestion. <strong>Not counted until you check them and press Save tags.</strong></p>
                 )}
                 <label class="cm__check"><input type="checkbox" name="ask_to_share" checked={!!c.ask_to_share} /> Worth inviting to share their story</label>
+                {c.replied_at && <p class="cm__meta"><strong>Story invitation sent</strong> {when(c.replied_at)}.</p>}
+                {c.ask_to_share && c.status === 'reviewed' && !c.replied_at && (
+                  <details class="cm__reply">
+                    <summary>Reply with a story invitation</summary>
+                    <label class="visually-hidden" for={`rp-${c.id}`}>Reply</label>
+                    <textarea id={`rp-${c.id}`} name="reply_message" rows="4">{draft(c.platform)}</textarea>
+                    <label class="cm__check"><input type="checkbox" name="adult_ok" /> I've read it and the commenter sounds like an adult</label>
+                    <p class="cm-hint">This posts publicly from our {platformName(c.platform)} account and can't be unsent. Edit it to answer what they said.</p>
+                    <button class="ev-btn ev-btn--primary" type="button" data-act="reply">Send reply</button>
+                  </details>
+                )}
                 {lead && <label class="cm__check"><input type="checkbox" name="quote_ok" checked={!!c.quote_ok} /> They've agreed we can quote it word for word</label>}
                 {!lead && c.quote_ok ? <p class="cm__meta"><strong>OK to quote word for word.</strong></p> : null}
                 <div class="cm__actions">
@@ -216,6 +228,17 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
       msg.textContent = 'Ticked. Check them, then Save tags.';
       return;
     }
+    if (btn.dataset.act === 'reply') {
+      const message = (form.elements.namedItem('reply_message') as HTMLTextAreaElement).value;
+      const adult = (form.elements.namedItem('adult_ok') as HTMLInputElement).checked;
+      if (!adult) { msg.textContent = 'Tick the box to confirm they sound like an adult.'; return; }
+      if (!confirm('Post this reply publicly? It can\'t be unsent.')) return;
+      btn.disabled = true; msg.textContent = 'Sending…';
+      const res = await send(`/api/team/comments/${id}/reply`, 'POST', { message, adult_ok: true });
+      if (res.ok) { msg.textContent = 'Sent. Reloading…'; setTimeout(() => location.reload(), 800); }
+      else { const j = await res.json().catch(() => ({})); msg.textContent = j.error || 'Could not send'; btn.disabled = false; }
+      return;
+    }
     if (btn.dataset.act === 'delete') {
       if (!confirm('Delete our copy of this comment? Use this if someone asks us to.')) return;
       const res = await send(`/api/team/comments/${id}`, 'DELETE');
@@ -231,7 +254,7 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
     const body = formBody(form);
     btn.disabled = true; msg.textContent = 'Saving…';
     const res = await send(`/api/team/comments/${id}`, 'PATCH', body);
-    if (res.ok) { msg.textContent = 'Saved'; li.classList.remove('cm--new'); li.classList.add('cm--reviewed'); btn.disabled = false; }
+    if (res.ok) { msg.textContent = 'Saved'; li.classList.remove('cm--new'); li.classList.add('cm--reviewed'); btn.disabled = false; if (body.ask_to_share) setTimeout(() => location.reload(), 600); }
     else { const j = await res.json().catch(() => ({})); msg.textContent = j.error || 'Could not save'; btn.disabled = false; }
   });
 </script>
@@ -273,6 +296,10 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   .cm--reviewed { border-left-color: #4caf50; }
   .cm__form { display: flex; flex-direction: column; gap: var(--space-3); }
   .cm__text { margin: 0; color: var(--paper); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+  .cm__reply { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+  .cm__reply summary { cursor: pointer; color: var(--paper); font-size: var(--text-sm); font-weight: 600; }
+  .cm__reply textarea { font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.65rem; width: 100%; margin-top: var(--space-2); }
+  .cm__reply textarea:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
   .cm__suggest { margin: 0; font-size: var(--text-xs); color: var(--body); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
   .cm__suggest strong { color: var(--ember); }
   .cm__meta { margin: 0; font-size: var(--text-xs); color: var(--body); }

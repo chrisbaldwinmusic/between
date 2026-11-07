@@ -75,6 +75,7 @@ export function canAccess(email, pathname, method = 'GET') {
     if (method === 'PATCH' && /^\/api\/team\/todos\/\d+$/.test(path)) return true;
     // Tagging comments (the route stops them marking one OK to quote).
     if (isCommunity(email) && method === 'PATCH' && /^\/api\/team\/comments\/\d+$/.test(path)) return true;
+    if (isCommunity(email) && method === 'POST' && /^\/api\/team\/comments\/\d+\/reply$/.test(path)) return true;
     if (isCommunity(email) && COMMUNITY_API.some(r => r.method === method && r.path === path)) return true;
     return method === 'GET' && SHARED_API_READS.includes(path);
   }

@@ -8,7 +8,7 @@
 //  - "Don't use" blanks the text, so a sync can't bring it back.
 
 import events from '../data/events.json';
-import { metaClient, MetaError } from './meta.js';
+import { metaClient, metaOps, MetaError } from './meta.js';
 import { logActivity } from './ops-db.js';
 
 export const RETENTION_MONTHS = 12;
@@ -190,6 +190,32 @@ export async function updateComment(db, actor, id, body, lead) {
   await db.prepare(`UPDATE social_comments SET themes = ?, suggested_themes = '', event_slug = ?, status = ?, ask_to_share = ?, quote_ok = ?,
                     reviewed_at = datetime('now'), reviewed_by = ? WHERE id = ?`)
     .bind(themes, slug, b.status ?? 'reviewed', ask, quote, actor, id).run();
+  return { data: { ok: true } };
+}
+
+// A person sends the story-invite reply to a comment they have tagged "worth inviting". One reply per
+// comment, and the sender must confirm the commenter sounds like an adult (we never invite anyone who may
+// be under 16). Goes through metaOps.reply, so the message must carry UTM links.
+export async function replyToComment(env, actor, id, body) {
+  const db = env.OPS_DB;
+  const b = body ?? {};
+  if (b.adult_ok !== true) return { error: 'Confirm the commenter sounds like an adult before replying.', status: 400 };
+  const message = typeof b.message === 'string' ? b.message.trim() : '';
+  if (!message) return { error: 'Write a reply.', status: 400 };
+  const row = await db.prepare('SELECT * FROM social_comments WHERE id = ?').bind(id).first();
+  if (!row) return { error: 'Not found', status: 404 };
+  if (row.status !== 'reviewed' || !row.ask_to_share || !row.text) return { error: 'Only comments tagged "worth inviting to share their story" can be replied to.', status: 409 };
+  // Claim it first so a double click can't send twice; hand it back if Meta refuses.
+  const claim = await db.prepare(`UPDATE social_comments SET replied_at = datetime('now') WHERE id = ? AND replied_at IS NULL`).bind(id).run();
+  if (!claim.meta?.changes) return { error: 'This comment has already had a reply.', status: 409 };
+  try {
+    const r = await metaOps(metaClient(env)).reply({ platform: row.platform, comment_id: row.platform_id, message, confirm: true });
+    if (!r.sent) throw new MetaError('Meta did not send the reply.', 502);
+  } catch (err) {
+    await db.prepare('UPDATE social_comments SET replied_at = NULL WHERE id = ?').bind(id).run();
+    return { error: err instanceof MetaError ? err.message : 'Could not send the reply.', status: err.status ?? 500 };
+  }
+  await logActivity(db, actor, `replied to a ${row.platform} comment with a story invitation`, null).catch(() => {});
   return { data: { ok: true } };
 }
 
