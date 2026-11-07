@@ -24,6 +24,7 @@ const COMMUNITY_PAGES = [
   '/team/stories',
   '/team/evaluation/survey-report',
   '/team/evaluation/community-report',
+  '/team/evaluation/social-report',
   '/team/evaluation/attribution',
   '/team/evaluation/qr',
   '/team/evaluation/survey-preview',

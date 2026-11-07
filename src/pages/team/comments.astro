@@ -180,9 +180,11 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   document.getElementById('cm-save-all')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget as HTMLButtonElement;
     const msg = document.getElementById('cm-sync-msg')!;
-    const items = Array.from(document.querySelectorAll<HTMLLIElement>('li.cm--new'));
-    if (!items.length) return;
-    if (!confirm(`Save tags for ${items.length} comments exactly as shown? Ticked suggestions will count as tags, so skim them first.`)) return;
+    // Only comments with at least one theme ticked: an untagged comment stays in Waiting.
+    const items = Array.from(document.querySelectorAll<HTMLLIElement>('li.cm--new'))
+      .filter(li => li.querySelector('input[name="themes"]:checked'));
+    if (!items.length) { msg.textContent = 'Nothing to save: no waiting comment has a theme ticked.'; return; }
+    if (!confirm(`Save tags for ${items.length} comments exactly as shown? Ticked suggestions will count as tags, so skim them first. Comments with nothing ticked stay in Waiting.`)) return;
     btn.disabled = true;
     let done = 0, failed = 0;
     for (const li of items) {

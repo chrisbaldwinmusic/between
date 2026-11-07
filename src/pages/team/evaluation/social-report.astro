@@ -1,0 +1,79 @@
+---
+// What people say on social media: counts of the themes the team has tagged on public comments on our own
+// Facebook and Instagram posts (src/lib/comments.js). Counts only: no comment text, no names. Suggested tags
+// are never counted until a person saves them. Printable. Leads and the community managers.
+export const prerender = false;
+
+import ReportLayout from '../../../layouts/ReportLayout.astro';
+import events from '../../../data/events.json';
+import { THEMES, RETENTION_MONTHS, commentReport } from '../../../lib/comments.js';
+
+const db = Astro.locals.runtime?.env?.OPS_DB;
+let rep: Awaited<ReturnType<typeof commentReport>> | null = null;
+let missing = false;
+if (db) { try { rep = await commentReport(db); } catch { missing = true; } }
+
+const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
+const eventName = (slug: string) => (slug ? events.find(e => e.slug === slug)?.name ?? slug : 'Not tied to an event');
+const rows = rep ? Object.entries(rep.byEvent).sort((a, b) => b[1].total - a[1].total) : [];
+const top = rep ? THEMES.filter(([k]) => rep!.all.themes[k] > 0).sort((a, b) => rep!.all.themes[b[0]] - rep!.all.themes[a[0]]) : [];
+---
+<ReportLayout title="What people say: social comments" communityActions>
+  <a slot="actions" href="/api/team/evaluation/export?type=comments">Download CSV</a>
+  <p class="r-eyebrow">The Space Between · Evaluation</p>
+  <h1 class="r-title">What people say on social media</h1>
+  <p class="r-sub">
+    Themes from public comments on our own Facebook and Instagram posts, tagged by the team. Counts only: no comment
+    is quoted here and no names are kept. Copies are deleted after {RETENTION_MONTHS} months.
+  </p>
+
+  {missing && <p class="r-note">The comments table isn't set up yet.</p>}
+  {rep && rep.all.total === 0 && <p style="margin-top:1.5rem">No comments yet. They arrive with the daily refresh at <a href="/team/comments">/team/comments</a>.</p>}
+
+  {rep && rep.all.total > 0 && (
+    <>
+      <h2 class="r-h2">Headlines</h2>
+      <ul class="r-stats" role="list">
+        <li><strong>{rep.all.total}</strong><span>comments read ({rep.byPlatform.facebook} Facebook, {rep.byPlatform.instagram} Instagram)</span></li>
+        <li><strong>{rep.all.tagged}</strong><span>tagged by the team ({pct(rep.all.tagged, rep.all.total)}%)</span></li>
+        <li><strong>{rep.all.themes.venue_demand}</strong><span>ask for or describe a venue</span></li>
+        <li><strong>{rep.storyLeads}</strong><span>worth inviting to share their story ({rep.invited} invited)</span></li>
+      </ul>
+      {rep.all.tagged < rep.all.total && (
+        <p class="r-note">{rep.all.total - rep.all.tagged} comment{rep.all.total - rep.all.tagged === 1 ? ' is' : 's are'} not tagged yet and not counted in the themes below. Tag them in <a href="/team/comments">Comments</a>.</p>
+      )}
+
+      <h2 class="r-h2">Themes</h2>
+      {top.length === 0 ? <p class="r-note">No themes saved yet.</p> : (
+        <ul class="r-bars" role="list">
+          {top.map(([k, l]) => (
+            <li>
+              <span>{l}</span>
+              <span class="track" aria-hidden="true"><span style={`width:${pct(rep!.all.themes[k], rep!.all.tagged)}%`}></span></span>
+              <span class="n">{rep!.all.themes[k]} ({pct(rep!.all.themes[k], rep!.all.tagged)}% of tagged)</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 class="r-h2">By event</h2>
+      <div style="overflow-x:auto" tabindex="0" role="region" aria-label="Themes by event, scrolls sideways">
+      <table class="r-table">
+        <thead><tr><th scope="col">Event</th><th scope="col">Comments</th><th scope="col">Tagged</th>{THEMES.map(([, l]) => <th scope="col">{l}</th>)}</tr></thead>
+        <tbody>
+          {rows.map(([slug, b]) => (
+            <tr><th scope="row">{eventName(slug)}</th><td>{b.total}</td><td>{b.tagged}</td>{THEMES.map(([k]) => <td>{b.themes[k]}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+      </div>
+
+      <p class="r-note">
+        How to read this: comments are a self-selecting sample, not a survey, so use them alongside the survey and the venue poll,
+        never in place of them. A comment can carry more than one theme. Performers' thanks are counted as praise.
+        Comments are tagged by people on the team; an AI assistant may suggest a tag, but a suggestion is not counted until a person saves it.
+        Nothing here shows the venue is confirmed: it shows what people say they'd want if the demand is there.
+      </p>
+    </>
+  )}
+</ReportLayout>

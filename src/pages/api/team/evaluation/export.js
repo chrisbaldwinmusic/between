@@ -1,9 +1,11 @@
-// GET /api/team/evaluation/export?type=survey|checkins|community — CSV of raw (anonymous) responses
+// GET /api/team/evaluation/export?type=survey|checkins|community|comments — CSV of raw (anonymous) responses
 // and monthly community numbers for reporting. Leads only (src/middleware.js), except that the community
-// managers can download type=community (counts only, no personal data).
+// managers can download type=community and type=comments (counts only, no personal data).
 
 import { getDb, jsonErr } from '../../../../lib/ops-db.js';
 import { getEmail, isLead } from '../../../../lib/team-access.js';
+import events from '../../../../data/events.json';
+import { THEMES, commentReport } from '../../../../lib/comments.js';
 
 export const prerender = false;
 
@@ -24,9 +26,20 @@ export async function GET(context) {
   if (!db) return jsonErr('Database unavailable', 503);
 
   const type = new URL(context.request.url).searchParams.get('type');
-  if (!QUERIES[type]) return jsonErr('type must be survey, checkins or community', 400);
+  if (type !== 'comments' && !QUERIES[type]) return jsonErr('type must be survey, checkins, community or comments', 400);
 
-  if (type !== 'community' && !isLead(getEmail(context.request))) return jsonErr('Not available to your account', 403);
+  if (!['community', 'comments'].includes(type) && !isLead(getEmail(context.request))) return jsonErr('Not available to your account', 403);
+
+  if (type === 'comments') {
+    // Counts of tagged social comments by event and theme. No comment text, nothing personal.
+    const rep = await commentReport(db);
+    const name = slug => (slug ? events.find(e => e.slug === slug)?.name ?? slug : 'Not tied to an event');
+    const rows = [['event', 'comments', 'tagged', ...THEMES.map(([, l]) => l)]];
+    rows.push(['All events', rep.all.total, rep.all.tagged, ...THEMES.map(([k]) => rep.all.themes[k])]);
+    for (const [slug, b] of Object.entries(rep.byEvent)) rows.push([name(slug), b.total, b.tagged, ...THEMES.map(([k]) => b.themes[k])]);
+    const csv = rows.map(r => r.map(cell).join(',')).join('\r\n');
+    return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="between-comments-${new Date().toISOString().slice(0, 10)}.csv"` } });
+  }
 
   const { results } = await db.prepare(QUERIES[type]).all();
   const cols = QUERIES[type].match(/SELECT (.*) FROM/)[1].split(', ');

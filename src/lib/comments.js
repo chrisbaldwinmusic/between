@@ -252,3 +252,23 @@ export async function commentSummary(db) {
     byTheme, byEvent, lastSync: last?.t ?? null,
   };
 }
+
+// For the outcomes report: counts only, from tags a person has saved (suggestions are never counted).
+export async function commentReport(db) {
+  const { results } = await db.prepare(`SELECT platform, event_slug, themes, status, ask_to_share, replied_at FROM social_comments WHERE status != 'excluded'`).all();
+  const blank = () => ({ total: 0, tagged: 0, themes: Object.fromEntries(THEME_KEYS.map(k => [k, 0])) });
+  const all = blank(), byEvent = {}, byPlatform = { facebook: 0, instagram: 0 };
+  let storyLeads = 0, invited = 0;
+  for (const r of results) {
+    const keys = (r.themes ? r.themes.split(',') : []).filter(k => THEME_KEYS.includes(k));
+    for (const bucket of [all, (byEvent[r.event_slug ?? ''] ??= blank())]) {
+      bucket.total++;
+      if (keys.length) bucket.tagged++;
+      for (const k of keys) bucket.themes[k]++;
+    }
+    byPlatform[r.platform] = (byPlatform[r.platform] ?? 0) + 1;
+    if (r.ask_to_share) storyLeads++;
+    if (r.replied_at) invited++;
+  }
+  return { all, byEvent, byPlatform, storyLeads, invited };
+}
