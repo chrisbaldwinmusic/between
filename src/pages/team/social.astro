@@ -28,6 +28,12 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
           </ul>
         </details>
 
+        <div class="sc-tabs sc-views" role="group" aria-label="Social views">
+          <button type="button" class="sc-tab" id="view-posts" aria-pressed="true">Posts</button>
+          <button type="button" class="sc-tab" id="view-comments" aria-pressed="false">Comments <span id="view-comments-n" class="sc-badge" hidden></span></button>
+        </div>
+
+        <div id="sc-view-posts">
         <div id="sc-accounts" class="sc-accounts"></div>
 
         <div class="sc-layout">
@@ -114,8 +120,11 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
             </div>
           </div>
         </div>
+        </div>
 
-        <CommentsInbox />
+        <div id="sc-view-comments" hidden>
+          <CommentsInbox />
+        </div>
       </div>
     </section>
   </main>
@@ -539,6 +548,22 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   $('#sc-refresh').addEventListener('click', async () => { say('Refreshing…'); await load(); if (openOne && !$('#sc-comments').hidden) openComments(...openOne); });
   $('#sc-comments-refresh').addEventListener('click', () => { if (openOne) openComments(...openOne); });
 
+  // Posts | Comments views. Opening a link with #comments or an inbox filter shows Comments.
+  function view(which: 'posts' | 'comments', pushHash = true) {
+    $('#sc-view-posts').hidden = which !== 'posts';
+    $('#sc-view-comments').hidden = which !== 'comments';
+    $('#view-posts').setAttribute('aria-pressed', String(which === 'posts'));
+    $('#view-comments').setAttribute('aria-pressed', String(which === 'comments'));
+    if (which === 'comments') window.dispatchEvent(new Event('cm-visible'));
+    if (pushHash) history.replaceState(null, '', which === 'comments' ? `${location.pathname}${location.search}#comments` : `${location.pathname}${location.search}`);
+  }
+  $('#view-posts').addEventListener('click', () => view('posts'));
+  $('#view-comments').addEventListener('click', () => view('comments'));
+  const waiting = Number(document.getElementById('comments')?.dataset.waiting || 0);
+  if (waiting > 0) { const n = $('#view-comments-n'); n.textContent = String(waiting); n.hidden = false; }
+  const sp = new URLSearchParams(location.search);
+  if (location.hash === '#comments' || sp.has('status') || sp.has('event')) view('comments', false);
+
   async function load() {
     try {
       const o = await api('overview');
@@ -617,7 +642,9 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   .sc-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; }
   .sc-dl dt { color: var(--body); }
   .sc-dl dd { margin: 0; color: var(--paper); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .sc-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-3); }
+  .sc-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+  .sc-views { margin: var(--space-4) 0 var(--space-5); }
+  .sc-badge { display: inline-block; min-width: 1.4em; padding: 0 0.4em; margin-left: 0.3em; border-radius: 999px; background: var(--red); color: #fff; font-size: 0.75rem; font-weight: 700; text-align: center; }
   .sc-tab { background: transparent; color: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 0.4rem 1rem; font: inherit; min-height: 40px; cursor: pointer; }
   .sc-tab[aria-pressed=true] { background: var(--paper); color: var(--ink); font-weight: 700; }
   .sc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }

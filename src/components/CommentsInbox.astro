@@ -40,119 +40,133 @@ const platformName = (p: string) => (p === 'facebook' ? 'Facebook' : 'Instagram'
 const templates = Object.fromEntries(CTAS.map(c => [c.key, { facebook: replyText(c.key, 'facebook'), instagram: replyText(c.key, 'instagram') }]));
 // The call to action that fits a comment, from its saved or suggested themes and its words ('own' = write your own).
 const defaultCta = (c: any) => suggestCta(c.themes || c.suggested_themes, c.text) ?? 'own';
-const tab = (key: string, label: string) => ({ key, label, href: `?status=${key}${event ? `&event=${event}` : ''}` });
+const tab = (key: string, label: string) => ({ key, label, href: `?status=${key}${event ? `&event=${event}` : ''}#comments` });
 const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged')];
+const lastTime = lastRefresh ? new Date(lastRefresh.created_at.replace(' ', 'T') + 'Z').toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' }) : '';
+const lastHasProblems = !!lastRefresh?.detail.includes('Problems:');
+const eventLabel = (slug: string | null) => (slug ? events.find(e => e.slug === slug)?.name : null);
 ---
-<section id="comments" class="cm-wrap" aria-labelledby="cm-title" tabindex="-1">
-  <div>
-        <h2 class="cm-heading" id="cm-title">Comments inbox</h2>
-        <p class="cm-intro">
-          Public comments on our own Facebook and Instagram posts, with no names kept. Tag what you see so the
-          <a href="/team/evaluation/social-report">What people say report</a> can count it. We never quote one word for word unless the person has agreed
-          (see <a href="/privacy">the privacy notice</a>); otherwise paraphrase. Copies are deleted after
-          {RETENTION_MONTHS} months, or when someone deletes the original.
-        </p>
-
-        {missing && <p class="cm-note" role="alert">The comments table isn't set up yet. Run <code>npx wrangler d1 execute between-ops --remote --file=d1/comments.sql</code>.</p>}
-
-        {summary && (
-          <>
-            <div class="cm-stats">
-              <p class="cm-stat"><strong>{summary.total}</strong> comments kept</p>
-              <p class="cm-stat"><strong>{summary.waiting}</strong> waiting to be tagged</p>
-              <p class="cm-stat"><strong>{summary.story_leads}</strong> to invite to share a story</p>
-            </div>
-            <h2 class="cm-sub">Themes so far</h2>
-            <ul class="cm-themes" role="list">
-              {THEMES.map(([k, l]) => <li><span>{l}</span> <strong>{summary.byTheme[k]}</strong></li>)}
-            </ul>
-          </>
-        )}
-
-        <div class="cm-bar">
-          <nav aria-label="Filter comments" class="cm-tabs">
-            {tabs.map(t => <a href={t.href} class:list={['cm-tab', { 'is-on': status === t.key }]} aria-current={status === t.key ? 'page' : undefined}>{t.label}</a>)}
-          </nav>
-          <form method="get" action="/team/social#comments" class="cm-filter">
-            <input type="hidden" name="status" value={status} />
-            <label for="cm-event">Event</label>
-            <select id="cm-event" name="event" onchange="this.form.submit()">
-              <option value="">All events</option>
-              {events.map(e => <option value={e.slug} selected={event === e.slug}>{e.name}</option>)}
-              <option value="none" selected={event === 'none'}>Not tied to an event</option>
-            </select>
-            <noscript><button class="ev-btn" type="submit">Filter</button></noscript>
-          </form>
-          <button class="ev-btn" type="button" id="cm-sync">Refresh comments</button>
-          {comments.some(c => c.status === 'new') && <button class="ev-btn" type="button" id="cm-save-all">Save all as shown</button>}
-          <span class="cm-msg" id="cm-sync-msg" role="status"></span>
-        </div>
-
-        {lastRefresh && (
-          <p class="cm-last" role="status">
-            <strong>Last refresh:</strong> {when(lastRefresh.created_at)} {new Date(lastRefresh.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })}, {lastRefresh.actor.replace(/@.*/, '')}. {lastRefresh.detail}
-          </p>
-        )}
-
-        <ul class="cm-list" role="list">
-          {comments.length === 0 && !missing && <li class="cm-empty">No comments here yet. They appear after the next daily refresh, or press "Refresh comments".</li>}
-          {comments.map(c => (
-            <li class={`cm cm--${c.status}`} data-id={c.id}>
-              <form class="cm__form">
-                <p class="cm__text">{c.text}</p>
-                <p class="cm__meta">
-                  {platformName(c.platform)} · {when(c.posted_at)} · {c.likes} {c.likes === 1 ? 'like' : 'likes'}
-                  {c.post_url && <> · <a href={c.post_url} rel="noopener noreferrer" target="_blank">See the post <span class="visually-hidden">(opens in new tab)</span></a></>}
-                </p>
-                <div class="f">
-                  <label for={`ev-${c.id}`}>Event</label>
-                  <select id={`ev-${c.id}`} name="event_slug">
-                    <option value="">Not tied to an event</option>
-                    {events.map(e => <option value={e.slug} selected={c.event_slug === e.slug}>{e.name}</option>)}
-                  </select>
-                </div>
-                <fieldset class="cm__themes" data-suggested={c.suggested_themes}>
-                  <legend>What it shows</legend>
-                  {THEMES.map(([k, l]) => (
-                    <label class="cm__check"><input type="checkbox" name="themes" value={k} checked={(c.themes || (c.status !== 'reviewed' ? c.suggested_themes : '')).split(',').includes(k)} /> {l}</label>
-                  ))}
-                </fieldset>
-                {c.suggested_themes && c.status !== 'reviewed' && !c.themes && (
-                  <p class="cm__suggest">Ticked from an AI assistant's suggestion. <strong>Not counted until you check them and press Save tags.</strong></p>
-                )}
-                <label class="cm__check"><input type="checkbox" name="ask_to_share" checked={!!c.ask_to_share} /> Story lead: worth inviting to share their story</label>
-                {lead && <label class="cm__check"><input type="checkbox" name="quote_ok" checked={!!c.quote_ok} /> They've agreed we can quote it word for word</label>}
-                {!lead && c.quote_ok ? <p class="cm__meta"><strong>OK to quote word for word.</strong></p> : null}
-                <div class="cm__actions">
-                  <button class="ev-btn ev-btn--primary" type="button" data-act="save">Save tags</button>
-                  <button class="ev-btn" type="button" data-act="exclude">Don't use</button>
-                  {lead && <button class="ev-btn ev-btn--danger" type="button" data-act="delete">Delete</button>}
-                  <span class="cm-msg" role="status"></span>
-                </div>
-              </form>
-              {c.replied_at ? (
-                <p class="cm__meta cm__sent"><strong>Replied</strong> ({CTAS.find(x => x.key === c.replied_cta)?.label ?? 'reply'}), {when(c.replied_at)}.</p>
-              ) : (
-                <div class="cm__reply" data-platform={c.platform}>
-                  <div class="f">
-                    <label for={`cta-${c.id}`}>Reply with</label>
-                    <select id={`cta-${c.id}`} class="cm__cta">
-                      {CTAS.map(x => <option value={x.key} selected={defaultCta(c) === x.key}>{x.label}</option>)}
-                    </select>
-                  </div>
-                  <label class="visually-hidden" for={`rp-${c.id}`}>Reply</label>
-                  <textarea id={`rp-${c.id}`} class="cm__msg" rows="3" maxlength="2000">{defaultCta(c) === 'own' ? '' : templates[defaultCta(c)][c.platform as 'facebook' | 'instagram']}</textarea>
-                  {defaultCta(c) === 'own' && <p class="cm-hint">This one needs a personal reply, so there's no suggestion. Write it here.</p>}
-                  <div class="cm__actions">
-                    <button class="ev-btn ev-btn--primary" type="button" data-act="reply">Send reply</button>
-                    <span class="cm-msg" role="status"></span>
-                  </div>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+<section id="comments" class="cm-wrap" aria-labelledby="cm-title" tabindex="-1" data-waiting={summary?.waiting ?? 0}>
+  <div class="cm-head">
+    <h2 class="cm-heading" id="cm-title">Comments inbox</h2>
+    {summary && <p class="cm-count"><strong>{summary.total}</strong> kept · <strong>{summary.waiting}</strong> waiting · <strong>{summary.story_leads}</strong> story leads</p>}
   </div>
+
+  {missing && <p class="cm-note" role="alert">The comments table isn't set up yet. Run <code>npx wrangler d1 execute between-ops --remote --file=d1/comments.sql</code>.</p>}
+
+  <details class="cm-info">
+    <summary>How this works, what we keep and the theme counts</summary>
+    <p>
+      Public comments on our own Facebook and Instagram posts, with no names kept. Tag what you see so the
+      <a href="/team/evaluation/social-report">What people say report</a> can count it. We never quote a comment word for word
+      unless the person has agreed (see <a href="/privacy">the privacy notice</a>); otherwise paraphrase. Copies are deleted after
+      {RETENTION_MONTHS} months, or when someone deletes the original. Boxes ticked in dashed outline are an AI assistant's suggestion
+      and aren't counted until you save them.
+    </p>
+    {summary && (
+      <ul class="cm-themes" role="list">
+        {THEMES.map(([k, l]) => <li><span>{l}</span> <strong>{summary.byTheme[k]}</strong></li>)}
+      </ul>
+    )}
+  </details>
+
+  <div class="cm-bar">
+    <nav aria-label="Filter comments" class="cm-tabs">
+      {tabs.map(t => <a href={t.href} class:list={['cm-tab', { 'is-on': status === t.key }]} aria-current={status === t.key ? 'page' : undefined}>{t.label}</a>)}
+    </nav>
+    <form method="get" action="/team/social#comments" class="cm-filter">
+      <input type="hidden" name="status" value={status} />
+      <label for="cm-event" class="visually-hidden">Event</label>
+      <select id="cm-event" name="event" onchange="this.form.submit()">
+        <option value="">All events</option>
+        {events.map(e => <option value={e.slug} selected={event === e.slug}>{e.name}</option>)}
+        <option value="none" selected={event === 'none'}>Not tied to an event</option>
+      </select>
+      <noscript><button class="ev-btn" type="submit">Filter</button></noscript>
+    </form>
+    <button class="ev-btn" type="button" id="cm-sync">Refresh comments</button>
+    {comments.some(c => c.status === 'new') && <button class="ev-btn" type="button" id="cm-save-all">Save all as shown</button>}
+  </div>
+  <p class="cm-msg" id="cm-sync-msg" role="status"></p>
+
+  {lastRefresh && (
+    <details class:list={['cm-last', { 'cm-last--warn': lastHasProblems }]} open={lastHasProblems}>
+      <summary>{lastHasProblems ? 'Last refresh had problems' : 'Last refreshed'} · {lastTime}</summary>
+      <p>{lastRefresh.detail}</p>
+    </details>
+  )}
+
+  <ul class="cm-list" role="list">
+    {comments.length === 0 && !missing && <li class="cm-empty">No comments here yet. They appear after the next daily refresh, or press "Refresh comments".</li>}
+    {comments.map(c => {
+      const cta = defaultCta(c);
+      const picked = (c.themes || (c.status !== 'reviewed' ? c.suggested_themes : '')).split(',');
+      const suggestedOnly = !c.themes && c.status !== 'reviewed' && !!c.suggested_themes;
+      return (
+        <li class={`cm cm--${c.status}`} data-id={c.id}>
+          <p class="cm__meta">
+            <span class={`cm__src cm__src--${c.platform}`}>{platformName(c.platform)}</span>
+            {when(c.posted_at)} · {c.likes} {c.likes === 1 ? 'like' : 'likes'}{eventLabel(c.event_slug) && <> · {eventLabel(c.event_slug)}</>}
+            {c.post_url && <> · <a href={c.post_url} rel="noopener noreferrer" target="_blank">See the post <span class="visually-hidden">(opens in new tab)</span></a></>}
+          </p>
+          <p class="cm__text">{c.text}</p>
+
+          <form class="cm__form">
+            <fieldset class="cm__themes" data-suggested={c.suggested_themes}>
+              <legend class="visually-hidden">What it shows</legend>
+              {THEMES.map(([k, l]) => (
+                <label class="chip"><input type="checkbox" name="themes" value={k} checked={picked.includes(k)} /><span>{l}</span></label>
+              ))}
+            </fieldset>
+            {suggestedOnly && <p class="cm__hint" data-suggest-note>AI-suggested tags, not counted until saved.</p>}
+            <details class="cm__more">
+              <summary>More: event, story lead, quoting</summary>
+              <div class="f">
+                <label for={`ev-${c.id}`}>Event</label>
+                <select id={`ev-${c.id}`} name="event_slug">
+                  <option value="">Not tied to an event</option>
+                  {events.map(e => <option value={e.slug} selected={c.event_slug === e.slug}>{e.name}</option>)}
+                </select>
+              </div>
+              <label class="cm__check"><input type="checkbox" name="ask_to_share" checked={!!c.ask_to_share} /> Story lead: worth inviting to share their story</label>
+              {lead && <label class="cm__check"><input type="checkbox" name="quote_ok" checked={!!c.quote_ok} /> They've agreed we can quote it word for word</label>}
+              {!lead && c.quote_ok ? <p class="cm__hint"><strong>OK to quote word for word.</strong></p> : null}
+            </details>
+          </form>
+
+          {c.replied_at ? (
+            <p class="cm__sent"><strong>Replied</strong> · {CTAS.find(x => x.key === c.replied_cta)?.label ?? 'reply'} · {when(c.replied_at)}</p>
+          ) : (
+            <div class="cm__reply" data-platform={c.platform}>
+              <fieldset class="cm__ctas">
+                <legend class="cm__legend">Reply with</legend>
+                {CTAS.map(x => (
+                  <label class="chip chip--cta"><input type="radio" name={`cta-${c.id}`} value={x.key} checked={cta === x.key} /><span>{x.label}</span></label>
+                ))}
+              </fieldset>
+              <label class="visually-hidden" for={`rp-${c.id}`}>Your reply</label>
+              <textarea id={`rp-${c.id}`} rows="3" maxlength="2000" placeholder={cta === 'own' ? 'This one needs a personal reply: write it here.' : ''}>{cta === 'own' ? '' : templates[cta][c.platform as 'facebook' | 'instagram']}</textarea>
+              <div class="cm__actions">
+                <button class="ev-btn ev-btn--primary" type="button" data-act="reply">Send reply</button>
+                <button class="ev-btn" type="button" data-act="save">Save tags</button>
+                <button class="ev-btn ev-btn--quiet" type="button" data-act="exclude">Don't use</button>
+                {lead && <button class="ev-btn ev-btn--quiet ev-btn--danger" type="button" data-act="delete">Delete</button>}
+                <span class="cm-msg" role="status"></span>
+              </div>
+            </div>
+          )}
+          {c.replied_at && (
+            <div class="cm__actions">
+              <button class="ev-btn" type="button" data-act="save">Save tags</button>
+              <button class="ev-btn ev-btn--quiet" type="button" data-act="exclude">Don't use</button>
+              {lead && <button class="ev-btn ev-btn--quiet ev-btn--danger" type="button" data-act="delete">Delete</button>}
+              <span class="cm-msg" role="status"></span>
+            </div>
+          )}
+        </li>
+      );
+    })}
+  </ul>
 </section>
 
 <script type="application/json" id="cm-templates" is:inline set:html={JSON.stringify(templates)} />
@@ -175,16 +189,21 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
     if (form.elements.namedItem('quote_ok')) body.quote_ok = fd.get('quote_ok') === 'on';
     return body;
   }
+  const grow = (t: HTMLTextAreaElement) => { t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 2}px`; };
+  const growAll = () => document.querySelectorAll<HTMLTextAreaElement>('.cm__reply textarea').forEach(grow);
+  growAll();
+  // The Social page shows this inbox from a tab: boxes can't be measured while hidden, so size them when it opens.
+  window.addEventListener('cm-visible', growAll);
+  document.addEventListener('input', (e) => { const t = e.target as HTMLElement; if (t instanceof HTMLTextAreaElement && t.closest('.cm__reply')) grow(t); });
 
-  // Saves every comment still waiting, exactly as its form shows now (suggested ticks included).
+  // Saves every waiting comment that has a theme ticked, exactly as its form shows now (suggested ticks included).
   document.getElementById('cm-save-all')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget as HTMLButtonElement;
     const msg = document.getElementById('cm-sync-msg')!;
-    // Only comments with at least one theme ticked: an untagged comment stays in Waiting.
     const items = Array.from(document.querySelectorAll<HTMLLIElement>('li.cm--new'))
       .filter(li => li.querySelector('input[name="themes"]:checked'));
     if (!items.length) { msg.textContent = 'Nothing to save: no waiting comment has a theme ticked.'; return; }
-    if (!confirm(`Save tags for ${items.length} comments exactly as shown? Ticked suggestions will count as tags, so skim them first. Comments with nothing ticked stay in Waiting.`)) return;
+    if (!confirm(`Save tags for ${items.length} comments exactly as shown? Suggested (dashed) tags will count, so skim them first. Comments with nothing ticked stay in Waiting.`)) return;
     btn.disabled = true;
     let done = 0, failed = 0;
     for (const li of items) {
@@ -210,32 +229,16 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
     } else { msg.textContent = j.error || 'Could not refresh comments'; btn.disabled = false; }
   });
 
-  // Replies: pick a call to action, the box fills with suggested text, edit it if you like, send.
+  // Replies: pick a call to action and the box fills with suggested text; edit it, then send.
   const templates = JSON.parse(document.getElementById('cm-templates')?.textContent || '{}');
   document.addEventListener('change', (e) => {
-    const sel = (e.target as HTMLElement).closest('select.cm__cta') as HTMLSelectElement | null;
-    const block = sel?.closest('.cm__reply') as HTMLElement | null;
-    if (!sel || !block) return;
+    const radio = e.target as HTMLInputElement;
+    const block = radio.closest?.('.cm__reply') as HTMLElement | null;
+    if (!block || radio.type !== 'radio') return;
     const box = block.querySelector('textarea') as HTMLTextAreaElement;
-    box.value = templates[sel.value]?.[block.dataset.platform || ''] ?? '';
-    box.focus();
-  });
-  document.addEventListener('click', async (e) => {
-    const rbtn = (e.target as HTMLElement).closest('button[data-act="reply"]') as HTMLButtonElement | null;
-    if (!rbtn) return;
-    const block = rbtn.closest('.cm__reply') as HTMLElement;
-    const li = rbtn.closest('li.cm') as HTMLLIElement;
-    const msg = block.querySelector('.cm-msg')!;
-    const cta = (block.querySelector('select') as HTMLSelectElement).value;
-    const message = (block.querySelector('textarea') as HTMLTextAreaElement).value.trim();
-    const platform = block.dataset.platform === 'facebook' ? 'Facebook' : 'Instagram';
-    if (!message) { msg.textContent = 'Write a reply first.'; return; }
-    const asks = cta !== 'thanks';
-    if (!confirm(`Post this reply publicly from our ${platform} account? It can't be unsent.${asks ? '\n\nOnly send it if the commenter sounds like an adult.' : ''}\n\n${message}`)) return;
-    rbtn.disabled = true; msg.textContent = 'Sending…';
-    const res = await send(`/api/team/comments/${li.dataset.id}/reply`, 'POST', { message, cta, adult_ok: asks });
-    if (res.ok) { msg.textContent = 'Sent. Reloading…'; setTimeout(() => stayOnInbox(), 800); }
-    else { const j = await res.json().catch(() => ({})); msg.textContent = j.error || 'Could not send'; rbtn.disabled = false; }
+    box.value = templates[radio.value]?.[block.dataset.platform || ''] ?? '';
+    box.placeholder = radio.value === 'own' ? 'Write your reply here.' : '';
+    grow(box); box.focus();
   });
 
   document.addEventListener('click', async (e) => {
@@ -245,85 +248,125 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
     const msg = li.querySelector('.cm-msg')!;
     const id = li.dataset.id;
     const form = li.querySelector('form') as HTMLFormElement;
+    const act = btn.dataset.act;
 
-    if (btn.dataset.act === 'suggest') {
-      const picks = (li.querySelector('fieldset')?.getAttribute('data-suggested') || '').split(',');
-      li.querySelectorAll<HTMLInputElement>('input[name="themes"]').forEach(i => { i.checked = picks.includes(i.value); });
-      msg.textContent = 'Ticked. Check them, then Save tags.';
-      return;
-    }
-    if (btn.dataset.act === 'delete') {
+    if (act === 'delete') {
       if (!confirm('Delete our copy of this comment? Use this if someone asks us to.')) return;
       const res = await send(`/api/team/comments/${id}`, 'DELETE');
       if (res.ok) li.remove(); else msg.textContent = 'Could not delete';
       return;
     }
-    if (btn.dataset.act === 'exclude') {
+    if (act === 'exclude') {
       if (!confirm("Don't use this comment? Its text is deleted from our records, and can't be got back.")) return;
       const res = await send(`/api/team/comments/${id}`, 'PATCH', { status: 'excluded' });
       if (res.ok) li.remove(); else msg.textContent = 'Could not save';
       return;
     }
+    if (act === 'reply') {
+      const block = btn.closest('.cm__reply') as HTMLElement;
+      const cta = (block.querySelector('input[type=radio]:checked') as HTMLInputElement | null)?.value ?? 'own';
+      const message = (block.querySelector('textarea') as HTMLTextAreaElement).value.trim();
+      const platform = block.dataset.platform === 'facebook' ? 'Facebook' : 'Instagram';
+      if (!message) { msg.textContent = 'Write a reply first.'; return; }
+      const asks = cta !== 'thanks';
+      if (!confirm(`Post this reply publicly from our ${platform} account? It can't be unsent.${asks ? '\n\nOnly send it if the commenter sounds like an adult.' : ''}\n\n${message}`)) return;
+      btn.disabled = true; msg.textContent = 'Sending…';
+      // Save the tags in the same go (only when some are ticked), so it's one step.
+      if (li.classList.contains('cm--new') && form.querySelector('input[name="themes"]:checked')) {
+        const saved = await send(`/api/team/comments/${id}`, 'PATCH', formBody(form));
+        if (!saved.ok) { msg.textContent = 'Could not save the tags, so nothing was sent.'; btn.disabled = false; return; }
+      }
+      const res = await send(`/api/team/comments/${id}/reply`, 'POST', { message, cta, adult_ok: asks });
+      if (res.ok) { msg.textContent = 'Sent. Reloading…'; setTimeout(() => stayOnInbox(), 800); }
+      else { const j = await res.json().catch(() => ({})); msg.textContent = j.error || 'Could not send'; btn.disabled = false; }
+      return;
+    }
+    // save tags
     const body = formBody(form);
     btn.disabled = true; msg.textContent = 'Saving…';
     const res = await send(`/api/team/comments/${id}`, 'PATCH', body);
-    if (res.ok) { msg.textContent = 'Saved'; li.classList.remove('cm--new'); li.classList.add('cm--reviewed'); btn.disabled = false; if (body.ask_to_share) setTimeout(() => stayOnInbox(), 600); }
+    if (res.ok) {
+      msg.textContent = 'Saved'; btn.disabled = false;
+      if (li.classList.contains('cm--new')) {
+        const badge = document.getElementById('view-comments-n');   // the Social page's Comments tab count
+        if (badge) { const left = Math.max(0, Number(badge.textContent) - 1); badge.textContent = String(left); badge.hidden = left === 0; }
+      }
+      li.classList.remove('cm--new'); li.classList.add('cm--reviewed');
+      li.querySelector('[data-suggest-note]')?.remove();
+    }
     else { const j = await res.json().catch(() => ({})); msg.textContent = j.error || 'Could not save'; btn.disabled = false; }
   });
 </script>
 
 <style>
-  .cm-wrap { margin-top: var(--space-12); padding-top: var(--space-8); border-top: 1px solid var(--line); scroll-margin-top: var(--space-6); }
+  .cm-wrap { margin-top: var(--space-8); scroll-margin-top: var(--space-6); }
   .cm-wrap:focus-visible { outline: 3px solid var(--ember); outline-offset: 4px; }
   .visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-  .cm-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-xl); margin-bottom: var(--space-2); }
-  .cm-sub { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--body); margin: var(--space-6) 0 var(--space-3); }
-  .cm-intro { color: var(--body); font-size: var(--text-sm); max-width: 70ch; margin-bottom: var(--space-6); }
-  .cm-intro a, .cm__meta a, .cm-hint a { color: var(--ember); }
+  .cm-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-6); margin-bottom: var(--space-3); }
+  .cm-heading { font-family: var(--font-body); color: var(--paper); font-size: var(--text-xl); margin: 0; }
+  .cm-count { margin: 0; color: var(--body); font-size: var(--text-sm); }
+  .cm-count strong { color: var(--paper); }
   .cm-note { color: var(--paper); background: var(--ink-soft); border: 1px solid var(--red); border-radius: var(--radius); padding: var(--space-3) var(--space-4); font-size: var(--text-sm); }
-  .cm-stats { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-6); }
-  .cm-stat { margin: 0; color: var(--body); font-size: var(--text-sm); }
-  .cm-stat strong { color: var(--paper); font-size: var(--text-xl); margin-right: 0.3rem; }
-  .cm-themes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
-  .cm-themes li { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.35rem 0.7rem; font-size: var(--text-xs); color: var(--body); }
+  .cm-info, .cm-last { color: var(--body); font-size: var(--text-xs); margin-bottom: var(--space-3); }
+  .cm-info summary, .cm-last summary { cursor: pointer; padding: 0.35rem 0; }
+  .cm-info p, .cm-last p { margin: var(--space-2) 0; max-width: 70ch; line-height: 1.55; overflow-wrap: anywhere; }
+  .cm-info a, .cm__meta a { color: var(--ember); }
+  .cm-last--warn { border-left: 3px solid var(--red); padding-left: var(--space-3); color: var(--paper); }
+  .cm-themes { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .cm-themes li { background: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px; padding: 0.25rem 0.7rem; }
   .cm-themes strong { color: var(--ember); margin-left: 0.3rem; }
-  .cm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); margin: var(--space-8) 0 var(--space-4); }
+  .cm-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: var(--space-4) 0 var(--space-2); }
   .cm-tabs { display: flex; gap: var(--space-1); }
-  .cm-tab { font-size: var(--text-xs); font-weight: 600; color: var(--body); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; text-decoration: none; }
-  .cm-tab.is-on { background: var(--red); border-color: var(--red); color: #fff; }
-  .cm-tab:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
-  .cm-filter { display: flex; align-items: center; gap: var(--space-2); }
-  .cm-filter label, .f label { font-size: 0.7rem; font-weight: 600; color: var(--body); }
-  select { font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; max-width: 100%; }
-  select:focus-visible, .ev-btn:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
-  .cm-hint { font-size: var(--text-xs); }
-  .cm-last { background: var(--ink-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3) var(--space-4); margin: 0 0 var(--space-4); color: var(--body); font-size: var(--text-xs); overflow-wrap: anywhere; }
-  .cm-last strong { color: var(--paper); }
-  .cm-empty, .cm-msg { font-size: var(--text-sm); color: var(--body); }
-  .cm-msg { font-size: var(--text-xs); }
-  .cm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
-  @media (min-width: 1000px) { .cm-list { grid-template-columns: 1fr 1fr; } }
-  .cm { background: var(--ink-soft); border: 1px solid var(--line); border-left: 4px solid var(--ember); border-radius: var(--radius); padding: var(--space-4); }
+  .cm-tab { font-size: var(--text-xs); font-weight: 600; color: var(--body); border: 1px solid var(--line); border-radius: 999px; padding: 0.5rem 1rem; text-decoration: none; min-height: 40px; display: inline-flex; align-items: center; }
+  .cm-tab.is-on { background: var(--paper); border-color: var(--paper); color: var(--ink); }
+  .cm-filter { display: flex; align-items: center; }
+  select { font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.6rem; max-width: 100%; min-height: 40px; }
+  select:focus-visible, .ev-btn:focus-visible, input:focus-visible, summary:focus-visible, .cm-tab:focus-visible, textarea:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+  .cm-msg { font-size: var(--text-xs); color: var(--body); margin: 0; overflow-wrap: anywhere; }
+  .cm-empty { font-size: var(--text-sm); color: var(--body); }
+  .cm-list { list-style: none; margin: var(--space-4) 0 0; padding: 0; display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1100px) { .cm-list { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+
+  .cm { background: var(--ink-soft); border: 1px solid var(--line); border-left: 4px solid var(--ember); border-radius: var(--radius); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
   .cm--reviewed { border-left-color: #4caf50; }
-  .cm__form { display: flex; flex-direction: column; gap: var(--space-3); }
-  .cm__text { margin: 0; color: var(--paper); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
-  .cm__reply { border-top: 1px solid var(--line); margin-top: var(--space-3); padding-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
-  .cm__sent { margin-top: var(--space-3); }
-  .cm__reply textarea, .cm__cta { font-family: var(--font-body); font-size: var(--text-sm); color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.65rem; width: 100%; margin-top: var(--space-2); }
-  .cm__reply textarea:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
-  .cm__suggest { margin: 0; font-size: var(--text-xs); color: var(--body); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-  .cm__suggest strong { color: var(--ember); }
   .cm__meta { margin: 0; font-size: var(--text-xs); color: var(--body); }
-  .cm__themes { border: 0; margin: 0; padding: 0; display: grid; gap: var(--space-1) var(--space-4); grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
-  .cm__themes legend { font-size: 0.7rem; font-weight: 600; color: var(--body); padding: 0; margin-bottom: var(--space-1); }
+  .cm__src { display: inline-block; font-weight: 700; color: var(--paper); margin-right: 0.5rem; }
+  .cm__text { margin: 0; color: var(--paper); font-size: var(--text-base); line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+  .cm__form { display: flex; flex-direction: column; gap: var(--space-2); }
+  .cm__themes { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .cm__hint { margin: 0; font-size: var(--text-xs); color: var(--ember); }
+  .cm__more { font-size: var(--text-xs); color: var(--body); }
+  .cm__more summary { cursor: pointer; padding: 0.35rem 0; }
+  .cm__more[open] { display: flex; flex-direction: column; gap: var(--space-2); }
+  .f { display: flex; flex-direction: column; gap: 0.2rem; }
+  .f label { font-size: 0.7rem; font-weight: 600; color: var(--body); }
   .cm__check { display: flex; align-items: center; gap: 0.5rem; font-size: var(--text-sm); color: var(--paper); min-height: 2rem; }
   .cm__check input { width: 1.1rem; height: 1.1rem; accent-color: var(--red); }
-  .f { display: flex; flex-direction: column; gap: 0.2rem; }
+
+  /* Tag and call-to-action chips: real checkboxes and radios underneath, so keyboard and screen readers work. */
+  .chip { position: relative; display: inline-flex; }
+  .chip input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .chip span { display: inline-flex; align-items: center; min-height: 36px; padding: 0.3rem 0.85rem; border: 1px solid var(--line); border-radius: 999px; font-size: var(--text-xs); color: var(--body); background: transparent; }
+  .chip:hover span { border-color: var(--ember); color: var(--paper); }
+  .chip input:checked + span { background: var(--paper); border-color: var(--paper); color: var(--ink); font-weight: 600; }
+  /* Not yet saved (waiting): shown dashed, so a suggestion is never mistaken for a saved tag. */
+  .cm--new .chip:not(.chip--cta) input:checked + span { background: transparent; border: 1px dashed var(--ember); color: var(--ember); font-weight: 600; }
+  .chip--cta input:checked + span { background: var(--red); border-color: var(--red); color: #fff; font-weight: 600; }
+  .chip input:focus-visible + span { outline: 3px solid var(--ember); outline-offset: 2px; }
+
+  .cm__reply { display: flex; flex-direction: column; gap: var(--space-2); border-top: 1px solid var(--line); padding-top: var(--space-3); }
+  .cm__ctas { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+  .cm__legend { float: left; margin-right: var(--space-2); padding: 0; font-size: 0.7rem; font-weight: 600; color: var(--body); line-height: 36px; }
+  .cm__reply textarea { field-sizing: content; font-family: var(--font-body); font-size: var(--text-sm); line-height: 1.5; color: var(--paper); background: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; width: 100%; resize: vertical; min-height: 5.5rem; }
+  .cm__sent { margin: 0; font-size: var(--text-xs); color: var(--body); border-top: 1px solid var(--line); padding-top: var(--space-3); }
+  .cm__sent strong { color: #7ad47d; }
   .cm__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-  .ev-btn { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 600; color: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; background: transparent; }
+  .ev-btn { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 600; color: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.5rem 0.9rem; min-height: 40px; background: transparent; cursor: pointer; }
   .ev-btn:hover { border-color: var(--ember); color: var(--ember); }
+  .ev-btn:disabled { opacity: 0.6; cursor: default; }
   .ev-btn--primary { background: var(--red); border-color: var(--red); color: #fff; }
-  .ev-btn--primary:hover { color: #fff; background: #a50d26; }
+  .ev-btn--primary:hover { color: #fff; background: #a50d26; border-color: #a50d26; }
+  .ev-btn--quiet { border-color: transparent; color: var(--body); }
   .ev-btn--danger:hover { border-color: #ff8080; color: #ff8080; }
   code { font-size: 0.85em; }
 </style>
