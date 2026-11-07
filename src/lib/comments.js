@@ -82,6 +82,17 @@ async function allComments(m, platform, postId, own = {}) {
   return { comments: out, complete: false };
 }
 
+// Reading or answering on a Facebook Page needs a Page access token. The configured token (system user or
+// user) can mint one for the Page; Instagram keeps using the configured token. If the exchange fails we fall
+// back to the configured token and say why.
+export async function facebookClient(env, m = metaClient(env)) {
+  try {
+    const t = (await m.get(m.pageId(), { fields: 'access_token' })).access_token;
+    if (t) return { client: metaClient({ ...env, META_ACCESS_TOKEN: t }), error: null };
+    return { client: m, error: 'Facebook gave no Page token for this account.' };
+  } catch (err) { return { client: m, error: err.message }; }
+}
+
 // Read recent comments, drop copies that were deleted on the platform or are past retention.
 export async function syncComments(env, now = new Date(), actor = 'daily refresh') {
   const db = env.OPS_DB;
@@ -92,12 +103,15 @@ export async function syncComments(env, now = new Date(), actor = 'daily refresh
   const min = cutoff(now);
   const stats = { ok: true, posts: 0, read: 0, removed: 0, purged: 0, rechecked: 0, errors: [] };
 
+  const fbPage = await facebookClient(env, m);
+  const fbm = fbPage.client;
+  if (fbPage.error) stats.errors.push(`Facebook page token: ${fbPage.error}`);
   const own = { facebook: m.ids.page, instagram: null };
   try { own.instagram = (await m.get(m.igId(), { fields: 'username' })).username?.toLowerCase() ?? null; }
   catch (err) { stats.errors.push(`Instagram username: ${err.message}`); }
   const posts = [];
   const [fb, ig] = await Promise.allSettled([
-    m.get(`${m.pageId()}/posts`, { limit: POSTS, fields: 'id,message,permalink_url,comments.summary(true).limit(0)' }),
+    fbm.get(`${m.pageId()}/posts`, { limit: POSTS, fields: 'id,message,permalink_url,comments.summary(true).limit(0)' }),
     m.get(`${m.igId()}/media`, { limit: POSTS, fields: 'id,caption,permalink,comments_count' }),
   ]);
   if (fb.status === 'fulfilled') for (const p of fb.value.data ?? []) posts.push({ platform: 'facebook', id: p.id, url: p.permalink_url, text: p.message, count: p.comments?.summary?.total_count ?? 0 });
@@ -109,7 +123,7 @@ export async function syncComments(env, now = new Date(), actor = 'daily refresh
     try {
       // Instagram's count is reliable. Facebook reports 0 when the token lacks permission to see comments, so always ask it.
       const skip = post.platform === 'instagram' && post.count === 0;
-      const { comments, complete } = skip ? { comments: [], complete: true } : await allComments(m, post.platform, post.id, own);
+      const { comments, complete } = skip ? { comments: [], complete: true } : await allComments(post.platform === 'facebook' ? fbm : m, post.platform, post.id, own);
       stats.posts++;
       const slug = guessEvent(post.text);
       const writes = comments.filter(c => c.at >= min).map(c => db
@@ -133,10 +147,10 @@ export async function syncComments(env, now = new Date(), actor = 'daily refresh
   }
 
   // Comments on posts outside the window above: ask Meta whether each still exists.
-  const { results: stale } = await db.prepare('SELECT platform_id FROM social_comments WHERE checked_at < ? ORDER BY checked_at LIMIT ?').bind(started, RECHECK).all();
+  const { results: stale } = await db.prepare('SELECT platform, platform_id FROM social_comments WHERE checked_at < ? ORDER BY checked_at LIMIT ?').bind(started, RECHECK).all();
   for (const r of stale) {
     try {
-      await m.get(r.platform_id, { fields: 'id' });
+      await (r.platform === 'facebook' ? fbm : m).get(r.platform_id, { fields: 'id' });
       await db.prepare('UPDATE social_comments SET checked_at = ? WHERE platform_id = ?').bind(started, r.platform_id).run();
       stats.rechecked++;
     } catch (err) {
@@ -209,7 +223,8 @@ export async function replyToComment(env, actor, id, body) {
   const claim = await db.prepare(`UPDATE social_comments SET replied_at = datetime('now') WHERE id = ? AND replied_at IS NULL`).bind(id).run();
   if (!claim.meta?.changes) return { error: 'This comment has already had a reply.', status: 409 };
   try {
-    const r = await metaOps(metaClient(env)).reply({ platform: row.platform, comment_id: row.platform_id, message, confirm: true });
+    const client = row.platform === 'facebook' ? (await facebookClient(env)).client : metaClient(env);
+    const r = await metaOps(client).reply({ platform: row.platform, comment_id: row.platform_id, message, confirm: true });
     if (!r.sent) throw new MetaError('Meta did not send the reply.', 502);
   } catch (err) {
     await db.prepare('UPDATE social_comments SET replied_at = NULL WHERE id = ?').bind(id).run();
