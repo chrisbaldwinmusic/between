@@ -2,7 +2,7 @@
 // (Chris, Dan, Vikki, Emma) only: see src/lib/team-access.js.
 //
 // GET  /api/team/social?view=status|overview|fb_posts|ig_media|fb_comments|ig_comments[&id=...]
-// POST /api/team/social  { action: 'publish_facebook'|'publish_instagram'|'reply'|'hide', ..., confirm }
+// POST /api/team/social  { action: 'publish_facebook'|'publish_instagram'|'finish_instagram'|'reply'|'hide', ..., confirm }
 //      Without confirm: true a POST only returns a preview. Every real send goes in the activity log.
 
 import { getDb, getActor, logActivity, jsonOk, jsonErr } from '../../../lib/ops-db.js';
@@ -37,9 +37,11 @@ export async function GET(context) {
   } catch (err) { return fail(err); }
 }
 
+const NOUN = { post: 'post', carousel: 'carousel', story: 'Story', reel: 'Reel' };
 const LOG = {
-  publish_facebook: b => (b.schedule_at ? 'scheduled a Facebook post' : 'published a Facebook post'),
-  publish_instagram: () => 'published an Instagram post',
+  publish_facebook: b => `${b.schedule_at ? 'scheduled' : 'published'} a Facebook ${NOUN[b.format] ?? 'post'}`,
+  publish_instagram: b => `published an Instagram ${NOUN[b.format] ?? 'post'}`,
+  finish_instagram: () => 'finished publishing an Instagram video',
   reply: b => `replied to a comment on ${b.platform}`,
   hide: b => `${b.hidden ? 'hid' : 'unhid'} a comment on ${b.platform}`,
 };
@@ -48,7 +50,7 @@ export async function POST(context) {
   let b;
   try { b = await context.request.json(); } catch { return jsonErr('Invalid request body', 400); }
   const o = ops(context);
-  const run = { publish_facebook: o.publishFacebook, publish_instagram: o.publishInstagram, reply: o.reply, hide: o.hide }[b.action];
+  const run = { publish_facebook: o.publishFacebook, publish_instagram: o.publishInstagram, finish_instagram: o.finishInstagram, reply: o.reply, hide: o.hide }[b.action];
   if (!run) return jsonErr('Unknown action', 400);
   try {
     const r = await run({ ...b, confirm: b.confirm === true });

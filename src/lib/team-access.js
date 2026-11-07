@@ -40,6 +40,7 @@ const COMMUNITY_API = [
   { method: 'GET', path: '/api/team/social' },
   { method: 'POST', path: '/api/team/social' },
   { method: 'POST', path: '/api/team/social-media' },
+  { method: 'POST', path: '/api/team/social-video' },
 ];
 const SHARED_API_PREFIXES = ['/api/team/media', '/api/team/push'];
 

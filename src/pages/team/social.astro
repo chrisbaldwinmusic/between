@@ -15,7 +15,7 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
           <h1 class="sc-heading">Social</h1>
           <p id="sc-status" class="sc-pill" role="status" aria-live="polite">Loading…</p>
         </div>
-        <p class="sc-intro">Posts for the Facebook Page and Instagram account of Sonic Boom Music CIC. Nothing is sent until you press <strong>Confirm and send</strong>.</p>
+        <p class="sc-intro">Posts, carousels, Stories and Reels for the Facebook Page and Instagram account of Sonic Boom Music CIC. Nothing is sent until you press <strong>Confirm and send</strong>.</p>
 
         <details class="sc-rules">
           <summary>Posting rules</summary>
@@ -23,7 +23,7 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
             <li>Lead with people and their stories. Only share a story marked "OK for social media" (<a href="/team/stories">Stories</a>).</li>
             <li>Write Sonic Boom Music CIC in full. The permanent venue is our ambition: never say it is confirmed.</li>
             <li>Every link needs UTM tags (<code>utm_source</code>, <code>utm_medium</code>, <code>utm_campaign</code>).</li>
-            <li>Every image needs alt text, and anyone you can recognise needs photo consent (<a href="/team/consents">Consents</a>).</li>
+            <li>Every image needs alt text, and anyone you can recognise needs photo consent (<a href="/team/consents">Consents</a>). Videos need a description, video consent and captions for anything spoken.</li>
           </ul>
         </details>
 
@@ -33,32 +33,38 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
           <form id="composer" class="sc-card" novalidate>
             <h2 class="sc-h2">New post</h2>
 
+            <fieldset class="sc-field sc-where">
+              <legend class="sc-label">What are you making?</legend>
+              <label class="sc-check" for="fmt-post"><input id="fmt-post" type="radio" name="format" value="post" checked><span>Post</span></label>
+              <label class="sc-check" for="fmt-carousel"><input id="fmt-carousel" type="radio" name="format" value="carousel"><span>Carousel</span></label>
+              <label class="sc-check" for="fmt-story"><input id="fmt-story" type="radio" name="format" value="story"><span>Story</span></label>
+              <label class="sc-check" for="fmt-reel"><input id="fmt-reel" type="radio" name="format" value="reel"><span>Reel</span></label>
+              <p id="format-hint" class="sc-hint"></p>
+            </fieldset>
+
             <div class="sc-field">
-              <span class="sc-label" id="photo-label">Photo (optional for Facebook, needed for Instagram)</span>
+              <span class="sc-label" id="media-label">Photo</span>
+              <ul id="media-list" class="sc-media" role="list" aria-labelledby="media-label"></ul>
               <div class="sc-photo">
-                <label class="sc-btn sc-btn--ghost sc-pick" for="photo-file">Add a photo</label>
-                <input id="photo-file" class="sc-visually-hidden" type="file" accept="image/*" aria-describedby="photo-hint">
-                <figure class="sc-thumbwrap" id="photo-wrap" hidden>
-                  <img id="photo-thumb" alt="Preview of the photo you chose" width="96">
-                  <button type="button" class="sc-btn sc-btn--small sc-btn--ghost" id="photo-remove">Remove</button>
-                </figure>
+                <label class="sc-btn sc-btn--ghost sc-pick" for="media-file" id="media-pick">Add a photo</label>
+                <input id="media-file" class="sc-visually-hidden" type="file" accept="image/*" aria-describedby="media-hint">
               </div>
-              <p id="photo-hint" class="sc-hint">Resized and saved as a JPEG here, which also removes location data.</p>
+              <p id="media-hint" class="sc-hint"></p>
               <details class="sc-url">
-                <summary>Use an image URL instead</summary>
-                <label for="photo-url">Public https JPEG</label>
-                <input id="photo-url" type="url" inputmode="url" placeholder="https://…">
+                <summary>Use a media URL instead</summary>
+                <label for="media-url">Public https link to a JPEG, MP4 or MOV</label>
+                <input id="media-url" type="url" inputmode="url" placeholder="https://…">
+                <button type="button" class="sc-btn sc-btn--small sc-btn--ghost" id="media-url-add">Add this URL</button>
               </details>
             </div>
 
-            <div class="sc-field" id="alt-field" hidden>
-              <label for="alt">Alt text: describe the photo for people who can't see it</label>
-              <textarea id="alt" rows="2" maxlength="1000"></textarea>
-              <label class="sc-check" for="consent"><input id="consent" type="checkbox"><span>Anyone recognisable in this photo has given photo consent, or nobody is recognisable.</span></label>
+            <div class="sc-field" id="consent-field" hidden>
+              <label class="sc-check" for="consent"><input id="consent" type="checkbox"><span id="consent-text"></span></label>
+              <label class="sc-check" for="captions" id="captions-wrap"><input id="captions" type="checkbox"><span>Anything spoken or sung in the video is captioned on screen, or nothing is spoken.</span></label>
             </div>
 
             <div class="sc-field">
-              <label for="text">Message</label>
+              <label for="text" id="text-label">Message</label>
               <textarea id="text" rows="6" maxlength="5000" aria-describedby="count"></textarea>
               <p id="count" class="sc-hint" aria-live="off"></p>
             </div>
@@ -75,12 +81,12 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
               <div class="sc-field">
                 <label for="link">Link (with UTM tags)</label>
                 <input id="link" type="url" inputmode="url" placeholder="https://between.sonicboom.org.uk/?utm_source=facebook&utm_medium=social&utm_campaign=…">
-                <p id="link-hint" class="sc-hint">A photo post can't carry a separate link. Put it, with UTM tags, in the message instead.</p>
+                <p id="link-hint" class="sc-hint">Only plain text posts carry a separate link. Otherwise put it, with UTM tags, in the message.</p>
               </div>
               <div class="sc-field">
                 <label for="when">Schedule for (leave empty to post now)</label>
                 <input id="when" type="datetime-local">
-                <p class="sc-hint">Scheduling is Facebook only, at least 10 minutes ahead.</p>
+                <p id="when-hint" class="sc-hint">Scheduling is Facebook only, for posts and carousels, at least 10 minutes ahead.</p>
               </div>
             </details>
 
@@ -139,32 +145,125 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   const safeImg = (u?: string) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : '');
 
   // ── Composer ──────────────────────────────────────────────────────────────
-  let imageUrl = '';
-  const hasImage = () => !!(imageUrl || inp('#photo-url').value.trim());
-  const currentImage = () => imageUrl || inp('#photo-url').value.trim();
+  type Item = { kind: 'image' | 'video'; url: string; thumb: string; alt: string; ratio: number; seconds: number };
+  type Format = 'post' | 'carousel' | 'story' | 'reel';
+  const RULES: Record<Format, { min: number; max: number; kinds: string[]; accept: string; noun: string; hint: string; media: string }> = {
+    post: { min: 0, max: 1, kinds: ['image'], accept: 'image/*', noun: 'a photo', media: 'Photo (optional for Facebook, needed for Instagram)', hint: 'One post to your feed.' },
+    carousel: { min: 2, max: 10, kinds: ['image'], accept: 'image/*', noun: 'photos', media: 'Photos (2 to 10, shown in this order)', hint: 'Swipeable photos. Instagram calls it a carousel; Facebook shows it as a multi-photo post.' },
+    story: { min: 1, max: 1, kinds: ['image', 'video'], accept: 'image/*,video/mp4,video/quicktime', noun: 'a photo or video', media: 'Photo or video (portrait 9:16 is best)', hint: 'Disappears after 24 hours. Stories have no caption and Instagram takes no alt text for them, so put any words on screen, big and clear.' },
+    reel: { min: 1, max: 1, kinds: ['video'], accept: 'video/mp4,video/quicktime', noun: 'a video', media: 'Video, 3 to 90 seconds (portrait 9:16 is best)', hint: 'Short vertical video. Export as MP4 (H.264) with location turned off: unlike photos, video is not scrubbed here.' },
+  };
+  const MAX_VIDEO = 90 * 1024 * 1024;
+  let items: Item[] = [];
+  let busy = false;
+  const format = (): Format => (document.querySelector('input[name=format]:checked') as HTMLInputElement).value as Format;
+  const hasVideo = () => items.some(i => i.kind === 'video');
+
+  function renderMedia() {
+    const ul = $('#media-list');
+    ul.replaceChildren();
+    items.forEach((it, i) => {
+      const li = el('li', '', 'sc-mitem');
+      const label = it.kind === 'video' ? 'video' : `photo ${items.length > 1 ? i + 1 : ''}`.trim();
+      if (it.kind === 'video') {
+        const v = document.createElement('video');
+        v.src = it.thumb; v.controls = true; v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.width = 96; v.className = 'sc-thumb';
+        v.setAttribute('aria-label', `Preview of the ${label}`);
+        li.append(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = it.thumb; img.alt = `Preview of ${label}`; img.width = 96; img.className = 'sc-thumb';
+        li.append(img);
+      }
+      const body = el('div', '', 'sc-mitem__body');
+      const id = `alt-${i}`;
+      const lab = el('label', it.kind === 'video' ? 'Describe the video: what happens, who is in it' : `Alt text: describe ${label} for people who can't see it`);
+      lab.setAttribute('for', id);
+      const t = el('textarea') as HTMLTextAreaElement;
+      t.id = id; t.rows = 2; t.maxLength = 1000; t.value = it.alt;
+      t.addEventListener('input', () => { it.alt = t.value; });
+      body.append(lab, t);
+      if (RULES[format()].kinds.includes('image') && it.kind === 'image' && it.ratio && format() !== 'post' && format() !== 'carousel' && (it.ratio < 0.5 || it.ratio > 0.62)) {
+        body.append(el('p', 'Not portrait 9:16: it will have bars or be cropped.', 'sc-hint'));
+      }
+      if (it.kind === 'video' && it.ratio && (it.ratio < 0.5 || it.ratio > 0.62)) body.append(el('p', 'Not portrait 9:16: it will have bars or be cropped.', 'sc-hint'));
+      const row = el('div', '', 'sc-actions');
+      const rm = el('button', 'Remove', 'sc-btn sc-btn--small sc-btn--ghost') as HTMLButtonElement; rm.type = 'button';
+      rm.setAttribute('aria-label', `Remove ${label}`);
+      rm.onclick = () => { items.splice(i, 1); renderMedia(); sync(); ($('#media-pick') as HTMLElement).focus(); };
+      row.append(rm);
+      if (items.length > 1) {
+        const move = (d: number, text: string) => {
+          const b = el('button', text, 'sc-btn sc-btn--small sc-btn--ghost') as HTMLButtonElement; b.type = 'button';
+          b.disabled = i + d < 0 || i + d >= items.length;
+          b.setAttribute('aria-label', `${text}: ${label}`);
+          b.onclick = () => { [items[i], items[i + d]] = [items[i + d], items[i]]; renderMedia(); sync(); (ul.children[i + d]?.querySelector(`[aria-label="${text}: ${label.replace(/\d+/, String(i + d + 1))}"]`) as HTMLElement | null)?.focus(); };
+          row.append(b);
+        };
+        move(-1, 'Move earlier'); move(1, 'Move later');
+      }
+      body.append(row);
+      li.append(body);
+      ul.append(li);
+    });
+  }
 
   function sync() {
-    const img = hasImage();
+    const f = format(), rule = RULES[f];
     const scheduled = !!inp('#when').value;
-    $('#alt-field').hidden = !img;
-    // Instagram needs an image and can't be scheduled from here.
+    const full = items.length >= rule.max;
+    $('#format-hint').textContent = rule.hint;
+    $('#media-label').textContent = rule.media;
+    $('#media-pick').textContent = full ? (rule.max === 1 ? 'Remove it to choose another' : 'Ten photos is the most') : items.length ? 'Add another' : `Add ${rule.noun}`;
+    (inp('#media-file')).disabled = full || busy;
+    $('#media-pick').classList.toggle('is-disabled', full || busy);
+    inp('#media-file').accept = rule.accept;
+    inp('#media-file').multiple = rule.max > 1;
+    $('#media-hint').textContent = f === 'carousel' || f === 'post'
+      ? 'Resized and saved as a JPEG here, which also removes location data.'
+      : f === 'story' ? 'Photos are resized and saved as JPEGs here. Videos can be up to 60 seconds and 90 MB.' : 'MP4 or MOV, up to 90 MB.';
+    // Consent applies once there is any media.
+    $('#consent-field').hidden = !items.length;
+    $('#consent-text').textContent = hasVideo()
+      ? 'Anyone recognisable or audible in this video has given video consent (see Consents), or nobody is recognisable.'
+      : items.length > 1 ? 'Anyone recognisable in these photos has given photo consent, or nobody is recognisable.' : 'Anyone recognisable in this photo has given photo consent, or nobody is recognisable.';
+    $('#captions-wrap').hidden = !hasVideo();
+    // Instagram needs the media the format asks for, and can't be scheduled from here.
     const ig = inp('#to-ig');
-    ig.disabled = !img || scheduled;
+    const igReady = items.length >= Math.max(1, rule.min) && !scheduled;
+    ig.disabled = !igReady;
     if (ig.disabled) ig.checked = false;
-    $('#where-hint').textContent = !img ? 'Instagram needs a photo.' : scheduled ? 'Scheduled posts go to Facebook only. Instagram posts publish straight away.' : '';
-    const link = inp('#link');
-    link.disabled = img;
-    if (img) link.value = '';
-    $('#link-hint').hidden = !img;
-    const limit = ig.checked ? 2200 : 5000;
+    $('#where-hint').textContent = items.length < Math.max(1, rule.min) ? `Instagram needs ${rule.noun}.` : scheduled ? 'Scheduled posts go to Facebook only. Instagram posts publish straight away.' : '';
+    // Message / caption.
+    const noText = f === 'story';
+    ta('#text').disabled = noText;
+    if (noText) ta('#text').value = '';
+    $('#text-label').textContent = noText ? 'Caption (Stories have none)' : f === 'reel' || (ig.checked && !inp('#to-fb').checked) ? 'Caption' : 'Message';
+    const limit = ig.checked || f === 'reel' ? 2200 : 5000;
     ta('#text').maxLength = limit;
-    $('#count').textContent = `${ta('#text').value.length} of ${limit} characters${ig.checked ? ' (Instagram limit)' : ''}`;
+    $('#count').textContent = noText ? '' : `${ta('#text').value.length} of ${limit} characters${limit === 2200 ? ' (Instagram and Reel limit)' : ''}`;
+    // Facebook options.
+    const link = inp('#link');
+    link.disabled = f !== 'post' || items.length > 0;
+    if (link.disabled) link.value = '';
+    $('#link-hint').hidden = !link.disabled;
+    const canSchedule = f === 'post' || f === 'carousel';
+    inp('#when').disabled = !canSchedule;
+    if (!canSchedule) inp('#when').value = '';
+    $('#when-hint').textContent = canSchedule ? 'Scheduling is Facebook only, for posts and carousels, at least 10 minutes ahead.' : 'Stories and Reels can\'t be scheduled from here.';
   }
-  ['#text', '#to-ig', '#to-fb', '#when', '#photo-url'].forEach(s => $(s).addEventListener('input', sync));
+  ['#text', '#to-ig', '#to-fb', '#when'].forEach(s => $(s).addEventListener('input', sync));
   $('#to-ig').addEventListener('change', sync);
+  document.querySelectorAll('input[name=format]').forEach(r => r.addEventListener('change', () => {
+    const rule = RULES[format()];
+    const keep = items.filter(i => rule.kinds.includes(i.kind)).slice(0, rule.max);
+    if (keep.length < items.length) say(`Some media didn't fit a ${format()} and was removed.`);
+    items = keep;
+    renderMedia(); sync();
+  }));
 
-  // Resize to at most 1440px on the long side and re-encode as JPEG. Re-encoding drops location and
-  // camera data (EXIF), which matters for photos of people. Then upload to our own storage; Meta
+  // Photos: resize to at most 1440px on the long side and re-encode as JPEG. Re-encoding drops location
+  // and camera data (EXIF), which matters for photos of people. Then upload to our own storage; Meta
   // fetches it from the public /social-media/ URL.
   async function toJpeg(file: File): Promise<{ blob: Blob; w: number; h: number }> {
     const bmp = await createImageBitmap(file);
@@ -176,50 +275,107 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
     if (!blob) throw new Error('Could not read that image.');
     return { blob, w, h };
   }
-  let ratio = 1;
-  const clearPhoto = () => {
-    imageUrl = ''; inp('#photo-file').value = ''; $('#photo-wrap').hidden = true; sync();
-  };
-  inp('#photo-file').addEventListener('change', async () => {
-    const file = inp('#photo-file').files?.[0];
-    if (!file) return;
+  function videoInfo(file: File): Promise<{ seconds: number; ratio: number; src: string }> {
+    return new Promise((resolve, reject) => {
+      const src = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.onloadedmetadata = () => resolve({ seconds: v.duration, ratio: v.videoWidth / v.videoHeight, src });
+      v.onerror = () => { URL.revokeObjectURL(src); reject(new Error('Could not read that video. Use an MP4 (H.264) or MOV.')); };
+      v.src = src;
+    });
+  }
+  async function addPhoto(file: File) {
+    const { blob, w, h } = await toJpeg(file);
+    const fd = new FormData(); fd.append('file', blob, 'image.jpg');
+    const r = await fetch('/api/team/social-media', { method: 'POST', body: fd });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Upload failed.');
+    items.push({ kind: 'image', url: d.url, thumb: URL.createObjectURL(blob), alt: '', ratio: w / h, seconds: 0 });
+  }
+  async function addVideo(file: File) {
+    const f = format();
+    if (file.type !== 'video/mp4' && file.type !== 'video/quicktime') throw new Error('Use an MP4 or MOV video.');
+    if (file.size > MAX_VIDEO) throw new Error('That video is over 90 MB. Export it smaller and try again.');
+    const info = await videoInfo(file);
+    const [lo, hi] = f === 'reel' ? [3, 90] : [1, 60];
+    if (info.seconds < lo || info.seconds > hi) { URL.revokeObjectURL(info.src); throw new Error(`${f === 'reel' ? 'Reels' : 'Story videos'} must be ${lo === 1 ? 'up to' : lo + ' to'} ${hi} seconds. This one is ${Math.round(info.seconds)}.`); }
+    say('Uploading the video. Keep this page open…');
+    const r = await fetch('/api/team/social-video', { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { URL.revokeObjectURL(info.src); throw new Error(d.error || 'Upload failed.'); }
+    items.push({ kind: 'video', url: d.url, thumb: info.src, alt: '', ratio: info.ratio, seconds: info.seconds });
+  }
+  inp('#media-file').addEventListener('change', async () => {
+    const files = Array.from(inp('#media-file').files ?? []);
+    inp('#media-file').value = '';
+    if (!files.length) return;
+    busy = true; sync();
     try {
-      say('Preparing and uploading the photo…');
-      const { blob, w, h } = await toJpeg(file);
-      ratio = w / h;
-      const fd = new FormData(); fd.append('file', blob, 'image.jpg');
-      const r = await fetch('/api/team/social-media', { method: 'POST', body: fd });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.error || 'Upload failed.');
-      imageUrl = d.url;
-      (document.getElementById('photo-thumb') as HTMLImageElement).src = URL.createObjectURL(blob);
-      $('#photo-wrap').hidden = false;
-      sync(); say('Photo added. Add alt text and tick the consent box.', true);
-      ta('#alt').focus();
-    } catch (err: any) { say(err.message); inp('#photo-file').value = ''; }
+      const rule = RULES[format()];
+      for (const file of files) {
+        if (items.length >= rule.max) { say(`That's the most a ${format()} can hold.`); break; }
+        const isVideo = file.type.startsWith('video/');
+        if (!rule.kinds.includes(isVideo ? 'video' : 'image')) throw new Error(`A ${format()} takes ${rule.noun}.`);
+        say(isVideo ? 'Reading the video…' : 'Preparing and uploading the photo…');
+        await (isVideo ? addVideo(file) : addPhoto(file));
+      }
+      renderMedia();
+      say(`Added. Describe ${items.length > 1 ? 'each one' : 'it'} and tick the consent box.`, true);
+      (document.getElementById(`alt-${items.length - 1}`) as HTMLElement | null)?.focus();
+    } catch (err: any) { say(err.message); }
+    finally { busy = false; renderMedia(); sync(); }
   });
-  $('#photo-remove').addEventListener('click', () => { clearPhoto(); $('.sc-pick').focus(); });
+  $('#media-url-add').addEventListener('click', () => {
+    const u = inp('#media-url').value.trim();
+    const rule = RULES[format()];
+    if (!/^https:\/\//.test(u)) { say('Use a public https link.'); return; }
+    const kind = /\.(mp4|mov)(\?|$)/i.test(u) ? 'video' : 'image';
+    if (!rule.kinds.includes(kind)) { say(`A ${format()} takes ${rule.noun}.`); return; }
+    if (items.length >= rule.max) { say(`That's the most a ${format()} can hold.`); return; }
+    items.push({ kind, url: u, thumb: u, alt: '', ratio: 0, seconds: 0 });
+    inp('#media-url').value = '';
+    renderMedia(); sync();
+  });
 
   function build() {
+    const f = format(), rule = RULES[f];
     const message = ta('#text').value.trim();
-    const img = currentImage();
     const toFb = inp('#to-fb').checked, toIg = inp('#to-ig').checked;
     if (!toFb && !toIg) { say('Choose Facebook, Instagram or both.'); return null; }
-    if (!message && !toIg) { say('Write a message first.'); return null; }
-    if (img) {
-      if (!ta('#alt').value.trim()) { say('Add alt text for the photo.'); ta('#alt').focus(); return null; }
-      if (!inp('#consent').checked) { say('Tick the photo consent box first.'); inp('#consent').focus(); return null; }
-      if (toIg && (ratio < 0.8 || ratio > 1.91) && imageUrl) { say('Instagram needs a photo between 4:5 (portrait) and 1.91:1 (landscape). Crop it and add it again.'); return null; }
+    if (items.length < rule.min || items.length > rule.max) { say(`A ${f} needs ${rule.noun}${rule.min > 1 ? ` (${rule.min} to ${rule.max})` : ''}.`); return null; }
+    if (f !== 'story' && f !== 'reel' && !message && !toIg) { say('Write a message first.'); return null; }
+    if (f === 'carousel' && !message && toFb) { say('Write a message for the Facebook post.'); return null; }
+    for (let i = 0; i < items.length; i++) {
+      if (!items[i].alt.trim()) { say(items[i].kind === 'video' ? 'Describe the video.' : `Add alt text for photo ${i + 1}.`); document.getElementById(`alt-${i}`)?.focus(); return null; }
     }
-    const alt_text = ta('#alt').value.trim();
+    if (items.length && !inp('#consent').checked) { say(`Tick the ${hasVideo() ? 'video' : 'photo'} consent box first.`); inp('#consent').focus(); return null; }
+    if (hasVideo() && !inp('#captions').checked) { say('Confirm the video is captioned, or has nothing spoken.'); inp('#captions').focus(); return null; }
+    if (toIg && (f === 'post' || f === 'carousel') && items.some(i => i.ratio && (i.ratio < 0.8 || i.ratio > 1.91))) { say('Instagram needs photos between 4:5 (portrait) and 1.91:1 (landscape). Crop and add them again.'); return null; }
     const w = inp('#when').value;
+    const link = inp('#link').value.trim();
+    const first = items[0];
+    const media: any = f === 'carousel'
+      ? { images: items.map(i => ({ url: i.url, alt: i.alt.trim() })), consent_ok: true }
+      : !first ? {}
+      : first.kind === 'video'
+        ? { video_url: first.url, alt_text: first.alt.trim(), consent_ok: true, captions_ok: true }
+        : { image_url: first.url, alt_text: first.alt.trim(), consent_ok: true };
     const posts: { platform: string; body: any }[] = [];
-    if (toFb) {
-      const link = inp('#link').value.trim();
-      posts.push({ platform: 'Facebook', body: { action: 'publish_facebook', message, ...(img ? { image_url: img, alt_text, consent_ok: true } : {}), ...(link && !img ? { link } : {}), ...(w ? { schedule_at: new Date(w).toISOString() } : {}) } });
+    if (toFb) posts.push({ platform: 'Facebook', body: { action: 'publish_facebook', format: f, message, ...media, ...(link && f === 'post' && !first ? { link } : {}), ...(w ? { schedule_at: new Date(w).toISOString() } : {}) } });
+    if (toIg) posts.push({ platform: 'Instagram', body: { action: 'publish_instagram', format: f, caption: message, ...media } });
+    return { posts, message, f, when: w, link };
+  }
+
+  // Instagram may still be processing a video after the first call: ask again with the creation id.
+  async function sendConfirmed(body: any) {
+    let r = await send({ ...body, confirm: true });
+    for (let i = 0; r.pending && i < 6; i++) {
+      say('Instagram is processing the video. Keep this page open…');
+      r = await send({ action: 'finish_instagram', creation_id: r.creation_id, confirm: true });
     }
-    if (toIg) posts.push({ platform: 'Instagram', body: { action: 'publish_instagram', image_url: img, alt_text, consent_ok: true, caption: message } });
-    return { posts, message, img, alt_text, when: w };
+    if (r.pending) throw new Error(`Instagram is still processing the video and has not published it (creation id ${r.creation_id}). Ask Chris to finish it.`);
+    return r;
   }
 
   $('#composer').addEventListener('submit', async e => {
@@ -236,13 +392,18 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
       box.replaceChildren(el('p', 'Check this before it goes out', 'sc-preview__lead'));
       const dl = el('dl', '', 'sc-dl');
       const row = (k: string, v: string | Node) => { dl.append(el('dt', k)); const dd = el('dd'); dd.append(v); dl.append(dd); };
+      row('Making', ({ post: 'A post', carousel: `A carousel of ${items.length} photos`, story: 'A Story', reel: 'A Reel' } as any)[b.f]);
       row('Going to', b.posts.map(p => p.platform).join(' and '));
       row('When', b.when ? `Facebook: ${when(new Date(b.when).toISOString())}${b.posts.length > 1 ? ' · Instagram: now' : ''}` : 'Straight away');
-      if (b.img) {
-        const t = document.createElement('img'); t.src = (document.getElementById('photo-thumb') as HTMLImageElement).src || b.img; t.alt = b.alt_text; t.width = 120; t.className = 'sc-thumb';
-        row('Photo', t); row('Alt text', b.alt_text);
-      }
-      row(b.posts.some(p => p.platform === 'Instagram') && !b.posts.some(p => p.platform === 'Facebook') ? 'Caption' : 'Message', b.message || '(none)');
+      items.forEach((it, i) => {
+        let m: HTMLElement;
+        if (it.kind === 'video') { const v = document.createElement('video'); v.src = it.thumb; v.controls = true; v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.width = 120; v.className = 'sc-thumb'; v.setAttribute('aria-label', 'Video preview'); m = v; }
+        else { const t = document.createElement('img'); t.src = it.thumb; t.alt = it.alt; t.width = 120; t.className = 'sc-thumb'; m = t; }
+        row(it.kind === 'video' ? 'Video' : `Photo${items.length > 1 ? ' ' + (i + 1) : ''}`, m);
+        row(it.kind === 'video' ? 'Description' : 'Alt text', it.alt);
+      });
+      if (b.f !== 'story') row(b.posts.length === 1 && b.posts[0].platform === 'Instagram' || b.f === 'reel' ? 'Caption' : 'Message', b.message || '(none)');
+      else row('Caption', 'None: Stories carry no caption');
       if (b.posts[0].body.link) row('Link', b.posts[0].body.link);
       box.append(dl);
       const ok = el('button', 'Confirm and send', 'sc-btn sc-btn--go') as HTMLButtonElement; ok.type = 'button';
@@ -252,12 +413,12 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
         ok.disabled = no.disabled = true;
         const done: string[] = [], failed: string[] = [];
         for (const p of b.posts) {
-          try { await send({ ...p.body, confirm: true }); done.push(p.platform); }
+          try { await sendConfirmed(p.body); done.push(p.platform); }
           catch (err: any) { failed.push(`${p.platform}: ${err.message}`); }
         }
         if (!failed.length) {
           say(`Sent to ${done.join(' and ')}. It is in the activity log.`, true);
-          (document.getElementById('composer') as HTMLFormElement).reset(); clearPhoto(); box.hidden = true; sync(); load();
+          (document.getElementById('composer') as HTMLFormElement).reset(); items = []; renderMedia(); box.hidden = true; sync(); load();
         } else {
           say(`${done.length ? `Sent to ${done.join(' and ')}. ` : ''}Not sent: ${failed.join(' · ')}`);
           ok.disabled = no.disabled = false; if (done.length) { box.hidden = true; load(); }
@@ -413,6 +574,13 @@ const authEmail = Astro.request.headers.get('Cf-Access-Authenticated-User-Email'
   .sc-pick { display: inline-flex; align-items: center; margin: 0; }
   .sc-thumbwrap { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
   .sc-thumbwrap img, .sc-thumb { border-radius: 6px; max-width: 120px; height: auto; display: block; }
+  .sc-media { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-3); }
+  .sc-media:empty { display: none; }
+  .sc-mitem { display: flex; gap: var(--space-3); align-items: flex-start; border: 1px solid var(--line); border-radius: 8px; padding: var(--space-3); min-width: 0; }
+  .sc-mitem__body { flex: 1; min-width: 0; }
+  .sc-mitem .sc-actions { margin-top: var(--space-1); }
+  .sc-mitem .sc-btn--small { margin: 0; }
+  .sc-pick.is-disabled { opacity: 0.6; cursor: not-allowed; }
   .sc-url { margin-top: var(--space-2); }
   .sc-url input { margin-top: var(--space-1); }
   .sc-more { margin-bottom: var(--space-4); }
