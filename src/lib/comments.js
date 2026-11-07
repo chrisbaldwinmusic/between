@@ -40,6 +40,17 @@ export function cutoff(now = new Date(), months = RETENTION_MONTHS) {
   d.setUTCMonth(d.getUTCMonth() - months);
   return d.toISOString().slice(0, 19).replace('T', ' ');
 }
+// Names inside the text: other people's @handles, emails, phone numbers and links are replaced before a
+// comment is stored (the wording otherwise stays as written). The rest of the words can still identify
+// someone, which is why quoting needs agreement.
+export function redact(text = '') {
+  return String(text)
+    .replace(/https?:\/\/\S+/gi, '[link]')
+    .replace(/[^\s@]+@[^\s@]+\.[^\s@.,;:!?)]+/g, '[email]')
+    .replace(/(?<![\w@])@[\w.]*\w/g, '@[someone]')
+    .replace(/(?<![\w.])\+?\d[\d\s().-]{8,}\d(?![\w])/g, '[number]');
+}
+
 // Which event a post is about: the first event whose name appears in the post text. Editable in the inbox.
 export function guessEvent(text = '') {
   const t = text.toLowerCase();
@@ -61,7 +72,7 @@ async function allComments(m, platform, postId, own = {}) {
     for (const c of r.data ?? []) {
       if (c.is_hidden || c.hidden) continue;              // hidden by us (e.g. abusive): not kept
       if (platform === 'facebook' ? (own.facebook && c.from?.id === own.facebook) : (own.instagram && c.username?.toLowerCase() === own.instagram)) continue;
-      const text = (platform === 'facebook' ? c.message : c.text)?.trim();
+      const text = redact((platform === 'facebook' ? c.message : c.text) ?? '').trim();
       const at = toDbTime(platform === 'facebook' ? c.created_time : c.timestamp);
       if (c.id && text && at) out.push({ id: String(c.id), text, at, likes: c.like_count ?? 0 });
     }
