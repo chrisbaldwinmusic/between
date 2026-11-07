@@ -83,7 +83,7 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
             </select>
             <noscript><button class="ev-btn" type="submit">Filter</button></noscript>
           </form>
-          <button class="ev-btn" type="button" id="cm-sync">Read new comments now</button>
+          <button class="ev-btn" type="button" id="cm-sync">Refresh comments</button>
           <span class="cm-msg" id="cm-sync-msg" role="status"></span>
         </div>
 
@@ -95,7 +95,7 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
         </details>
 
         <ul class="cm-list" role="list">
-          {comments.length === 0 && !missing && <li class="cm-empty">No comments here yet. They appear after the next daily read, or press "Read new comments now".</li>}
+          {comments.length === 0 && !missing && <li class="cm-empty">No comments here yet. They appear after the next daily refresh, or press "Refresh comments".</li>}
           {comments.map(c => (
             <li class={`cm cm--${c.status}`} data-id={c.id}>
               <form class="cm__form">
@@ -142,11 +142,11 @@ const tabs = [tab('all', 'All'), tab('new', 'Waiting'), tab('reviewed', 'Tagged'
   document.getElementById('cm-sync')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget as HTMLButtonElement;
     const msg = document.getElementById('cm-sync-msg')!;
-    btn.disabled = true; msg.textContent = 'Reading…';
+    btn.disabled = true; msg.textContent = 'Refreshing…';
     const res = await send('/api/team/comments/sync', 'POST');
     const j = await res.json().catch(() => ({}));
-    if (res.ok) { msg.textContent = `Read ${j.read}, removed ${j.removed}. Reloading…`; location.reload(); }
-    else { msg.textContent = j.error || 'Could not read comments'; btn.disabled = false; }
+    if (res.ok) { msg.textContent = `Checked ${j.read} comments, removed ${j.removed}. Reloading…`; location.reload(); }
+    else { msg.textContent = j.error || 'Could not refresh comments'; btn.disabled = false; }
   });
 
   document.getElementById('cm-copy')?.addEventListener('click', async (e) => {
