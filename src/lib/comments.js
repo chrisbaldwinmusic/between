@@ -223,8 +223,7 @@ export async function replyToComment(env, actor, id, body) {
   const claim = await db.prepare(`UPDATE social_comments SET replied_at = datetime('now') WHERE id = ? AND replied_at IS NULL`).bind(id).run();
   if (!claim.meta?.changes) return { error: 'This comment has already had a reply.', status: 409 };
   try {
-    const client = row.platform === 'facebook' ? (await facebookClient(env)).client : metaClient(env);
-    const r = await metaOps(client).reply({ platform: row.platform, comment_id: row.platform_id, message, confirm: true });
+    const r = await metaOps(metaClient(env)).reply({ platform: row.platform, comment_id: row.platform_id, message, confirm: true });
     if (!r.sent) throw new MetaError('Meta did not send the reply.', 502);
   } catch (err) {
     await db.prepare('UPDATE social_comments SET replied_at = NULL WHERE id = ?').bind(id).run();

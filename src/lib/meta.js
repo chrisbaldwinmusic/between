@@ -71,7 +71,20 @@ export function metaClient(env = {}, fetchImpl = fetch) {
     return body;
   }
   const need = (what, v) => { if (!v) throw new MetaError(`${what} is not configured.`, 503); return v; };
-  return {
+  // Facebook Page reads and writes want a Page access token. A system-user or user token can mint one for
+  // the Page; we do that once, lazily, and use it for Facebook only (Instagram keeps the configured token).
+  // If Meta won't issue one (or the configured token already is a Page token) we fall back to the configured
+  // token, and the call's own error says what is wrong.
+  let pageClientP;
+  const pageClient = () => (pageClientP ??= (async () => {
+    try {
+      const t = (await call('GET', need('META_PAGE_ID', env.META_PAGE_ID), { fields: 'access_token' })).access_token;
+      if (t && t !== token) return metaClient({ ...env, META_ACCESS_TOKEN: t }, fetchImpl);
+    } catch { /* fall back */ }
+    return null;
+  })());
+  const viaPage = name => async (...a) => ((await pageClient()) ?? self)[name](...a);
+  const self = {
     configured: !!token, version,
     pageId: () => need('META_PAGE_ID', env.META_PAGE_ID),
     igId: () => need('META_IG_USER_ID', env.META_IG_USER_ID),
@@ -79,7 +92,9 @@ export function metaClient(env = {}, fetchImpl = fetch) {
     get: (p, q) => call('GET', p, q),
     post: (p, q) => call('POST', p, q),
     rupload,
+    page: { get: viaPage('get'), post: viaPage('post'), rupload: viaPage('rupload') },
   };
+  return self;
 }
 
 const checkId = id => { if (!ID.test(String(id ?? ''))) throw new MetaError('Invalid id.'); return String(id); };
@@ -146,19 +161,20 @@ const gate = async (ok, action, payload, go) =>
 
 // Shared reads and validated writes. `m` is a metaClient.
 export function metaOps(m) {
+  const fb = m.page ?? m;   // Facebook calls go through the Page token
   return {
     status: async () => {
       const out = { connected: m.configured, apiVersion: m.version, ...m.ids };
       if (!m.configured) return out;
       return { ...out, tokenOwner: await m.get('me', { fields: 'id,name' }) };
     },
-    fbPage: () => m.get(m.pageId(), { fields: 'id,name,about,category,followers_count,fan_count,website,link,instagram_business_account{id,username}' }),
+    fbPage: () => fb.get(m.pageId(), { fields: 'id,name,about,category,followers_count,fan_count,website,link,instagram_business_account{id,username}' }),
     igAccount: () => m.get(m.igId(), { fields: 'id,username,name,biography,followers_count,follows_count,media_count,website' }),
-    fbPosts: ({ limit = 10, scheduled = false } = {}) => m.get(`${m.pageId()}/${scheduled ? 'scheduled_posts' : 'posts'}`, {
+    fbPosts: ({ limit = 10, scheduled = false } = {}) => fb.get(`${m.pageId()}/${scheduled ? 'scheduled_posts' : 'posts'}`, {
       limit, fields: 'id,message,created_time,scheduled_publish_time,permalink_url,full_picture,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)',
     }),
     igMedia: ({ limit = 10 } = {}) => m.get(`${m.igId()}/media`, { limit, fields: 'id,caption,media_type,media_product_type,permalink,media_url,thumbnail_url,timestamp,like_count,comments_count' }),
-    fbComments: ({ id, limit = 20 }) => m.get(`${checkId(id)}/comments`, { limit, order: 'reverse_chronological', fields: 'id,message,created_time,from,like_count,comment_count,is_hidden' }),
+    fbComments: ({ id, limit = 20 }) => fb.get(`${checkId(id)}/comments`, { limit, order: 'reverse_chronological', fields: 'id,message,created_time,from,like_count,comment_count,is_hidden' }),
     igComments: ({ id, limit = 20 }) => m.get(`${checkId(id)}/comments`, { limit, fields: 'id,text,username,timestamp,like_count,hidden,replies{id,text,username,timestamp}' }),
 
     publishFacebook: async ({ format: f, message = '', link, image_url, images, video_url, alt_text, consent_ok, captions_ok, schedule_at, confirm }) => {
@@ -179,8 +195,8 @@ export function metaOps(m) {
         return gate(confirm, image_url ? 'Publish a photo to Facebook Page' : 'Publish to Facebook Page',
           { message, link, image_url, alt_text, scheduled_for: when_ },
           () => (image_url
-            ? m.post(`${m.pageId()}/photos`, { url: image_url, caption: message, alt_text_custom: alt_text, ...sched })
-            : m.post(`${m.pageId()}/feed`, { message, link, ...sched })));
+            ? fb.post(`${m.pageId()}/photos`, { url: image_url, caption: message, alt_text_custom: alt_text, ...sched })
+            : fb.post(`${m.pageId()}/feed`, { message, link, ...sched })));
       }
 
       if (format === 'carousel') {
@@ -192,9 +208,9 @@ export function metaOps(m) {
           { message, images, scheduled_for: when_ },
           async () => {
             const ids = [];
-            for (const im of images) ids.push((await m.post(`${m.pageId()}/photos`, { url: im.url, alt_text_custom: im.alt, published: 'false' })).id);
+            for (const im of images) ids.push((await fb.post(`${m.pageId()}/photos`, { url: im.url, alt_text_custom: im.alt, published: 'false' })).id);
             const attached = Object.fromEntries(ids.map((id, i) => [`attached_media[${i}]`, JSON.stringify({ media_fbid: id })]));
-            return m.post(`${m.pageId()}/feed`, { message, ...attached, ...sched });
+            return fb.post(`${m.pageId()}/feed`, { message, ...attached, ...sched });
           });
       }
 
@@ -204,12 +220,12 @@ export function metaOps(m) {
         return gate(confirm, `Publish a ${video_url ? 'video' : 'photo'} Story to Facebook Page`, { image_url, video_url, alt_text },
           async () => {
             if (video_url) {
-              const start = await m.post(`${m.pageId()}/video_stories`, { upload_phase: 'start' });
-              await m.rupload(start.upload_url, video_url);
-              return m.post(`${m.pageId()}/video_stories`, { upload_phase: 'finish', video_id: start.video_id });
+              const start = await fb.post(`${m.pageId()}/video_stories`, { upload_phase: 'start' });
+              await fb.rupload(start.upload_url, video_url);
+              return fb.post(`${m.pageId()}/video_stories`, { upload_phase: 'finish', video_id: start.video_id });
             }
-            const photo = await m.post(`${m.pageId()}/photos`, { url: image_url, alt_text_custom: alt_text, published: 'false' });
-            return m.post(`${m.pageId()}/photo_stories`, { photo_id: photo.id });
+            const photo = await fb.post(`${m.pageId()}/photos`, { url: image_url, alt_text_custom: alt_text, published: 'false' });
+            return fb.post(`${m.pageId()}/photo_stories`, { photo_id: photo.id });
           });
       }
       // reel
@@ -217,9 +233,9 @@ export function metaOps(m) {
       utmCheck(message);
       return gate(confirm, 'Publish a Reel to Facebook Page', { message, video_url, alt_text },
         async () => {
-          const start = await m.post(`${m.pageId()}/video_reels`, { upload_phase: 'start' });
-          await m.rupload(start.upload_url, video_url);
-          return m.post(`${m.pageId()}/video_reels`, { upload_phase: 'finish', video_id: start.video_id, video_state: 'PUBLISHED', description: message });
+          const start = await fb.post(`${m.pageId()}/video_reels`, { upload_phase: 'start' });
+          await fb.rupload(start.upload_url, video_url);
+          return fb.post(`${m.pageId()}/video_reels`, { upload_phase: 'finish', video_id: start.video_id, video_state: 'PUBLISHED', description: message });
         });
     },
 
@@ -269,13 +285,13 @@ export function metaOps(m) {
       utmCheck(message);
       checkId(comment_id);
       return gate(confirm, `Reply on ${platform}`, { comment_id, message },
-        () => m.post(`${comment_id}/${platform === 'facebook' ? 'comments' : 'replies'}`, { message }));
+        () => (platform === 'facebook' ? fb : m).post(`${comment_id}/${platform === 'facebook' ? 'comments' : 'replies'}`, { message }));
     },
     hide: async ({ platform, comment_id, hidden, confirm }) => {
       if (!['facebook', 'instagram'].includes(platform)) throw new MetaError('platform must be facebook or instagram.');
       checkId(comment_id);
       return gate(confirm, `${hidden ? 'Hide' : 'Unhide'} ${platform} comment`, { comment_id },
-        () => m.post(comment_id, { [platform === 'facebook' ? 'is_hidden' : 'hide']: !!hidden }));
+        () => (platform === 'facebook' ? fb : m).post(comment_id, { [platform === 'facebook' ? 'is_hidden' : 'hide']: !!hidden }));
     },
   };
 }
